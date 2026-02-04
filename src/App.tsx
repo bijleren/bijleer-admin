@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Schools from './pages/Schools';
 import SchoolDetail from './pages/SchoolDetail';
+import Newsletters from './pages/Newsletters';
 import Tables from './pages/Tables';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
             <Route path="users" element={<Users />} />
             <Route path="schools" element={<Schools />} />
             <Route path="schools/:id" element={<SchoolDetail />} />
+            <Route path="didactiek" element={<Newsletters />} />
             <Route path="tables" element={<Tables />} />
           </Route>
         </Routes>

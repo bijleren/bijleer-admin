@@ -11,12 +11,14 @@ import {
   X,
   GraduationCap,
   ChevronDown,
+  BookOpen,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Users', href: '/users', icon: Users },
   { name: 'Schools', href: '/schools', icon: School },
+  { name: 'Didactiek', href: '/didactiek', icon: BookOpen },
   { name: 'Tables', href: '/tables', icon: Database },
 ];
 
