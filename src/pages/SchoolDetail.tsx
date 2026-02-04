@@ -106,24 +106,30 @@ export default function SchoolDetail() {
 
       const { data: usersData } = await supabase
         .from('school_users')
-        .select('id, role, user_id, profiles(full_name, email)')
-        .eq('school_id', id);
+        .select('id, role, user_id, profiles!inner(full_name, email)')
+        .eq('school_id', id)
+        .then(result => result)
+        .catch(() => ({ data: [] }));
 
       const { data: classesData } = await supabase
         .from('classes')
         .select('*')
         .eq('school_id', id)
-        .order('name');
+        .order('name')
+        .then(result => result)
+        .catch(() => ({ data: [] }));
 
       const { data: studentsData } = await supabase
         .from('students')
         .select('*')
         .eq('school_id', id)
-        .order('last_name');
+        .order('last_name')
+        .then(result => result)
+        .catch(() => ({ data: [] }));
 
-      setUsers(usersData || []);
-      setClasses(classesData || []);
-      setStudents(studentsData || []);
+      setUsers(usersData?.data || []);
+      setClasses(classesData?.data || []);
+      setStudents(studentsData?.data || []);
     } catch (error) {
       console.error('Error fetching school data:', error);
     } finally {
@@ -184,7 +190,7 @@ export default function SchoolDetail() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full h-full p-6 space-y-6">
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate('/schools')}
