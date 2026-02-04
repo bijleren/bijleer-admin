@@ -142,7 +142,8 @@ export default function Vocabulary() {
       const { data, error } = await supabase
         .from('wordfrequency')
         .select('*')
-        .order('word', { ascending: true });
+        .order('word', { ascending: true })
+        .limit(100000);
 
       if (error) throw error;
       setWords(data || []);
