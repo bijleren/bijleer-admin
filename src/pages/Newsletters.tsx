@@ -9,21 +9,13 @@ interface Newsletter {
   title: string;
   description: string | null;
   file_path: string;
-  vorming_id: string | null;
   created_at: string;
   created_by: string | null;
-}
-
-interface Vorming {
-  id: string;
-  title: string;
-  category: string;
 }
 
 export default function Newsletters() {
   const [newsletters, setNewsletters] = useState<Newsletter[]>([]);
   const [filteredNewsletters, setFilteredNewsletters] = useState<Newsletter[]>([]);
-  const [vormingen, setVormingen] = useState<Vorming[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,7 +23,6 @@ export default function Newsletters() {
 
   useEffect(() => {
     fetchNewsletters();
-    fetchVormingen();
   }, []);
 
   useEffect(() => {
@@ -61,21 +52,6 @@ export default function Newsletters() {
       console.error('Error fetching newsletters:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchVormingen = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('didactiek_vormingen')
-        .select('id, title, category')
-        .eq('is_published', true)
-        .order('title', { ascending: true });
-
-      if (error) throw error;
-      setVormingen(data || []);
-    } catch (error) {
-      console.error('Error fetching vormingen:', error);
     }
   };
 
@@ -116,7 +92,6 @@ export default function Newsletters() {
             title: newsletter.title,
             description: newsletter.description,
             file_path: newsletter.file_path,
-            vorming_id: newsletter.vorming_id || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', newsletter.id);
@@ -130,7 +105,6 @@ export default function Newsletters() {
               title: newsletter.title,
               description: newsletter.description,
               file_path: newsletter.file_path,
-              vorming_id: newsletter.vorming_id || null,
             },
           ]);
 
@@ -287,7 +261,6 @@ export default function Newsletters() {
         }}
         onSave={handleSave}
         newsletter={selectedNewsletter}
-        vormingen={vormingen}
       />
     </div>
   );
