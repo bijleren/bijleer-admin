@@ -8,6 +8,7 @@ import Users from './pages/Users';
 import Schools from './pages/Schools';
 import SchoolDetail from './pages/SchoolDetail';
 import Newsletters from './pages/Newsletters';
+import Vormingen from './pages/Vormingen';
 import Tables from './pages/Tables';
 import Klankteken from './pages/Klankteken';
 import Vocabulary from './pages/Vocabulary';
@@ -34,6 +35,7 @@ function App() {
             <Route path="schools" element={<Schools />} />
             <Route path="schools/:id" element={<SchoolDetail />} />
             <Route path="didactiek/nieuwsbrieven" element={<Newsletters />} />
+            <Route path="didactiek/vormingen" element={<Vormingen />} />
             <Route path="woordenschat/klankteken" element={<Klankteken />} />
             <Route path="woordenschat/woorden" element={<Vocabulary />} />
             <Route path="woordenschat/statistiek" element={<Statistics />} />

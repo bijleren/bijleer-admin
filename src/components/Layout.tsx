@@ -23,7 +23,8 @@ const navigation = [
     name: 'Didactiek',
     icon: BookOpen,
     submenu: [
-      { name: 'Nieuwsbrieven', href: '/didactiek/nieuwsbrieven' }
+      { name: 'Nieuwsbrieven', href: '/didactiek/nieuwsbrieven' },
+      { name: 'Vormingen', href: '/didactiek/vormingen' }
     ]
   },
   {
