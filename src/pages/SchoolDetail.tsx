@@ -23,6 +23,7 @@ interface School {
   website: string;
   student_count: number;
   created_at: string;
+  onboarded: number;
 }
 
 interface SchoolUser {
@@ -71,6 +72,7 @@ export default function SchoolDetail() {
     email: '',
     principal_name: '',
     website: '',
+    onboarded: 0,
   });
 
   useEffect(() => {
@@ -103,6 +105,7 @@ export default function SchoolDetail() {
         email: schoolData.email || '',
         principal_name: schoolData.principal_name || '',
         website: schoolData.website || '',
+        onboarded: schoolData.onboarded || 0,
       });
 
       const { data: usersData } = await supabase
@@ -351,6 +354,34 @@ export default function SchoolDetail() {
               />
             ) : (
               <p className="text-gray-900">{school.address || 'N/A'}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Onboarded
+            </label>
+            {isEditing ? (
+              <select
+                value={editForm.onboarded}
+                onChange={(e) => setEditForm({ ...editForm, onboarded: parseInt(e.target.value) })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={0}>No (0)</option>
+                <option value={1}>Yes (1)</option>
+              </select>
+            ) : (
+              <p className="text-gray-900">
+                {school.onboarded === 1 ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Yes
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    No
+                  </span>
+                )}
+              </p>
             )}
           </div>
         </div>
