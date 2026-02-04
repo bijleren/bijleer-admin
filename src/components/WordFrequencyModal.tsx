@@ -10,6 +10,8 @@ interface WordFrequency {
   aantal_klankgroepen?: number;
   samenstelling?: string;
   frequency?: number;
+  created_at?: string;
+  updated_at?: string;
   audio?: string;
   audio_file?: string;
   image?: string;
@@ -55,7 +57,7 @@ interface WordFrequencyModalProps {
 }
 
 export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: WordFrequencyModalProps) {
-  const [activeTab, setActiveTab] = useState<'basic' | 'phonetic' | 'grammar' | 'advanced'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'phonetic' | 'grammar' | 'media' | 'checks' | 'advanced'>('basic');
   const [formData, setFormData] = useState<WordFrequency>({
     word: '',
     klankteken: '',
@@ -63,6 +65,7 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
     aantal_klankgroepen: 1,
     forbidden: 0,
     has_multiple_meanings: 0,
+    klankgroup_checked: 0,
   });
   const [loading, setLoading] = useState(false);
 
@@ -77,6 +80,7 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
         aantal_klankgroepen: 1,
         forbidden: 0,
         has_multiple_meanings: 0,
+        klankgroup_checked: 0,
       });
     }
   }, [word, isOpen]);
@@ -108,7 +112,7 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} />
-      <div className="relative bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-xl shadow-xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">
             {word ? 'Woord Bewerken' : 'Nieuw Woord'}
@@ -122,10 +126,10 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
         </div>
 
         <div className="border-b border-gray-200">
-          <nav className="flex -mb-px">
+          <nav className="flex -mb-px overflow-x-auto">
             <button
               onClick={() => setActiveTab('basic')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'basic'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -135,7 +139,7 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
             </button>
             <button
               onClick={() => setActiveTab('phonetic')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'phonetic'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -145,7 +149,7 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
             </button>
             <button
               onClick={() => setActiveTab('grammar')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'grammar'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -154,8 +158,28 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
               Grammatica
             </button>
             <button
+              onClick={() => setActiveTab('media')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'media'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Media
+            </button>
+            <button
+              onClick={() => setActiveTab('checks')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'checks'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Controles
+            </button>
+            <button
               onClick={() => setActiveTab('advanced')}
-              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === 'advanced'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -228,30 +252,46 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-                    Afbeelding URL
+                  <label htmlFor="frequency_norm" className="block text-sm font-medium text-gray-700 mb-2">
+                    Frequentie Norm
                   </label>
                   <input
-                    type="text"
-                    id="image"
-                    name="image"
-                    value={formData.image || ''}
+                    type="number"
+                    step="0.01"
+                    id="frequency_norm"
+                    name="frequency_norm"
+                    value={formData.frequency_norm || ''}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="audio" className="block text-sm font-medium text-gray-700 mb-2">
-                    Audio URL
+                  <label htmlFor="concreteness" className="block text-sm font-medium text-gray-700 mb-2">
+                    Concreetheid
                   </label>
                   <input
-                    type="text"
-                    id="audio"
-                    name="audio"
-                    value={formData.audio || ''}
+                    type="number"
+                    step="0.01"
+                    id="concreteness"
+                    name="concreteness"
+                    value={formData.concreteness || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="forbidden" className="block text-sm font-medium text-gray-700 mb-2">
+                    Verboden
+                  </label>
+                  <input
+                    type="number"
+                    id="forbidden"
+                    name="forbidden"
+                    value={formData.forbidden || ''}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -306,7 +346,7 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label htmlFor="aantal_klankgroepen" className="block text-sm font-medium text-gray-700 mb-2">
                     Aantal Klankgroepen
@@ -344,6 +384,20 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
                     id="aantal_karakters"
                     name="aantal_karakters"
                     value={formData.aantal_karakters || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="klankzuiver" className="block text-sm font-medium text-gray-700 mb-2">
+                    Klankzuiver
+                  </label>
+                  <input
+                    type="number"
+                    id="klankzuiver"
+                    name="klankzuiver"
+                    value={formData.klankzuiver || ''}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -458,15 +512,215 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="verb_form" className="block text-sm font-medium text-gray-700 mb-2">
+                    Werkwoordvorm
+                  </label>
+                  <input
+                    type="text"
+                    id="verb_form"
+                    name="verb_form"
+                    value={formData.verb_form || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="has_multiple_meanings" className="block text-sm font-medium text-gray-700 mb-2">
+                    Meerdere Betekenissen
+                  </label>
+                  <input
+                    type="number"
+                    id="has_multiple_meanings"
+                    name="has_multiple_meanings"
+                    value={formData.has_multiple_meanings || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label htmlFor="verb_form" className="block text-sm font-medium text-gray-700 mb-2">
-                  Werkwoordvorm
+                <label htmlFor="capitalized" className="block text-sm font-medium text-gray-700 mb-2">
+                  Hoofdletter
                 </label>
                 <input
-                  type="text"
-                  id="verb_form"
-                  name="verb_form"
-                  value={formData.verb_form || ''}
+                  type="number"
+                  id="capitalized"
+                  name="capitalized"
+                  value={formData.capitalized || ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </>
+          )}
+
+          {activeTab === 'media' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
+                    Afbeelding URL
+                  </label>
+                  <input
+                    type="text"
+                    id="image"
+                    name="image"
+                    value={formData.image || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="image_file" className="block text-sm font-medium text-gray-700 mb-2">
+                    Afbeelding Bestand
+                  </label>
+                  <input
+                    type="text"
+                    id="image_file"
+                    name="image_file"
+                    value={formData.image_file || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="audio" className="block text-sm font-medium text-gray-700 mb-2">
+                    Audio URL
+                  </label>
+                  <input
+                    type="text"
+                    id="audio"
+                    name="audio"
+                    value={formData.audio || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="audio_file" className="block text-sm font-medium text-gray-700 mb-2">
+                    Audio Bestand
+                  </label>
+                  <input
+                    type="text"
+                    id="audio_file"
+                    name="audio_file"
+                    value={formData.audio_file || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'checks' && (
+            <>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="klankteken_checked" className="block text-sm font-medium text-gray-700 mb-2">
+                    Klankteken Gecontroleerd
+                  </label>
+                  <input
+                    type="number"
+                    id="klankteken_checked"
+                    name="klankteken_checked"
+                    value={formData.klankteken_checked || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="klankteken_tobechecked" className="block text-sm font-medium text-gray-700 mb-2">
+                    Klankteken Te Controleren
+                  </label>
+                  <input
+                    type="number"
+                    id="klankteken_tobechecked"
+                    name="klankteken_tobechecked"
+                    value={formData.klankteken_tobechecked || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="image_checked" className="block text-sm font-medium text-gray-700 mb-2">
+                    Afbeelding Gecontroleerd
+                  </label>
+                  <input
+                    type="number"
+                    id="image_checked"
+                    name="image_checked"
+                    value={formData.image_checked || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="klankgroepen_checked" className="block text-sm font-medium text-gray-700 mb-2">
+                    Klankgroepen Gecontroleerd
+                  </label>
+                  <input
+                    type="number"
+                    id="klankgroepen_checked"
+                    name="klankgroepen_checked"
+                    value={formData.klankgroepen_checked || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="audio_checked" className="block text-sm font-medium text-gray-700 mb-2">
+                    Audio Gecontroleerd
+                  </label>
+                  <input
+                    type="number"
+                    id="audio_checked"
+                    name="audio_checked"
+                    value={formData.audio_checked || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="betekenis_check" className="block text-sm font-medium text-gray-700 mb-2">
+                    Betekenis Controle
+                  </label>
+                  <input
+                    type="number"
+                    id="betekenis_check"
+                    name="betekenis_check"
+                    value={formData.betekenis_check || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="klankgroup_checked" className="block text-sm font-medium text-gray-700 mb-2">
+                  Klankgroep Gecontroleerd
+                </label>
+                <input
+                  type="number"
+                  id="klankgroup_checked"
+                  name="klankgroup_checked"
+                  value={formData.klankgroup_checked || ''}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -476,38 +730,6 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
 
           {activeTab === 'advanced' && (
             <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="frequency_norm" className="block text-sm font-medium text-gray-700 mb-2">
-                    Frequentie Norm
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    id="frequency_norm"
-                    name="frequency_norm"
-                    value={formData.frequency_norm || ''}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="concreteness" className="block text-sm font-medium text-gray-700 mb-2">
-                    Concreetheid
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    id="concreteness"
-                    name="concreteness"
-                    value={formData.concreteness || ''}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label htmlFor="addition_front" className="block text-sm font-medium text-gray-700 mb-2">
@@ -546,6 +768,36 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
                     id="substitute_middle"
                     name="substitute_middle"
                     value={formData.substitute_middle || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="substitute_front" className="block text-sm font-medium text-gray-700 mb-2">
+                    Vervanging Voor
+                  </label>
+                  <input
+                    type="text"
+                    id="substitute_front"
+                    name="substitute_front"
+                    value={formData.substitute_front || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="substitute_back" className="block text-sm font-medium text-gray-700 mb-2">
+                    Vervanging Achter
+                  </label>
+                  <input
+                    type="text"
+                    id="substitute_back"
+                    name="substitute_back"
+                    value={formData.substitute_back || ''}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
