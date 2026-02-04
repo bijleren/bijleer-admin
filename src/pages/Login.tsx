@@ -8,7 +8,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -16,13 +17,22 @@ export default function Login() {
     setError('');
     setLoading(true);
 
-    const { error } = await signIn(email, password);
-
-    if (error) {
-      setError(error.message || 'Failed to sign in');
-      setLoading(false);
+    if (isSignUp) {
+      const { error } = await signUp(email, password);
+      if (error) {
+        setError(error.message || 'Failed to create account');
+        setLoading(false);
+      } else {
+        navigate('/dashboard');
+      }
     } else {
-      navigate('/dashboard');
+      const { error } = await signIn(email, password);
+      if (error) {
+        setError(error.message || 'Failed to sign in');
+        setLoading(false);
+      } else {
+        navigate('/dashboard');
+      }
     }
   };
 
@@ -40,7 +50,7 @@ export default function Login() {
             Bijleer.school Admin
           </h1>
           <p className="text-gray-600 text-center mb-8">
-            Sign in to access the admin dashboard
+            {isSignUp ? 'Create your admin account' : 'Sign in to access the admin dashboard'}
           </p>
 
           {error && (
@@ -94,9 +104,21 @@ export default function Login() {
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 rounded-lg transition-colors duration-200"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? (isSignUp ? 'Creating account...' : 'Signing in...') : (isSignUp ? 'Create Account' : 'Sign In')}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError('');
+              }}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+            </button>
+          </div>
         </div>
 
         <p className="text-center text-sm text-gray-600 mt-6">
