@@ -3,25 +3,44 @@ import { supabase } from '../lib/supabase';
 import { Volume2, Plus, Edit2, Trash2, Search, ChevronLeft, ChevronRight, Columns, Check } from 'lucide-react';
 import PhonemeModal from '../components/PhonemeModal';
 
-interface Phoneme {
-  id: string;
-  symbol: string;
-  name: string;
-  description: string | null;
-  example_word: string | null;
-  audio_url: string | null;
-  image_url: string | null;
-  is_vowel: boolean | null;
-  is_consonant: boolean | null;
-  difficulty_level: number | null;
-  display_order: number | null;
-  is_active: boolean | null;
-  legacy_mysql_id: number | null;
-  created_at: string;
+interface Klankteken {
+  id: number;
+  title: string;
+  klinktals: string | null;
+  letters: string | null;
+  audio: string | null;
+  audio_uitleg: string | null;
+  tool_uitleg: string | null;
+  articulation: string | null;
+  type: string;
+  tool: string | null;
+  blockRepresentation: string | null;
+  imageWord: string | null;
+  imageTool: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  klankzuiver: string | null;
+  verenkelen: string | null;
+  verdubbelen: string | null;
+  speciale_tekens: string | null;
+  beschrijving: string | null;
+  example_words: string | null;
+  example_words_audio: string | null;
+  example_words_images: string | null;
+  volgorde: number | null;
+  length_type: string | null;
+  voice: string | null;
+  location: string | null;
+  lippen: string | null;
+  kaak: string | null;
+  produce_audio: string | null;
+  word: string | null;
+  fonetiek: string | null;
+  set: number | null;
 }
 
 interface ColumnConfig {
-  key: keyof Phoneme;
+  key: keyof Klankteken;
   label: string;
   visible: boolean;
   width?: string;
@@ -30,162 +49,180 @@ interface ColumnConfig {
 const ITEMS_PER_PAGE = 20;
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { key: 'symbol', label: 'Symbool', visible: true, width: '120px' },
-  { key: 'name', label: 'Naam', visible: true, width: '150px' },
-  { key: 'description', label: 'Beschrijving', visible: true, width: '250px' },
-  { key: 'example_word', label: 'Voorbeeld', visible: true, width: '150px' },
-  { key: 'audio_url', label: 'Audio URL', visible: false, width: '200px' },
-  { key: 'image_url', label: 'Afbeelding URL', visible: false, width: '200px' },
-  { key: 'is_vowel', label: 'Klinker', visible: true, width: '100px' },
-  { key: 'is_consonant', label: 'Medeklinker', visible: true, width: '120px' },
-  { key: 'difficulty_level', label: 'Niveau', visible: true, width: '100px' },
-  { key: 'display_order', label: 'Volgorde', visible: false, width: '100px' },
-  { key: 'is_active', label: 'Actief', visible: true, width: '100px' },
-  { key: 'legacy_mysql_id', label: 'Legacy ID', visible: false, width: '100px' },
+  { key: 'title', label: 'Titel', visible: true, width: '200px' },
+  { key: 'type', label: 'Type', visible: true, width: '120px' },
+  { key: 'word', label: 'Woord', visible: true, width: '150px' },
+  { key: 'letters', label: 'Letters', visible: true, width: '150px' },
+  { key: 'beschrijving', label: 'Beschrijving', visible: true, width: '250px' },
+  { key: 'klinktals', label: 'Klinktals', visible: false, width: '150px' },
+  { key: 'audio', label: 'Audio', visible: false, width: '200px' },
+  { key: 'audio_uitleg', label: 'Audio Uitleg', visible: false, width: '200px' },
+  { key: 'tool_uitleg', label: 'Tool Uitleg', visible: false, width: '200px' },
+  { key: 'articulation', label: 'Articulatie', visible: false, width: '150px' },
+  { key: 'tool', label: 'Tool', visible: false, width: '150px' },
+  { key: 'blockRepresentation', label: 'Blok Representatie', visible: false, width: '180px' },
+  { key: 'imageWord', label: 'Afbeelding Woord', visible: false, width: '200px' },
+  { key: 'imageTool', label: 'Afbeelding Tool', visible: false, width: '200px' },
+  { key: 'klankzuiver', label: 'Klankzuiver', visible: false, width: '150px' },
+  { key: 'verenkelen', label: 'Verenkelen', visible: false, width: '150px' },
+  { key: 'verdubbelen', label: 'Verdubbelen', visible: false, width: '150px' },
+  { key: 'speciale_tekens', label: 'Speciale Tekens', visible: false, width: '180px' },
+  { key: 'example_words', label: 'Voorbeeldwoorden', visible: false, width: '200px' },
+  { key: 'example_words_audio', label: 'Voorbeeldwoorden Audio', visible: false, width: '220px' },
+  { key: 'example_words_images', label: 'Voorbeeldwoorden Afbeeldingen', visible: false, width: '250px' },
+  { key: 'volgorde', label: 'Volgorde', visible: true, width: '100px' },
+  { key: 'length_type', label: 'Lengte Type', visible: false, width: '120px' },
+  { key: 'voice', label: 'Stem', visible: false, width: '100px' },
+  { key: 'location', label: 'Locatie', visible: false, width: '120px' },
+  { key: 'lippen', label: 'Lippen', visible: false, width: '100px' },
+  { key: 'kaak', label: 'Kaak', visible: false, width: '100px' },
+  { key: 'produce_audio', label: 'Produce Audio', visible: false, width: '200px' },
+  { key: 'fonetiek', label: 'Fonetiek', visible: false, width: '150px' },
+  { key: 'set', label: 'Set', visible: true, width: '80px' },
   { key: 'created_at', label: 'Aangemaakt', visible: false, width: '180px' },
+  { key: 'updated_at', label: 'Bijgewerkt', visible: false, width: '180px' },
 ];
 
 export default function Klankteken() {
-  const [phonemes, setPhonemes] = useState<Phoneme[]>([]);
-  const [filteredPhonemes, setFilteredPhonemes] = useState<Phoneme[]>([]);
+  const [data, setData] = useState<Klankteken[]>([]);
+  const [filteredData, setFilteredData] = useState<Klankteken[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPhoneme, setSelectedPhoneme] = useState<Phoneme | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Klankteken | null>(null);
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
   const [showColumnToggle, setShowColumnToggle] = useState(false);
 
   useEffect(() => {
-    fetchPhonemes();
+    fetchData();
   }, []);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
-      setFilteredPhonemes(phonemes);
+      setFilteredData(data);
     } else {
-      const filtered = phonemes.filter((phoneme) =>
-        phoneme.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (phoneme.name && phoneme.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (phoneme.description && phoneme.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (phoneme.example_word && phoneme.example_word.toLowerCase().includes(searchQuery.toLowerCase()))
+      const filtered = data.filter((item) =>
+        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.type && item.type.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.word && item.word.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.letters && item.letters.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.beschrijving && item.beschrijving.toLowerCase().includes(searchQuery.toLowerCase()))
       );
-      setFilteredPhonemes(filtered);
+      setFilteredData(filtered);
     }
     setCurrentPage(1);
-  }, [searchQuery, phonemes]);
+  }, [searchQuery, data]);
 
-  const fetchPhonemes = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('phonemes')
+      const { data: result, error } = await supabase
+        .from('klankteken')
         .select('*')
-        .order('display_order', { ascending: true })
-        .order('symbol', { ascending: true });
+        .order('volgorde', { ascending: true, nullsFirst: false })
+        .order('title', { ascending: true });
 
       if (error) throw error;
-      setPhonemes(data || []);
-      setFilteredPhonemes(data || []);
+      setData(result || []);
+      setFilteredData(result || []);
     } catch (error) {
-      console.error('Error fetching phonemes:', error);
+      console.error('Error fetching klankteken:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEdit = (phoneme: Phoneme) => {
-    setSelectedPhoneme(phoneme);
+  const handleEdit = (item: Klankteken) => {
+    setSelectedItem(item);
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!confirm('Weet je zeker dat je dit klankteken wilt verwijderen?')) {
       return;
     }
 
     try {
       const { error } = await supabase
-        .from('phonemes')
+        .from('klankteken')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
-      await fetchPhonemes();
+      await fetchData();
     } catch (error) {
-      console.error('Error deleting phoneme:', error);
+      console.error('Error deleting klankteken:', error);
       alert('Er is een fout opgetreden bij het verwijderen van het klankteken.');
     }
   };
 
-  const handleSave = async (phoneme: Phoneme) => {
+  const handleSave = async (item: Klankteken) => {
     try {
-      if (phoneme.id) {
-        const { id, created_at, ...updateData } = phoneme;
+      if (item.id) {
+        const { id, created_at, updated_at, ...updateData } = item;
         const { error } = await supabase
-          .from('phonemes')
-          .update(updateData)
+          .from('klankteken')
+          .update({
+            ...updateData,
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', id);
 
         if (error) throw error;
       } else {
-        const { id, created_at, ...insertData } = phoneme;
+        const { id, created_at, updated_at, ...insertData } = item;
         const { error } = await supabase
-          .from('phonemes')
+          .from('klankteken')
           .insert([insertData]);
 
         if (error) throw error;
       }
 
-      await fetchPhonemes();
+      await fetchData();
       setIsModalOpen(false);
-      setSelectedPhoneme(null);
+      setSelectedItem(null);
     } catch (error) {
-      console.error('Error saving phoneme:', error);
+      console.error('Error saving klankteken:', error);
       alert('Er is een fout opgetreden bij het opslaan van het klankteken.');
       throw error;
     }
   };
 
   const handleAddNew = () => {
-    setSelectedPhoneme(null);
+    setSelectedItem(null);
     setIsModalOpen(true);
   };
 
-  const toggleColumn = (key: keyof Phoneme) => {
+  const toggleColumn = (key: keyof Klankteken) => {
     setColumns(columns.map(col =>
       col.key === key ? { ...col, visible: !col.visible } : col
     ));
   };
 
-  const renderCellValue = (phoneme: Phoneme, key: keyof Phoneme) => {
-    const value = phoneme[key];
+  const renderCellValue = (item: Klankteken, key: keyof Klankteken) => {
+    const value = item[key];
 
     if (value === null || value === undefined) return '-';
 
     switch (key) {
-      case 'is_vowel':
-      case 'is_consonant':
-      case 'is_active':
-        return value ? (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            Ja
-          </span>
-        ) : (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            Nee
-          </span>
-        );
       case 'created_at':
-        return new Date(value as string).toLocaleDateString('nl-NL', {
+      case 'updated_at':
+        return value ? new Date(value as string).toLocaleDateString('nl-NL', {
           year: 'numeric',
           month: 'short',
           day: 'numeric',
           hour: '2-digit',
           minute: '2-digit',
-        });
-      case 'audio_url':
-      case 'image_url':
+        }) : '-';
+      case 'audio':
+      case 'audio_uitleg':
+      case 'tool_uitleg':
+      case 'imageWord':
+      case 'imageTool':
+      case 'example_words_audio':
+      case 'example_words_images':
+      case 'produce_audio':
         return value ? (
           <a
             href={value as string}
@@ -196,7 +233,13 @@ export default function Klankteken() {
             {(value as string).substring(0, 30)}...
           </a>
         ) : '-';
-      case 'description':
+      case 'beschrijving':
+      case 'example_words':
+      case 'klankzuiver':
+      case 'verenkelen':
+      case 'verdubbelen':
+      case 'speciale_tekens':
+      case 'fonetiek':
         return (
           <span className="text-sm text-gray-600 line-clamp-2">
             {value as string}
@@ -207,10 +250,10 @@ export default function Klankteken() {
     }
   };
 
-  const totalPages = Math.ceil(filteredPhonemes.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentPhonemes = filteredPhonemes.slice(startIndex, endIndex);
+  const currentData = filteredData.slice(startIndex, endIndex);
   const visibleColumns = columns.filter(col => col.visible);
 
   if (loading) {
@@ -226,7 +269,7 @@ export default function Klankteken() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Klankteken</h1>
-          <p className="text-gray-600 mt-1">Beheer fonetische klanktekens</p>
+          <p className="text-gray-600 mt-1">Beheer fonetische klanktekens ({data.length} totaal)</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -235,11 +278,11 @@ export default function Klankteken() {
               className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <Columns className="w-5 h-5" />
-              Kolommen
+              Kolommen ({visibleColumns.length}/{columns.length})
             </button>
             {showColumnToggle && (
-              <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-96 overflow-y-auto">
-                <div className="p-3 border-b border-gray-200">
+              <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-96 overflow-y-auto">
+                <div className="sticky top-0 bg-white p-3 border-b border-gray-200">
                   <h3 className="text-sm font-semibold text-gray-900">Toon/Verberg Kolommen</h3>
                 </div>
                 <div className="p-2">
@@ -281,7 +324,7 @@ export default function Klankteken() {
           </div>
         </div>
 
-        {filteredPhonemes.length === 0 ? (
+        {filteredData.length === 0 ? (
           <div className="p-12 text-center">
             <Volume2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -317,15 +360,15 @@ export default function Klankteken() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {currentPhonemes.map((phoneme) => (
-                    <tr key={phoneme.id} className="hover:bg-gray-50">
+                  {currentData.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50">
                       <td className="sticky left-0 z-10 bg-white px-6 py-4 border-r border-gray-200 hover:bg-gray-50">
                         <div className="flex items-center gap-3">
                           <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
                             <Volume2 className="w-4 h-4 text-blue-600" />
                           </div>
-                          <span className="text-xs font-mono text-gray-500 truncate max-w-[100px]">
-                            {phoneme.id.substring(0, 8)}...
+                          <span className="text-sm font-mono text-gray-900">
+                            {item.id}
                           </span>
                         </div>
                       </td>
@@ -335,20 +378,20 @@ export default function Klankteken() {
                           className="px-6 py-4 whitespace-nowrap"
                           style={{ minWidth: column.width }}
                         >
-                          {renderCellValue(phoneme, column.key)}
+                          {renderCellValue(item, column.key)}
                         </td>
                       ))}
                       <td className="sticky right-0 z-10 bg-white px-6 py-4 whitespace-nowrap text-right border-l border-gray-200 hover:bg-gray-50">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => handleEdit(phoneme)}
+                            onClick={() => handleEdit(item)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Bewerken"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(phoneme.id)}
+                            onClick={() => handleDelete(item.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Verwijderen"
                           >
@@ -365,8 +408,8 @@ export default function Klankteken() {
             {totalPages > 1 && (
               <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
                 <div className="text-sm text-gray-700">
-                  Resultaten {startIndex + 1} - {Math.min(endIndex, filteredPhonemes.length)} van{' '}
-                  {filteredPhonemes.length}
+                  Resultaten {startIndex + 1} - {Math.min(endIndex, filteredData.length)} van{' '}
+                  {filteredData.length}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -397,10 +440,10 @@ export default function Klankteken() {
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          setSelectedPhoneme(null);
+          setSelectedItem(null);
         }}
         onSave={handleSave}
-        phoneme={selectedPhoneme}
+        phoneme={selectedItem}
       />
     </div>
   );
