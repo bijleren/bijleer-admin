@@ -33,9 +33,10 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 lg:translate-x-0"
-        style={{ transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)' }}>
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <div className="flex flex-col h-full">
           <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200">
             <div className="bg-blue-600 p-2 rounded-lg">
@@ -91,11 +92,18 @@ export default function Layout() {
             </button>
           </div>
         </div>
-      </div>
+      </aside>
 
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
-          <div className="flex items-center justify-between px-4 py-4">
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <div className="flex flex-col flex-1 w-full overflow-hidden">
+        <header className="bg-white border-b border-gray-200 z-10">
+          <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -158,15 +166,10 @@ export default function Layout() {
           </div>
         </header>
 
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        <main className="p-6">
-          <Outlet />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
+          <div className="w-full h-full">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
