@@ -12,6 +12,7 @@ import {
   GraduationCap,
   ChevronDown,
   BookOpen,
+  BookText,
 } from 'lucide-react';
 
 const navigation = [
@@ -23,6 +24,16 @@ const navigation = [
     icon: BookOpen,
     submenu: [
       { name: 'Nieuwsbrieven', href: '/didactiek/nieuwsbrieven' }
+    ]
+  },
+  {
+    name: 'Woordenschat',
+    icon: BookText,
+    submenu: [
+      { name: 'Klankteken', href: '/woordenschat/klankteken' },
+      { name: 'Woordenschat', href: '/woordenschat/woorden' },
+      { name: 'Statistiek', href: '/woordenschat/statistiek' },
+      { name: 'Analyse', href: '/woordenschat/analyse' }
     ]
   },
   { name: 'Tables', href: '/tables', icon: Database },
