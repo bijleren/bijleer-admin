@@ -49,6 +49,7 @@ interface WordFrequency {
   substitute_middle: string | null;
   audio_checked: number | null;
   klankgroup_checked: number;
+  onboarded: number;
 }
 
 interface ColumnConfig {
@@ -78,6 +79,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'verb_id', label: 'Werkwoord ID', visible: false, width: '120px' },
   { key: 'verb_form', label: 'Werkwoordvorm', visible: false, width: '150px' },
   { key: 'forbidden', label: 'Verboden', visible: false, width: '100px' },
+  { key: 'onboarded', label: 'Onboarded', visible: true, width: '120px' },
   { key: 'aantal_klinkers', label: 'Aantal Klinkers', visible: false, width: '120px' },
   { key: 'klankzuiver', label: 'Klankzuiver', visible: false, width: '120px' },
   { key: 'woordstructuur', label: 'Woordstructuur', visible: false, width: '180px' },
@@ -279,6 +281,7 @@ export default function Vocabulary() {
           </span>
         );
       case 'forbidden':
+      case 'onboarded':
       case 'klankteken_checked':
       case 'klankteken_tobechecked':
       case 'image_checked':

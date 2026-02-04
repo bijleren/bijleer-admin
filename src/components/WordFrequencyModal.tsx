@@ -47,6 +47,7 @@ interface WordFrequency {
   substitute_middle?: string;
   audio_checked?: number;
   klankgroup_checked?: number;
+  onboarded?: number;
 }
 
 interface WordFrequencyModalProps {
@@ -66,6 +67,7 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
     forbidden: 0,
     has_multiple_meanings: 0,
     klankgroup_checked: 0,
+    onboarded: 0,
   });
   const [loading, setLoading] = useState(false);
 
@@ -81,6 +83,7 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
         forbidden: 0,
         has_multiple_meanings: 0,
         klankgroup_checked: 0,
+        onboarded: 0,
       });
     }
   }, [word, isOpen]);
@@ -712,18 +715,36 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="klankgroup_checked" className="block text-sm font-medium text-gray-700 mb-2">
-                  Klankgroep Gecontroleerd
-                </label>
-                <input
-                  type="number"
-                  id="klankgroup_checked"
-                  name="klankgroup_checked"
-                  value={formData.klankgroup_checked || ''}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="klankgroup_checked" className="block text-sm font-medium text-gray-700 mb-2">
+                    Klankgroep Gecontroleerd
+                  </label>
+                  <input
+                    type="number"
+                    id="klankgroup_checked"
+                    name="klankgroup_checked"
+                    value={formData.klankgroup_checked || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="onboarded" className="block text-sm font-medium text-gray-700 mb-2">
+                    Onboarded
+                  </label>
+                  <input
+                    type="number"
+                    id="onboarded"
+                    name="onboarded"
+                    value={formData.onboarded || ''}
+                    onChange={handleChange}
+                    min="0"
+                    max="1"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
               </div>
             </>
           )}
