@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Search, Loader2, School as SchoolIcon, MapPin, Calendar } from 'lucide-react';
+import { Search, Loader2, School as SchoolIcon, MapPin, Calendar, X } from 'lucide-react';
 
 interface School {
   id: string;
@@ -14,22 +14,40 @@ interface School {
 
 export default function Schools() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
+  const monthFilter = searchParams.get('month');
+  const onboardedFilter = searchParams.get('onboarded');
+
   useEffect(() => {
     fetchSchools();
-  }, []);
+  }, [monthFilter, onboardedFilter]);
 
   const fetchSchools = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('schools')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
+
+      if (onboardedFilter !== null) {
+        query = query.eq('onboarded', parseInt(onboardedFilter));
+      }
+
+      if (monthFilter) {
+        const date = new Date(monthFilter);
+        const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+        query = query
+          .gte('created_at', startOfMonth.toISOString())
+          .lte('created_at', endOfMonth.toISOString());
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setSchools(data || []);
@@ -38,6 +56,10 @@ export default function Schools() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearFilters = () => {
+    setSearchParams({});
   };
 
   const filteredSchools = schools.filter(
@@ -69,6 +91,28 @@ export default function Schools() {
           <p className="text-gray-600 mt-1">
             Manage and view all schools ({schools.length} total)
           </p>
+          {(monthFilter || onboardedFilter !== null) && (
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-sm text-gray-600">Active filters:</span>
+              {monthFilter && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                  Month: {monthFilter}
+                </span>
+              )}
+              {onboardedFilter !== null && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
+                  Onboarded: {onboardedFilter === '1' ? 'Yes' : 'No'}
+                </span>
+              )}
+              <button
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200"
+              >
+                <X className="w-3 h-3" />
+                Clear filters
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
