@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Volume2, Plus, Edit2, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Volume2, Plus, Edit2, Trash2, Search, ChevronLeft, ChevronRight, Columns, Check } from 'lucide-react';
 import PhonemeModal from '../components/PhonemeModal';
 
 interface Phoneme {
@@ -16,10 +16,34 @@ interface Phoneme {
   difficulty_level: number | null;
   display_order: number | null;
   is_active: boolean | null;
+  legacy_mysql_id: number | null;
   created_at: string;
 }
 
+interface ColumnConfig {
+  key: keyof Phoneme;
+  label: string;
+  visible: boolean;
+  width?: string;
+}
+
 const ITEMS_PER_PAGE = 20;
+
+const DEFAULT_COLUMNS: ColumnConfig[] = [
+  { key: 'symbol', label: 'Symbool', visible: true, width: '120px' },
+  { key: 'name', label: 'Naam', visible: true, width: '150px' },
+  { key: 'description', label: 'Beschrijving', visible: true, width: '250px' },
+  { key: 'example_word', label: 'Voorbeeld', visible: true, width: '150px' },
+  { key: 'audio_url', label: 'Audio URL', visible: false, width: '200px' },
+  { key: 'image_url', label: 'Afbeelding URL', visible: false, width: '200px' },
+  { key: 'is_vowel', label: 'Klinker', visible: true, width: '100px' },
+  { key: 'is_consonant', label: 'Medeklinker', visible: true, width: '120px' },
+  { key: 'difficulty_level', label: 'Niveau', visible: true, width: '100px' },
+  { key: 'display_order', label: 'Volgorde', visible: false, width: '100px' },
+  { key: 'is_active', label: 'Actief', visible: true, width: '100px' },
+  { key: 'legacy_mysql_id', label: 'Legacy ID', visible: false, width: '100px' },
+  { key: 'created_at', label: 'Aangemaakt', visible: false, width: '180px' },
+];
 
 export default function Klankteken() {
   const [phonemes, setPhonemes] = useState<Phoneme[]>([]);
@@ -29,6 +53,8 @@ export default function Klankteken() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPhoneme, setSelectedPhoneme] = useState<Phoneme | null>(null);
+  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
+  const [showColumnToggle, setShowColumnToggle] = useState(false);
 
   useEffect(() => {
     fetchPhonemes();
@@ -95,42 +121,18 @@ export default function Klankteken() {
   const handleSave = async (phoneme: Phoneme) => {
     try {
       if (phoneme.id) {
+        const { id, created_at, ...updateData } = phoneme;
         const { error } = await supabase
           .from('phonemes')
-          .update({
-            symbol: phoneme.symbol,
-            name: phoneme.name,
-            description: phoneme.description,
-            example_word: phoneme.example_word,
-            audio_url: phoneme.audio_url,
-            image_url: phoneme.image_url,
-            is_vowel: phoneme.is_vowel,
-            is_consonant: phoneme.is_consonant,
-            difficulty_level: phoneme.difficulty_level,
-            display_order: phoneme.display_order,
-            is_active: phoneme.is_active,
-          })
-          .eq('id', phoneme.id);
+          .update(updateData)
+          .eq('id', id);
 
         if (error) throw error;
       } else {
+        const { id, created_at, ...insertData } = phoneme;
         const { error } = await supabase
           .from('phonemes')
-          .insert([
-            {
-              symbol: phoneme.symbol,
-              name: phoneme.name,
-              description: phoneme.description,
-              example_word: phoneme.example_word,
-              audio_url: phoneme.audio_url,
-              image_url: phoneme.image_url,
-              is_vowel: phoneme.is_vowel,
-              is_consonant: phoneme.is_consonant,
-              difficulty_level: phoneme.difficulty_level,
-              display_order: phoneme.display_order,
-              is_active: phoneme.is_active,
-            },
-          ]);
+          .insert([insertData]);
 
         if (error) throw error;
       }
@@ -150,10 +152,66 @@ export default function Klankteken() {
     setIsModalOpen(true);
   };
 
+  const toggleColumn = (key: keyof Phoneme) => {
+    setColumns(columns.map(col =>
+      col.key === key ? { ...col, visible: !col.visible } : col
+    ));
+  };
+
+  const renderCellValue = (phoneme: Phoneme, key: keyof Phoneme) => {
+    const value = phoneme[key];
+
+    if (value === null || value === undefined) return '-';
+
+    switch (key) {
+      case 'is_vowel':
+      case 'is_consonant':
+      case 'is_active':
+        return value ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            Ja
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            Nee
+          </span>
+        );
+      case 'created_at':
+        return new Date(value as string).toLocaleDateString('nl-NL', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      case 'audio_url':
+      case 'image_url':
+        return value ? (
+          <a
+            href={value as string}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline text-xs truncate block max-w-[180px]"
+          >
+            {(value as string).substring(0, 30)}...
+          </a>
+        ) : '-';
+      case 'description':
+        return (
+          <span className="text-sm text-gray-600 line-clamp-2">
+            {value as string}
+          </span>
+        );
+      default:
+        return <span className="text-sm text-gray-900">{String(value)}</span>;
+    }
+  };
+
   const totalPages = Math.ceil(filteredPhonemes.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentPhonemes = filteredPhonemes.slice(startIndex, endIndex);
+  const visibleColumns = columns.filter(col => col.visible);
 
   if (loading) {
     return (
@@ -170,13 +228,43 @@ export default function Klankteken() {
           <h1 className="text-3xl font-bold text-gray-900">Klankteken</h1>
           <p className="text-gray-600 mt-1">Beheer fonetische klanktekens</p>
         </div>
-        <button
-          onClick={handleAddNew}
-          className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Nieuw Klankteken
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <button
+              onClick={() => setShowColumnToggle(!showColumnToggle)}
+              className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Columns className="w-5 h-5" />
+              Kolommen
+            </button>
+            {showColumnToggle && (
+              <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-96 overflow-y-auto">
+                <div className="p-3 border-b border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-900">Toon/Verberg Kolommen</h3>
+                </div>
+                <div className="p-2">
+                  {columns.map((column) => (
+                    <button
+                      key={column.key}
+                      onClick={() => toggleColumn(column.key)}
+                      className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                    >
+                      <span>{column.label}</span>
+                      {column.visible && <Check className="w-4 h-4 text-green-600" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={handleAddNew}
+            className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Nieuw Klankteken
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -208,31 +296,22 @@ export default function Klankteken() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full" style={{ minWidth: '100%' }}>
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Symbool
+                    <th className="sticky left-0 z-10 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                      ID
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Naam
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Beschrijving
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Voorbeeld
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Niveau
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {visibleColumns.map((column) => (
+                      <th
+                        key={column.key}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                        style={{ minWidth: column.width }}
+                      >
+                        {column.label}
+                      </th>
+                    ))}
+                    <th className="sticky right-0 z-10 bg-gray-50 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider border-l border-gray-200">
                       Acties
                     </th>
                   </tr>
@@ -240,60 +319,26 @@ export default function Klankteken() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentPhonemes.map((phoneme) => (
                     <tr key={phoneme.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
+                      <td className="sticky left-0 z-10 bg-white px-6 py-4 border-r border-gray-200 hover:bg-gray-50">
                         <div className="flex items-center gap-3">
                           <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
                             <Volume2 className="w-4 h-4 text-blue-600" />
                           </div>
-                          <span className="font-mono text-lg font-bold text-gray-900">
-                            {phoneme.symbol}
+                          <span className="text-xs font-mono text-gray-500 truncate max-w-[100px]">
+                            {phoneme.id.substring(0, 8)}...
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm font-medium text-gray-900">{phoneme.name}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-gray-600 line-clamp-2 max-w-xs">
-                          {phoneme.description || '-'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-gray-900 font-medium">
-                          {phoneme.example_word || '-'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex gap-1 justify-center">
-                          {phoneme.is_vowel && (
-                            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
-                              K
-                            </span>
-                          )}
-                          {phoneme.is_consonant && (
-                            <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                              M
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="text-sm text-gray-600">
-                          {phoneme.difficulty_level || 1}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        {phoneme.is_active ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Actief
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            Inactief
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                      {visibleColumns.map((column) => (
+                        <td
+                          key={column.key}
+                          className="px-6 py-4 whitespace-nowrap"
+                          style={{ minWidth: column.width }}
+                        >
+                          {renderCellValue(phoneme, column.key)}
+                        </td>
+                      ))}
+                      <td className="sticky right-0 z-10 bg-white px-6 py-4 whitespace-nowrap text-right border-l border-gray-200 hover:bg-gray-50">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleEdit(phoneme)}
