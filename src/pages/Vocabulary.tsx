@@ -139,15 +139,35 @@ export default function Vocabulary() {
   const fetchWords = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('wordfrequency')
-        .select('*')
-        .order('word', { ascending: true })
-        .limit(100000);
 
-      if (error) throw error;
-      setWords(data || []);
-      setFilteredWords(data || []);
+      let allWords: WordFrequency[] = [];
+      let from = 0;
+      const batchSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('wordfrequency')
+          .select('*')
+          .order('word', { ascending: true })
+          .range(from, from + batchSize - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allWords = [...allWords, ...data];
+          from += batchSize;
+
+          if (data.length < batchSize) {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+
+      setWords(allWords);
+      setFilteredWords(allWords);
     } catch (error) {
       console.error('Error fetching words:', error);
     } finally {
