@@ -30,7 +30,8 @@ interface SchoolUser {
   role: string;
   user_id: string;
   profiles: {
-    full_name: string;
+    first_name: string;
+    last_name: string;
     email: string;
   };
 }
@@ -106,7 +107,7 @@ export default function SchoolDetail() {
 
       const { data: usersData } = await supabase
         .from('school_users')
-        .select('id, role, user_id, profiles!inner(full_name, email)')
+        .select('id, role, user_id, profiles!inner(first_name, last_name, email)')
         .eq('school_id', id)
         .then(result => result)
         .catch(() => ({ data: [] }));
@@ -414,7 +415,9 @@ export default function SchoolDetail() {
                 {users.map((user) => (
                   <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-3 px-4 text-gray-900">
-                      {user.profiles?.full_name || 'N/A'}
+                      {user.profiles?.first_name && user.profiles?.last_name
+                        ? `${user.profiles.first_name} ${user.profiles.last_name}`
+                        : user.profiles?.email || 'N/A'}
                     </td>
                     <td className="py-3 px-4 text-gray-600">{user.profiles?.email}</td>
                     <td className="py-3 px-4">
