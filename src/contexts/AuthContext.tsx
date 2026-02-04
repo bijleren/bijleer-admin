@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -17,11 +18,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const checkAdminStatus = async (userEmail: string | undefined) => {
+    if (!userEmail) {
+      setIsAdmin(false);
+      return;
+    }
+
+    try {
+      const { data } = await supabase
+        .from('admin_users')
+        .select('email')
+        .eq('email', userEmail)
+        .maybeSingle();
+
+      setIsAdmin(!!data);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
+    }
+  };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      await checkAdminStatus(session?.user?.email);
       setLoading(false);
     });
 
@@ -29,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (async () => {
         setSession(session);
         setUser(session?.user ?? null);
+        await checkAdminStatus(session?.user?.email);
         setLoading(false);
       })();
     });
@@ -74,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
