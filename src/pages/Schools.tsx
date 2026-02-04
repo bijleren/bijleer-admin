@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Search, Loader2, School as SchoolIcon, MapPin, Calendar, X } from 'lucide-react';
+import { Search, Loader2, School as SchoolIcon, MapPin, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface School {
   id: string;
   name: string;
+  school_code: string;
   city: string;
   created_at: string;
   updated_at: string;
   onboarded: number;
 }
+
+type SortField = 'name' | 'school_code' | 'city' | 'onboarded' | 'created_at' | 'updated_at';
+type SortDirection = 'asc' | 'desc';
 
 export default function Schools() {
   const navigate = useNavigate();
@@ -19,6 +23,8 @@ export default function Schools() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const itemsPerPage = 20;
 
   const monthFilter = searchParams.get('month');
@@ -62,11 +68,59 @@ export default function Schools() {
     setSearchParams({});
   };
 
-  const filteredSchools = schools.filter(
-    (school) =>
-      school.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      school.city?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+    }
+    return sortDirection === 'asc'
+      ? <ArrowUp className="w-4 h-4 text-blue-600" />
+      : <ArrowDown className="w-4 h-4 text-blue-600" />;
+  };
+
+  const filteredSchools = schools
+    .filter(
+      (school) =>
+        school.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        school.school_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        school.city?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+
+      if (aValue === null || aValue === undefined) aValue = '';
+      if (bValue === null || bValue === undefined) bValue = '';
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      if (sortField === 'onboarded') {
+        return sortDirection === 'asc'
+          ? (aValue as number) - (bValue as number)
+          : (bValue as number) - (aValue as number);
+      }
+
+      if (sortField === 'created_at' || sortField === 'updated_at') {
+        const aDate = new Date(aValue as string).getTime();
+        const bDate = new Date(bValue as string).getTime();
+        return sortDirection === 'asc' ? aDate - bDate : bDate - aDate;
+      }
+
+      return 0;
+    });
 
   const totalPages = Math.ceil(filteredSchools.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -122,7 +176,7 @@ export default function Schools() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search schools by name or city..."
+              placeholder="Search schools by name, code, or city..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -137,20 +191,59 @@ export default function Schools() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  School Name
+                <th
+                  onClick={() => handleSort('name')}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    School Name
+                    {getSortIcon('name')}
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  City
+                <th
+                  onClick={() => handleSort('school_code')}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    School Code
+                    {getSortIcon('school_code')}
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Onboarded
+                <th
+                  onClick={() => handleSort('city')}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    City
+                    {getSortIcon('city')}
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created At
+                <th
+                  onClick={() => handleSort('onboarded')}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    Onboarded
+                    {getSortIcon('onboarded')}
+                  </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Updated At
+                <th
+                  onClick={() => handleSort('created_at')}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    Created At
+                    {getSortIcon('created_at')}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('updated_at')}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    Updated At
+                    {getSortIcon('updated_at')}
+                  </div>
                 </th>
               </tr>
             </thead>
@@ -170,6 +263,11 @@ export default function Schools() {
                         {school.name}
                       </span>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm font-mono text-gray-700 bg-gray-50 px-2 py-1 rounded">
+                      {school.school_code}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2 text-sm text-gray-500">
