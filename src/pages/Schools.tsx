@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Search, Loader2, School as SchoolIcon, MapPin, Calendar } from 'lucide-react';
 
@@ -11,6 +12,7 @@ interface School {
 }
 
 export default function Schools() {
+  const navigate = useNavigate();
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -106,7 +108,11 @@ export default function Schools() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {paginatedSchools.map((school) => (
-                <tr key={school.id} className="hover:bg-gray-50">
+                <tr
+                  key={school.id}
+                  onClick={() => navigate(`/schools/${school.id}`)}
+                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">

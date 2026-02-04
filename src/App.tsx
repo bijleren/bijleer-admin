@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Schools from './pages/Schools';
+import SchoolDetail from './pages/SchoolDetail';
 import Tables from './pages/Tables';
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="users" element={<Users />} />
             <Route path="schools" element={<Schools />} />
+            <Route path="schools/:id" element={<SchoolDetail />} />
             <Route path="tables" element={<Tables />} />
           </Route>
         </Routes>
