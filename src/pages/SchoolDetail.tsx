@@ -16,14 +16,22 @@ import {
 interface School {
   id: string;
   name: string;
+  school_code: string;
   address: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
   phone: string;
   email: string;
   principal_name: string;
   website: string;
   student_count: number;
   created_at: string;
+  updated_at: string;
   onboarded: number;
+  premium_school?: number;
+  storage_used_bytes?: number;
+  storage_limit_bytes?: number;
 }
 
 interface SchoolUser {
@@ -143,21 +151,48 @@ export default function SchoolDetail() {
 
   const handleSave = async () => {
     try {
-      const { error } = await supabase
-        .from('schools')
-        .update({
-          ...editForm,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
+      console.log('Saving school data:', editForm);
+      console.log('School ID:', id);
 
-      if (error) throw error;
+      if (!id) {
+        throw new Error('School ID is missing');
+      }
+
+      const updateData = {
+        name: editForm.name,
+        address: editForm.address || null,
+        phone: editForm.phone || null,
+        email: editForm.email || null,
+        principal_name: editForm.principal_name || null,
+        website: editForm.website || null,
+        onboarded: editForm.onboarded,
+        updated_at: new Date().toISOString(),
+      };
+
+      console.log('Update payload:', updateData);
+
+      const { data, error } = await supabase
+        .from('schools')
+        .update(updateData)
+        .eq('id', id)
+        .select();
+
+      console.log('Update result:', { data, error });
+
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        console.log('Successfully updated school:', data[0]);
+      }
 
       await fetchSchoolData();
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating school:', error);
-      alert('Failed to update school. Please try again.');
+      alert(`Failed to update school: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
