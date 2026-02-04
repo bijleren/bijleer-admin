@@ -236,7 +236,7 @@ export default function Dashboard() {
                 {[100, 75, 50, 25, 0].map((percent) => (
                   <div key={percent} className="flex items-center w-full">
                     <span className="text-xs text-gray-400 w-8 text-right mr-2">
-                      {Math.round((maxOverall * percent) / 100)}
+                      {Math.round((maxValue * percent) / 100)}
                     </span>
                     <div className="flex-1 border-t border-gray-200"></div>
                   </div>
@@ -245,9 +245,8 @@ export default function Dashboard() {
 
               <div className="flex items-end justify-around gap-2 h-64 pb-2 pl-10">
                 {growthData.map((data, index) => {
-                  const maxOverall = Math.max(...growthData.map(d => Math.max(d.users, d.schools)), 1);
-                  const userHeight = (data.users / maxOverall) * 100;
-                  const schoolHeight = (data.schools / maxOverall) * 100;
+                  const userHeight = (data.users / maxValue) * 100;
+                  const schoolHeight = (data.schools / maxValue) * 100;
 
                   return (
                     <div key={index} className="flex flex-col items-center gap-2 flex-1 min-w-0">
