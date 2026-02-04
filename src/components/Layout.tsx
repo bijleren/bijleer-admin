@@ -18,13 +18,20 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Users', href: '/users', icon: Users },
   { name: 'Schools', href: '/schools', icon: School },
-  { name: 'Didactiek', href: '/didactiek', icon: BookOpen },
+  {
+    name: 'Didactiek',
+    icon: BookOpen,
+    submenu: [
+      { name: 'Nieuwsbrieven', href: '/didactiek/nieuwsbrieven' }
+    ]
+  },
   { name: 'Tables', href: '/tables', icon: Database },
 ];
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -52,6 +59,51 @@ export default function Layout() {
 
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
+              if ('submenu' in item && item.submenu) {
+                const isDropdownOpen = openDropdown === item.name;
+                const isActiveSection = item.submenu.some(sub => location.pathname === sub.href);
+
+                return (
+                  <div key={item.name}>
+                    <button
+                      onClick={() => setOpenDropdown(isDropdownOpen ? null : item.name)}
+                      className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors ${
+                        isActiveSection
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className="w-5 h-5" />
+                        <span className="font-medium">{item.name}</span>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isDropdownOpen && (
+                      <div className="ml-8 mt-1 space-y-1">
+                        {item.submenu.map((subItem) => {
+                          const isActive = location.pathname === subItem.href;
+                          return (
+                            <Link
+                              key={subItem.name}
+                              to={subItem.href}
+                              onClick={() => setSidebarOpen(false)}
+                              className={`block px-4 py-2 rounded-lg text-sm transition-colors ${
+                                isActive
+                                  ? 'bg-blue-50 text-blue-700 font-medium'
+                                  : 'text-gray-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              {subItem.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
               const isActive = location.pathname === item.href;
               return (
                 <Link
