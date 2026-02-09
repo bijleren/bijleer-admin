@@ -17,6 +17,7 @@ import Klankteken from './pages/Klankteken';
 import Vocabulary from './pages/Vocabulary';
 import Lidwoorden from './pages/Lidwoorden';
 import CheckKlankteken from './pages/CheckKlankteken';
+import CheckBetekenis from './pages/CheckBetekenis';
 import Statistics from './pages/Statistics';
 import Analysis from './pages/Analysis';
 
@@ -48,6 +49,7 @@ function App() {
             <Route path="woordenschat/woorden" element={<Vocabulary />} />
             <Route path="woordenschat/lidwoorden" element={<Lidwoorden />} />
             <Route path="woordenschat/check-klankteken" element={<CheckKlankteken />} />
+            <Route path="woordenschat/check-betekenis" element={<CheckBetekenis />} />
             <Route path="woordenschat/statistiek" element={<Statistics />} />
             <Route path="woordenschat/analyse" element={<Analysis />} />
             <Route path="tables" element={<Tables />} />
