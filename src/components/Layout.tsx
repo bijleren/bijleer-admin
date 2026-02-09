@@ -24,7 +24,8 @@ const navigation = [
     icon: BookOpen,
     submenu: [
       { name: 'Nieuwsbrieven', href: '/didactiek/nieuwsbrieven' },
-      { name: 'Vormingen', href: '/didactiek/vormingen' }
+      { name: 'Vormingen', href: '/didactiek/vormingen' },
+      { name: 'FAQ', href: '/didactiek/faq' }
     ]
   },
   {
