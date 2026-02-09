@@ -130,32 +130,38 @@ export default function SchoolDetail() {
         onboarded: schoolData.onboarded || 0,
       });
 
-      const { data: usersData } = await supabase
+      const { data: usersData, error: usersError } = await supabase
         .from('school_users')
         .select('id, role, user_id, profiles!inner(first_name, last_name, email)')
-        .eq('school_id', id)
-        .then(result => result)
-        .catch(() => ({ data: [] }));
+        .eq('school_id', id);
 
-      const { data: classesData } = await supabase
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+      }
+
+      const { data: classesData, error: classesError } = await supabase
         .from('classes')
         .select('*')
         .eq('school_id', id)
-        .order('name')
-        .then(result => result)
-        .catch(() => ({ data: [] }));
+        .order('name');
 
-      const { data: studentsData } = await supabase
+      if (classesError) {
+        console.error('Error fetching classes:', classesError);
+      }
+
+      const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select('*')
         .eq('school_id', id)
-        .order('last_name')
-        .then(result => result)
-        .catch(() => ({ data: [] }));
+        .order('last_name');
 
-      setUsers(usersData?.data || []);
-      setClasses(classesData?.data || []);
-      setStudents(studentsData?.data || []);
+      if (studentsError) {
+        console.error('Error fetching students:', studentsError);
+      }
+
+      setUsers(usersData || []);
+      setClasses(classesData || []);
+      setStudents(studentsData || []);
     } catch (error) {
       console.error('Error fetching school data:', error);
     } finally {
