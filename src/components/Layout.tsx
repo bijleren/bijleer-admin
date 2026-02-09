@@ -107,10 +107,10 @@ export default function Layout() {
                       {openDropdown === item.name && (
                         <>
                           <div
-                            className="fixed inset-0 z-[60]"
+                            className="fixed inset-0 z-[200]"
                             onClick={() => setOpenDropdown(null)}
                           />
-                          <div className="absolute left-full top-0 ml-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[70]">
+                          <div className="absolute left-full top-0 ml-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[300]">
                             <div className="px-4 py-2 border-b border-gray-200">
                               <p className="text-sm font-semibold text-gray-900">{item.name}</p>
                             </div>
