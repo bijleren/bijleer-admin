@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { HelpCircle, Edit2, Trash2, Search, Plus, Eye, EyeOff } from 'lucide-react';
+import { HelpCircle, Edit2, Trash2, Search, Plus, Eye, EyeOff, AlertTriangle, X, CheckCircle, XCircle } from 'lucide-react';
 import FaqModal from '../components/FaqModal';
 
 interface Faq {
@@ -14,6 +14,11 @@ interface Faq {
   updated_at: string | null;
   created_by: string | null;
   updated_by: string | null;
+}
+
+interface Notification {
+  type: 'success' | 'error';
+  message: string;
 }
 
 const categoryLabels: Record<string, string> = {
@@ -32,6 +37,12 @@ export default function FAQ() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFaq, setSelectedFaq] = useState<Faq | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; faqId: string | null; question: string }>({
+    show: false,
+    faqId: null,
+    question: '',
+  });
+  const [notification, setNotification] = useState<Notification | null>(null);
 
   useEffect(() => {
     fetchFaqs();
@@ -73,28 +84,47 @@ export default function FAQ() {
     }
   };
 
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
   const handleEdit = (faq: Faq) => {
     setSelectedFaq(faq);
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Weet je zeker dat je deze FAQ wilt verwijderen?')) {
-      return;
-    }
+  const handleDeleteClick = (faq: Faq) => {
+    setDeleteConfirm({
+      show: true,
+      faqId: faq.id,
+      question: faq.question,
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.faqId) return;
 
     try {
       const { error } = await supabase
         .from('didactiek_faq')
         .delete()
-        .eq('id', id);
+        .eq('id', deleteConfirm.faqId);
 
       if (error) throw error;
+
       await fetchFaqs();
+      showNotification('success', 'FAQ succesvol verwijderd');
     } catch (error) {
       console.error('Error deleting FAQ:', error);
-      alert('Er is een fout opgetreden bij het verwijderen van de FAQ.');
+      showNotification('error', 'Er is een fout opgetreden bij het verwijderen van de FAQ.');
+    } finally {
+      setDeleteConfirm({ show: false, faqId: null, question: '' });
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm({ show: false, faqId: null, question: '' });
   };
 
   const handleSave = async (faq: Faq) => {
@@ -111,12 +141,14 @@ export default function FAQ() {
           .eq('id', id);
 
         if (error) throw error;
+        showNotification('success', 'FAQ succesvol bijgewerkt');
       } else {
         const { error } = await supabase
           .from('didactiek_faq')
           .insert([updateData]);
 
         if (error) throw error;
+        showNotification('success', 'FAQ succesvol aangemaakt');
       }
 
       await fetchFaqs();
@@ -124,7 +156,7 @@ export default function FAQ() {
       setSelectedFaq(null);
     } catch (error) {
       console.error('Error saving FAQ:', error);
-      alert('Er is een fout opgetreden bij het opslaan van de FAQ.');
+      showNotification('error', 'Er is een fout opgetreden bij het opslaan van de FAQ.');
       throw error;
     }
   };
@@ -273,7 +305,7 @@ export default function FAQ() {
                       <Edit2 className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(faq.id)}
+                      onClick={() => handleDeleteClick(faq)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="Verwijderen"
                     >
@@ -296,6 +328,68 @@ export default function FAQ() {
         onSave={handleSave}
         faq={selectedFaq}
       />
+
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-start gap-4">
+              <div className="bg-red-100 p-3 rounded-full flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  FAQ verwijderen?
+                </h3>
+                <p className="text-gray-600 text-sm mb-2">
+                  Weet je zeker dat je deze FAQ wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.
+                </p>
+                <p className="text-gray-900 font-medium text-sm bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  {deleteConfirm.question}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                Annuleren
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                Verwijderen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {notification && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top duration-300">
+          <div
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg ${
+              notification.type === 'success'
+                ? 'bg-green-50 text-green-900 border border-green-200'
+                : 'bg-red-50 text-red-900 border border-red-200'
+            }`}
+          >
+            {notification.type === 'success' ? (
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+            ) : (
+              <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            )}
+            <p className="text-sm font-medium">{notification.message}</p>
+            <button
+              onClick={() => setNotification(null)}
+              className="ml-2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
