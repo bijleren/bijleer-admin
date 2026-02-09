@@ -56,7 +56,6 @@ const navigation = [
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const { user, signOut } = useAuth();
   const location = useLocation();
@@ -254,77 +253,18 @@ export default function Layout() {
         />
       )}
 
-      <div className="flex flex-col flex-1 w-full overflow-hidden">
-        <header className="bg-white border-b border-gray-200 z-10">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg lg:hidden"
-              >
-                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-              <Link
-                to="/dashboard"
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <LayoutDashboard className="w-5 h-5" />
-                <span className="font-medium hidden sm:inline">Dashboard</span>
-              </Link>
-            </div>
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="fixed top-4 left-4 z-30 p-3 bg-white text-gray-600 hover:bg-gray-100 rounded-lg shadow-lg lg:hidden"
+      >
+        {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
 
-            <div className="relative">
-              <button
-                onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-semibold">
-                    {user?.email?.[0].toUpperCase()}
-                  </span>
-                </div>
-                <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium text-gray-900">
-                    {user?.email}
-                  </p>
-                  <p className="text-xs text-gray-500">Administrator</p>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </button>
-
-              {profileOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setProfileOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
-                    <div className="px-4 py-3 border-b border-gray-200">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {user?.email}
-                      </p>
-                      <p className="text-xs text-gray-500">Administrator</p>
-                    </div>
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span className="text-sm font-medium">Sign Out</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
-          <div className="w-full h-full">
-            <Outlet />
-          </div>
-        </main>
-      </div>
+      <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
+        <div className="w-full h-full">
+          <Outlet />
+        </div>
+      </main>
     </div>
   );
 }
