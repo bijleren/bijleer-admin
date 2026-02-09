@@ -41,7 +41,7 @@ export default function DigiTools() {
   });
   const [notification, setNotification] = useState<Notification | null>(null);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   useEffect(() => {
     checkPlatformAdmin();
@@ -72,31 +72,33 @@ export default function DigiTools() {
   }, [tools]);
 
   const checkPlatformAdmin = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('DigiTools: No user, setting isPlatformAdmin to false');
+      setIsPlatformAdmin(false);
+      return;
+    }
+
+    console.log('DigiTools: Checking super admin status for user:', user.id, user.email);
 
     try {
-      const { data: schoolData } = await supabase
-        .from('schools')
-        .select('id')
-        .eq('name', 'Bijleren')
-        .single();
+      const { data: superAdminData, error: superAdminError } = await supabase
+        .from('super_admins')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (!schoolData) {
+      if (superAdminError) {
+        console.error('Error checking super admin status:', superAdminError);
         setIsPlatformAdmin(false);
         return;
       }
 
-      const { data: userSchoolData } = await supabase
-        .from('user_schools')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('school_id', schoolData.id)
-        .eq('role', 'admin')
-        .single();
-
-      setIsPlatformAdmin(!!userSchoolData);
+      const hasAccess = !!superAdminData;
+      console.log('DigiTools: Super admin data:', superAdminData);
+      console.log('DigiTools: Setting isPlatformAdmin to:', hasAccess);
+      setIsPlatformAdmin(hasAccess);
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.error('Error in checkPlatformAdmin:', error);
       setIsPlatformAdmin(false);
     }
   };
@@ -222,6 +224,11 @@ export default function DigiTools() {
           <p className="text-gray-600 mt-1">
             Digitale tools voor onderwijs ({tools.length} totaal)
           </p>
+          {isAdmin && (
+            <p className="text-xs text-blue-600 mt-1">
+              {isPlatformAdmin ? 'Platform Admin - Volledige toegang' : 'Admin - Alleen bekijken'}
+            </p>
+          )}
         </div>
         {isPlatformAdmin && (
           <button
