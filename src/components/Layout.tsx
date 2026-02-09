@@ -94,7 +94,12 @@ export default function Layout() {
                   return (
                     <div key={item.name} className="relative group">
                       <button
-                        onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
+                        onClick={(e) => {
+                          setOpenDropdown(openDropdown === item.name ? null : item.name);
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          e.currentTarget.dataset.top = String(rect.top);
+                          e.currentTarget.dataset.left = String(rect.right + 8);
+                        }}
                         className={`w-full flex items-center justify-center p-3 rounded-lg transition-colors ${
                           isActiveSection
                             ? 'bg-blue-50 text-blue-700'
@@ -104,41 +109,49 @@ export default function Layout() {
                       >
                         <item.icon className="w-5 h-5" />
                       </button>
-                      {openDropdown === item.name && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-[200]"
-                            onClick={() => setOpenDropdown(null)}
-                          />
-                          <div className="absolute left-full top-0 ml-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[300]">
-                            <div className="px-4 py-2 border-b border-gray-200">
-                              <p className="text-sm font-semibold text-gray-900">{item.name}</p>
+                      {openDropdown === item.name && (() => {
+                        const button = document.querySelector(`[title="${item.name}"]`) as HTMLElement;
+                        const top = button?.dataset.top || '0';
+                        const left = button?.dataset.left || '0';
+                        return (
+                          <>
+                            <div
+                              className="fixed inset-0 z-[200]"
+                              onClick={() => setOpenDropdown(null)}
+                            />
+                            <div
+                              className="fixed w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-[300]"
+                              style={{ top: `${top}px`, left: `${left}px` }}
+                            >
+                              <div className="px-4 py-2 border-b border-gray-200">
+                                <p className="text-sm font-semibold text-gray-900">{item.name}</p>
+                              </div>
+                              <div className="py-1">
+                                {item.submenu.map((subItem) => {
+                                  const isActive = location.pathname === subItem.href;
+                                  return (
+                                    <Link
+                                      key={subItem.name}
+                                      to={subItem.href}
+                                      onClick={() => {
+                                        setOpenDropdown(null);
+                                        setSidebarOpen(false);
+                                      }}
+                                      className={`block px-4 py-2 text-sm transition-colors ${
+                                        isActive
+                                          ? 'bg-blue-50 text-blue-700 font-medium'
+                                          : 'text-gray-700 hover:bg-gray-50'
+                                      }`}
+                                    >
+                                      {subItem.name}
+                                    </Link>
+                                  );
+                                })}
+                              </div>
                             </div>
-                            <div className="py-1">
-                              {item.submenu.map((subItem) => {
-                                const isActive = location.pathname === subItem.href;
-                                return (
-                                  <Link
-                                    key={subItem.name}
-                                    to={subItem.href}
-                                    onClick={() => {
-                                      setOpenDropdown(null);
-                                      setSidebarOpen(false);
-                                    }}
-                                    className={`block px-4 py-2 text-sm transition-colors ${
-                                      isActive
-                                        ? 'bg-blue-50 text-blue-700 font-medium'
-                                        : 'text-gray-700 hover:bg-gray-50'
-                                    }`}
-                                  >
-                                    {subItem.name}
-                                  </Link>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </>
-                      )}
+                          </>
+                        );
+                      })()}
                     </div>
                   );
                 }
