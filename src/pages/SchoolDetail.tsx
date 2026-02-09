@@ -75,11 +75,18 @@ export default function SchoolDetail() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editForm, setEditForm] = useState({
     name: '',
+    school_code: '',
     address: '',
+    city: '',
+    postal_code: '',
+    country: '',
     phone: '',
     email: '',
     principal_name: '',
     website: '',
+    student_count: 0,
+    premium_school: 0,
+    storage_limit_bytes: 0,
     onboarded: 0,
   });
 
@@ -108,11 +115,18 @@ export default function SchoolDetail() {
       setSchool(schoolData);
       setEditForm({
         name: schoolData.name || '',
+        school_code: schoolData.school_code || '',
         address: schoolData.address || '',
+        city: schoolData.city || '',
+        postal_code: schoolData.postal_code || '',
+        country: schoolData.country || 'Netherlands',
         phone: schoolData.phone || '',
         email: schoolData.email || '',
         principal_name: schoolData.principal_name || '',
         website: schoolData.website || '',
+        student_count: schoolData.student_count || 0,
+        premium_school: schoolData.premium_school || 0,
+        storage_limit_bytes: schoolData.storage_limit_bytes || 5368709120,
         onboarded: schoolData.onboarded || 0,
       });
 
@@ -160,11 +174,18 @@ export default function SchoolDetail() {
 
       const updateData = {
         name: editForm.name,
+        school_code: editForm.school_code,
         address: editForm.address || null,
+        city: editForm.city || null,
+        postal_code: editForm.postal_code || null,
+        country: editForm.country || 'Netherlands',
         phone: editForm.phone || null,
         email: editForm.email || null,
         principal_name: editForm.principal_name || null,
         website: editForm.website || null,
+        student_count: editForm.student_count,
+        premium_school: editForm.premium_school,
+        storage_limit_bytes: editForm.storage_limit_bytes,
         onboarded: editForm.onboarded,
         updated_at: new Date().toISOString(),
       };
@@ -378,6 +399,23 @@ export default function SchoolDetail() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
+              School Code
+            </label>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editForm.school_code}
+                onChange={(e) => setEditForm({ ...editForm, school_code: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            ) : (
+              <p className="text-gray-900">{school.school_code || 'N/A'}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Address
             </label>
             {isEditing ? (
@@ -389,6 +427,116 @@ export default function SchoolDetail() {
               />
             ) : (
               <p className="text-gray-900">{school.address || 'N/A'}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              City
+            </label>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editForm.city}
+                onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            ) : (
+              <p className="text-gray-900">{school.city || 'N/A'}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Postal Code
+            </label>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editForm.postal_code}
+                onChange={(e) => setEditForm({ ...editForm, postal_code: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            ) : (
+              <p className="text-gray-900">{school.postal_code || 'N/A'}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Country
+            </label>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editForm.country}
+                onChange={(e) => setEditForm({ ...editForm, country: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            ) : (
+              <p className="text-gray-900">{school.country || 'N/A'}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Student Count
+            </label>
+            {isEditing ? (
+              <input
+                type="number"
+                value={editForm.student_count}
+                onChange={(e) => setEditForm({ ...editForm, student_count: parseInt(e.target.value) || 0 })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                min="0"
+              />
+            ) : (
+              <p className="text-gray-900">{school.student_count || 0}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Premium School
+            </label>
+            {isEditing ? (
+              <select
+                value={editForm.premium_school}
+                onChange={(e) => setEditForm({ ...editForm, premium_school: parseInt(e.target.value) })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={0}>No (0)</option>
+                <option value={1}>Yes (1)</option>
+              </select>
+            ) : (
+              <p className="text-gray-900">
+                {school.premium_school === 1 ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Premium
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    Standard
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Storage Limit (GB)
+            </label>
+            {isEditing ? (
+              <input
+                type="number"
+                value={Math.round(editForm.storage_limit_bytes / (1024 * 1024 * 1024))}
+                onChange={(e) => setEditForm({ ...editForm, storage_limit_bytes: parseInt(e.target.value) * 1024 * 1024 * 1024 })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                min="1"
+              />
+            ) : (
+              <p className="text-gray-900">{Math.round((school.storage_limit_bytes || 0) / (1024 * 1024 * 1024))} GB</p>
             )}
           </div>
 
@@ -418,6 +566,52 @@ export default function SchoolDetail() {
                 )}
               </p>
             )}
+          </div>
+        </div>
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Storage & Metadata</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Storage Used
+              </label>
+              <p className="text-gray-900">
+                {Math.round((school.storage_used_bytes || 0) / (1024 * 1024))} MB of {Math.round((school.storage_limit_bytes || 0) / (1024 * 1024 * 1024))} GB
+              </p>
+              <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full"
+                  style={{
+                    width: `${Math.min(100, ((school.storage_used_bytes || 0) / (school.storage_limit_bytes || 1)) * 100)}%`
+                  }}
+                ></div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Created At
+              </label>
+              <p className="text-gray-900">
+                {new Date(school.created_at).toLocaleString()}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Last Updated
+              </label>
+              <p className="text-gray-900">
+                {new Date(school.updated_at).toLocaleString()}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                School ID
+              </label>
+              <p className="text-gray-900 text-sm font-mono">{school.id}</p>
+            </div>
           </div>
         </div>
       </div>
