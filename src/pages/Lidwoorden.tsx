@@ -123,11 +123,17 @@ export default function Lidwoorden() {
       if (submitting || !currentWord) return;
 
       const key = event.key;
-      if (key >= '1' && key <= '5') {
-        const index = parseInt(key) - 1;
-        if (LIDWOORD_OPTIONS[index]) {
-          handleSubmit(LIDWOORD_OPTIONS[index].value);
-        }
+      const keyMap: { [key: string]: number } = {
+        '1': 0, '&': 0,
+        '2': 1, 'é': 1,
+        '3': 2, '"': 2,
+        '4': 3, "'": 3,
+        '5': 4, '(': 4,
+      };
+
+      const index = keyMap[key];
+      if (index !== undefined && LIDWOORD_OPTIONS[index]) {
+        handleSubmit(LIDWOORD_OPTIONS[index].value);
       }
     };
 
