@@ -11,6 +11,7 @@ import Newsletters from './pages/Newsletters';
 import Vormingen from './pages/Vormingen';
 import FAQ from './pages/FAQ';
 import Technieken from './pages/Technieken';
+import DigiTools from './pages/DigiTools';
 import Tables from './pages/Tables';
 import Klankteken from './pages/Klankteken';
 import Vocabulary from './pages/Vocabulary';
@@ -40,6 +41,7 @@ function App() {
             <Route path="didactiek/vormingen" element={<Vormingen />} />
             <Route path="didactiek/faq" element={<FAQ />} />
             <Route path="didactiek/technieken" element={<Technieken />} />
+            <Route path="apps/digitools" element={<DigiTools />} />
             <Route path="woordenschat/klankteken" element={<Klankteken />} />
             <Route path="woordenschat/woorden" element={<Vocabulary />} />
             <Route path="woordenschat/statistiek" element={<Statistics />} />

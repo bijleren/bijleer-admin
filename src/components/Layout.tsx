@@ -13,6 +13,7 @@ import {
   ChevronDown,
   BookOpen,
   BookText,
+  Grid,
 } from 'lucide-react';
 
 const navigation = [
@@ -37,6 +38,13 @@ const navigation = [
       { name: 'Woordenschat', href: '/woordenschat/woorden' },
       { name: 'Statistiek', href: '/woordenschat/statistiek' },
       { name: 'Analyse', href: '/woordenschat/analyse' }
+    ]
+  },
+  {
+    name: 'Apps',
+    icon: Grid,
+    submenu: [
+      { name: 'DigiTools', href: '/apps/digitools' }
     ]
   },
   { name: 'Tables', href: '/tables', icon: Database },
