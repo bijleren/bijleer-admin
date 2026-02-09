@@ -130,13 +130,40 @@ export default function SchoolDetail() {
         onboarded: schoolData.onboarded || 0,
       });
 
-      const { data: usersData, error: usersError } = await supabase
+      // Fetch users with a manual approach
+      const { data: rawUsersData, error: usersError } = await supabase
         .from('school_teammembers')
-        .select('id, role, user_id, profiles!inner(first_name, last_name, email)')
+        .select('id, role, user_id')
         .eq('school_id', id);
 
       if (usersError) {
         console.error('Error fetching users:', usersError);
+      }
+
+      // Fetch profile data for each user
+      let usersData: SchoolUser[] = [];
+      if (rawUsersData && rawUsersData.length > 0) {
+        const userIds = rawUsersData.map(u => u.user_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+        }
+
+        // Combine the data
+        usersData = rawUsersData.map(user => ({
+          id: user.id,
+          role: user.role,
+          user_id: user.user_id,
+          profiles: profilesData?.find(p => p.id === user.user_id) || {
+            first_name: '',
+            last_name: '',
+            email: ''
+          }
+        }));
       }
 
       const { data: classesData, error: classesError } = await supabase
