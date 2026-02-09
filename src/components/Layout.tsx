@@ -25,7 +25,8 @@ const navigation = [
     submenu: [
       { name: 'Nieuwsbrieven', href: '/didactiek/nieuwsbrieven' },
       { name: 'Vormingen', href: '/didactiek/vormingen' },
-      { name: 'FAQ', href: '/didactiek/faq' }
+      { name: 'FAQ', href: '/didactiek/faq' },
+      { name: 'Technieken', href: '/didactiek/technieken' }
     ]
   },
   {
