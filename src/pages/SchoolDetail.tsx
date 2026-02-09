@@ -48,10 +48,10 @@ interface SchoolUser {
 interface Class {
   id: string;
   name: string;
+  description?: string;
   grade_level: string;
-  teacher_name: string;
-  room_number: string;
-  student_count: number;
+  school_year?: string;
+  is_active: boolean;
 }
 
 interface Student {
@@ -131,7 +131,7 @@ export default function SchoolDetail() {
       });
 
       const { data: usersData, error: usersError } = await supabase
-        .from('school_users')
+        .from('school_teammembers')
         .select('id, role, user_id, profiles!inner(first_name, last_name, email)')
         .eq('school_id', id);
 
@@ -140,7 +140,7 @@ export default function SchoolDetail() {
       }
 
       const { data: classesData, error: classesError } = await supabase
-        .from('classes')
+        .from('groups')
         .select('*')
         .eq('school_id', id)
         .order('name');
@@ -713,9 +713,9 @@ export default function SchoolDetail() {
                 <h3 className="font-semibold text-gray-900 mb-2">{cls.name}</h3>
                 <div className="space-y-1 text-sm text-gray-600">
                   <p>Grade: {cls.grade_level || 'N/A'}</p>
-                  <p>Teacher: {cls.teacher_name || 'N/A'}</p>
-                  <p>Room: {cls.room_number || 'N/A'}</p>
-                  <p>Students: {cls.student_count}</p>
+                  {cls.description && <p>Description: {cls.description}</p>}
+                  {cls.school_year && <p>Year: {cls.school_year}</p>}
+                  <p>Status: <span className={cls.is_active ? 'text-green-600' : 'text-gray-400'}>{cls.is_active ? 'Active' : 'Inactive'}</span></p>
                 </div>
               </div>
             ))}
