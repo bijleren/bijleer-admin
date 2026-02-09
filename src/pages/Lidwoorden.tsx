@@ -118,6 +118,23 @@ export default function Lidwoorden() {
     fetchRandomWord();
   }, []);
 
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (submitting || !currentWord) return;
+
+      const key = event.key;
+      if (key >= '1' && key <= '5') {
+        const index = parseInt(key) - 1;
+        if (LIDWOORD_OPTIONS[index]) {
+          handleSubmit(LIDWOORD_OPTIONS[index].value);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentWord, submitting]);
+
   return (
     <div className="w-full h-full p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -149,21 +166,6 @@ export default function Lidwoorden() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-600 font-medium">Totaal</p>
-          <p className="text-3xl font-bold text-blue-900">{stats.total}</p>
-        </div>
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-sm text-green-600 font-medium">Gecontroleerd</p>
-          <p className="text-3xl font-bold text-green-900">{stats.checked}</p>
-        </div>
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <p className="text-sm text-orange-600 font-medium">Te controleren</p>
-          <p className="text-3xl font-bold text-orange-900">{stats.unchecked}</p>
-        </div>
-      </div>
-
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -188,13 +190,16 @@ export default function Lidwoorden() {
           <div className="space-y-4">
             <p className="text-center text-gray-700 font-medium">Selecteer het juiste lidwoord:</p>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {LIDWOORD_OPTIONS.map((option) => (
+              {LIDWOORD_OPTIONS.map((option, index) => (
                 <button
                   key={option.value}
                   onClick={() => handleSubmit(option.value)}
                   disabled={submitting}
-                  className={`${option.color} text-white font-bold py-4 px-6 rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2`}
+                  className={`${option.color} text-white font-bold py-4 px-6 rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 relative`}
                 >
+                  <span className="absolute top-2 right-2 text-xs opacity-75">
+                    {index + 1}
+                  </span>
                   <Check className="w-5 h-5" />
                   {option.label}
                 </button>
@@ -222,6 +227,21 @@ export default function Lidwoorden() {
           <p className="text-gray-600">Er zijn geen woorden meer die gecontroleerd moeten worden.</p>
         </div>
       )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-600 font-medium">Totaal</p>
+          <p className="text-3xl font-bold text-blue-900">{stats.total}</p>
+        </div>
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p className="text-sm text-green-600 font-medium">Gecontroleerd</p>
+          <p className="text-3xl font-bold text-green-900">{stats.checked}</p>
+        </div>
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <p className="text-sm text-orange-600 font-medium">Te controleren</p>
+          <p className="text-3xl font-bold text-orange-900">{stats.unchecked}</p>
+        </div>
+      </div>
     </div>
   );
 }
