@@ -14,6 +14,8 @@ interface Notification {
   message: string;
 }
 
+type WordOrder = 'random' | 'shortest';
+
 const LIDWOORD_OPTIONS = [
   { value: 'de', label: 'de', color: 'bg-blue-500 hover:bg-blue-600' },
   { value: 'het', label: 'het', color: 'bg-green-500 hover:bg-green-600' },
@@ -28,6 +30,7 @@ export default function Lidwoorden() {
   const [submitting, setSubmitting] = useState(false);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [stats, setStats] = useState({ checked: 0, unchecked: 0, total: 0 });
+  const [wordOrder, setWordOrder] = useState<WordOrder>('random');
 
   const fetchStats = async () => {
     try {
@@ -53,12 +56,18 @@ export default function Lidwoorden() {
   const fetchRandomWord = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('wordfrequency')
-        .select('id, word, lidwoord, betekenis')
-        .eq('lidwoord_check', 0)
-        .order('id', { ascending: true })
-        .limit(100);
+        .select('id, word, lidwoord, betekenis, aantal_karakters')
+        .eq('lidwoord_check', 0);
+
+      if (wordOrder === 'shortest') {
+        query = query.order('aantal_karakters', { ascending: true }).limit(100);
+      } else {
+        query = query.order('id', { ascending: true }).limit(100);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -117,6 +126,10 @@ export default function Lidwoorden() {
     fetchStats();
     fetchRandomWord();
   }, []);
+
+  useEffect(() => {
+    fetchRandomWord();
+  }, [wordOrder]);
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -224,6 +237,34 @@ export default function Lidwoorden() {
           <p className="text-gray-600">Er zijn geen woorden meer die gecontroleerd moeten worden.</p>
         </div>
       )}
+
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <p className="text-sm font-medium text-gray-700 mb-3">Woordvolgorde</p>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="wordOrder"
+              value="random"
+              checked={wordOrder === 'random'}
+              onChange={(e) => setWordOrder(e.target.value as WordOrder)}
+              className="w-4 h-4 text-blue-600 cursor-pointer"
+            />
+            <span className="text-gray-700">Willekeurig</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="wordOrder"
+              value="shortest"
+              checked={wordOrder === 'shortest'}
+              onChange={(e) => setWordOrder(e.target.value as WordOrder)}
+              className="w-4 h-4 text-blue-600 cursor-pointer"
+            />
+            <span className="text-gray-700">Kortste eerst</span>
+          </label>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
