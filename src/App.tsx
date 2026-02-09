@@ -15,6 +15,7 @@ import DigiTools from './pages/DigiTools';
 import Tables from './pages/Tables';
 import Klankteken from './pages/Klankteken';
 import Vocabulary from './pages/Vocabulary';
+import Lidwoorden from './pages/Lidwoorden';
 import Statistics from './pages/Statistics';
 import Analysis from './pages/Analysis';
 
@@ -44,6 +45,7 @@ function App() {
             <Route path="apps/digitools" element={<DigiTools />} />
             <Route path="woordenschat/klankteken" element={<Klankteken />} />
             <Route path="woordenschat/woorden" element={<Vocabulary />} />
+            <Route path="woordenschat/lidwoorden" element={<Lidwoorden />} />
             <Route path="woordenschat/statistiek" element={<Statistics />} />
             <Route path="woordenschat/analyse" element={<Analysis />} />
             <Route path="tables" element={<Tables />} />
