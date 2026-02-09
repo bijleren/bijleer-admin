@@ -143,23 +143,6 @@ export default function Lidwoorden() {
 
   return (
     <div className="w-full h-full p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Lidwoorden</h1>
-          <p className="text-gray-600 mt-1">
-            Controleer en voeg lidwoorden toe aan woorden
-          </p>
-        </div>
-        <button
-          onClick={fetchRandomWord}
-          disabled={loading || submitting}
-          className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          Ververs
-        </button>
-      </div>
-
       {notification && (
         <div
           className={`p-4 rounded-lg ${
@@ -177,7 +160,15 @@ export default function Lidwoorden() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       ) : currentWord ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-8 space-y-8">
+        <div className="bg-white border border-gray-200 rounded-lg p-8 space-y-8 relative">
+          <button
+            onClick={fetchRandomWord}
+            disabled={loading || submitting}
+            className="absolute top-4 right-4 p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            title="Ververs"
+          >
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
           <div className="text-center space-y-4">
             <div className="inline-block px-4 py-2 bg-gray-100 rounded-lg">
               <p className="text-sm text-gray-600">Woord #{currentWord.id}</p>
