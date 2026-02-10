@@ -270,6 +270,12 @@ export default function Statistics() {
             </div>
             <div className="ml-8 space-y-2">
               <div className="flex justify-between items-center">
+                <span className="text-gray-700">Totaal te controleren</span>
+                <span className="font-bold text-red-600">
+                  {stats.wordsWithAudio - stats.wordsWithAudioChecked}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
                 <span className="text-gray-700">Gecontroleerd</span>
                 <span className="font-bold text-gray-900">
                   {stats.wordsWithAudioChecked} van {stats.wordsWithAudio}
@@ -296,6 +302,12 @@ export default function Statistics() {
                 <span className="font-bold text-gray-900">{stats.wordsWithKlankteken}</span>
               </div>
               <div className="flex justify-between items-center">
+                <span className="text-gray-700">Totaal te controleren</span>
+                <span className="font-bold text-red-600">
+                  {stats.wordsWithKlankteken - stats.wordsWithKlanktekenChecked}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
                 <span className="text-gray-700">Gecontroleerd</span>
                 <span className="font-bold text-gray-900">
                   {stats.wordsWithKlanktekenChecked} van {stats.wordsWithKlankteken}
@@ -317,6 +329,12 @@ export default function Statistics() {
               <h3 className="font-semibold text-gray-900">Betekenis Controle</h3>
             </div>
             <div className="ml-8 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Totaal te controleren</span>
+                <span className="font-bold text-red-600">
+                  {stats.wordsWithBetekenis - stats.wordsWithBetekenisChecked}
+                </span>
+              </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-700">Gecontroleerd</span>
                 <span className="font-bold text-gray-900">
@@ -368,6 +386,12 @@ export default function Statistics() {
               </div>
               <div>
                 <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-700">Totaal te controleren</span>
+                  <span className="font-bold text-red-600">
+                    {stats.wordsAudioBetekenis - stats.wordsAudioBetekenisChecked}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-700">Volledig gecontroleerd</span>
                   <span className="font-bold text-gray-900">
                     {stats.wordsAudioBetekenisChecked} van {stats.wordsAudioBetekenis}
@@ -412,6 +436,12 @@ export default function Statistics() {
                 </p>
               </div>
               <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-700">Totaal te controleren</span>
+                  <span className="font-bold text-red-600">
+                    {stats.wordsAudioKlanktekenImage - stats.wordsAudioKlanktekenImageChecked}
+                  </span>
+                </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-700">Volledig gecontroleerd</span>
                   <span className="font-bold text-gray-900">
@@ -459,6 +489,12 @@ export default function Statistics() {
                 </p>
               </div>
               <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-700">Totaal te controleren</span>
+                  <span className="font-bold text-red-600">
+                    {stats.wordsAllFour - stats.wordsAllFourChecked}
+                  </span>
+                </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-gray-700">Volledig gecontroleerd</span>
                   <span className="font-bold text-gray-900">
