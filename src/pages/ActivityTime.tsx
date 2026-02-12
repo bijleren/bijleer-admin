@@ -418,9 +418,22 @@ export default function ActivityTime() {
 
       {showPresetsModal && (
         <ActivityPresetsModal
-          onClose={() => setShowPresetsModal(false)}
-          onSave={() => {
+          onClose={() => {
             setShowPresetsModal(false);
+            fetchBoards();
+            fetchStats();
+            if (selectedBoard) {
+              fetchOptions(selectedBoard);
+              fetchSessions(selectedBoard);
+            }
+          }}
+          onSave={() => {
+            fetchBoards();
+            fetchStats();
+            if (selectedBoard) {
+              fetchOptions(selectedBoard);
+              fetchSessions(selectedBoard);
+            }
           }}
         />
       )}

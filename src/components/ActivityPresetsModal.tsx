@@ -35,6 +35,8 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
     goal_codes: [],
   });
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const availableIcons = ['Grid', 'Users', 'BookOpen', 'Pencil', 'Clock', 'Star', 'Heart', 'Music'];
   const availableColors = [
@@ -67,7 +69,7 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
 
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
-    setTimeout(() => setNotification(null), 3000);
+    setTimeout(() => setNotification(null), 4000);
   };
 
   const handleCreate = () => {
@@ -85,8 +87,16 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
 
   const handleEdit = (preset: ActivityPreset) => {
     setEditingId(preset.id || null);
-    setFormData(preset);
     setIsCreating(false);
+    setFormData({
+      name: preset.name,
+      description: preset.description,
+      icon: preset.icon,
+      color: preset.color,
+      max_students: preset.max_students,
+      is_default: preset.is_default,
+      goal_codes: preset.goal_codes || [],
+    });
   };
 
   const handleCancel = () => {
@@ -109,13 +119,19 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
       return;
     }
 
+    if (formData.max_students < 1) {
+      showNotification('error', 'Max studenten moet minimaal 1 zijn');
+      return;
+    }
+
+    setSaving(true);
     try {
       if (isCreating) {
         const { error } = await supabase
           .from('activity_presets')
           .insert([{
-            name: formData.name,
-            description: formData.description,
+            name: formData.name.trim(),
+            description: formData.description.trim(),
             icon: formData.icon,
             color: formData.color,
             max_students: formData.max_students,
@@ -124,13 +140,13 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
           }]);
 
         if (error) throw error;
-        showNotification('success', 'Voorinstelling aangemaakt');
+        showNotification('success', 'Voorinstelling succesvol aangemaakt');
       } else if (editingId) {
         const { error } = await supabase
           .from('activity_presets')
           .update({
-            name: formData.name,
-            description: formData.description,
+            name: formData.name.trim(),
+            description: formData.description.trim(),
             icon: formData.icon,
             color: formData.color,
             max_students: formData.max_students,
@@ -140,14 +156,16 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
           .eq('id', editingId);
 
         if (error) throw error;
-        showNotification('success', 'Voorinstelling bijgewerkt');
+        showNotification('success', 'Voorinstelling succesvol bijgewerkt');
       }
 
-      handleCancel();
       await fetchPresets();
+      handleCancel();
     } catch (error) {
       console.error('Error saving preset:', error);
       showNotification('error', 'Fout bij opslaan');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -156,6 +174,7 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
       return;
     }
 
+    setDeletingId(id);
     try {
       const { error } = await supabase
         .from('activity_presets')
@@ -163,11 +182,13 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
         .eq('id', id);
 
       if (error) throw error;
-      showNotification('success', 'Voorinstelling verwijderd');
+      showNotification('success', 'Voorinstelling succesvol verwijderd');
       await fetchPresets();
     } catch (error) {
       console.error('Error deleting preset:', error);
       showNotification('error', 'Fout bij verwijderen');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -190,7 +211,8 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
             {!isCreating && !editingId && (
               <button
                 onClick={handleCreate}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={saving || deletingId !== null}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-4 h-4" />
                 Nieuwe Voorinstelling
@@ -198,7 +220,8 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
             )}
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              disabled={saving || deletingId !== null}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>
@@ -233,7 +256,8 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={saving}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="Bijv. Lezen"
                   />
                 </div>
@@ -245,9 +269,17 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
                   <input
                     type="number"
                     value={formData.max_students}
-                    onChange={(e) => setFormData({ ...formData, max_students: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (!isNaN(value) && value > 0) {
+                        setFormData({ ...formData, max_students: value });
+                      } else if (e.target.value === '') {
+                        setFormData({ ...formData, max_students: 1 });
+                      }
+                    }}
                     min="1"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={saving}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -259,7 +291,8 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={saving}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="Korte beschrijving van de activiteit..."
                   />
                 </div>
@@ -271,7 +304,8 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
                   <select
                     value={formData.icon}
                     onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={saving}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {availableIcons.map((icon) => (
                       <option key={icon} value={icon}>
@@ -291,7 +325,8 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
                         key={color.value}
                         type="button"
                         onClick={() => setFormData({ ...formData, color: color.value })}
-                        className={`p-3 rounded-lg border-2 transition-all ${
+                        disabled={saving}
+                        className={`p-3 rounded-lg border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                           formData.color === color.value
                             ? 'border-gray-900 scale-105'
                             : 'border-gray-200 hover:border-gray-400'
@@ -309,7 +344,8 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
                       type="checkbox"
                       checked={formData.is_default}
                       onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      disabled={saving}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <span className="text-sm font-medium text-gray-700">
                       Standaard beschikbaar voor alle scholen
@@ -321,16 +357,18 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   onClick={handleCancel}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  disabled={saving}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Annuleren
                 </button>
                 <button
                   onClick={handleSave}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Save className="w-4 h-4" />
-                  Opslaan
+                  {saving ? 'Opslaan...' : 'Opslaan'}
                 </button>
               </div>
             </div>
@@ -373,14 +411,16 @@ export default function ActivityPresetsModal({ onClose, onSave }: ActivityPreset
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleEdit(preset)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                        disabled={deletingId === preset.id || saving}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Edit2 className="w-4 h-4" />
                         Bewerken
                       </button>
                       <button
                         onClick={() => preset.id && handleDelete(preset.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        disabled={deletingId === preset.id || saving}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
