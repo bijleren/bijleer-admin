@@ -25,8 +25,8 @@ interface PhysicalTask {
   title: string;
   emoji: string;
   goal_codes: string[];
-  description: string;
-  instructions: string;
+  description: string | null;
+  instructions: string | null;
   duration_minutes: number;
   materials_needed: string[];
   task_category: string;
@@ -250,8 +250,8 @@ export default function PhysicalTasks() {
         title: taskForm.title.trim(),
         emoji: taskForm.emoji,
         goal_codes: goalCodes,
-        description: taskForm.description.trim(),
-        instructions: taskForm.instructions.trim(),
+        description: taskForm.description?.trim() || '',
+        instructions: taskForm.instructions?.trim() || '',
         duration_minutes: taskForm.duration_minutes,
         materials_needed: materials,
         task_category: taskForm.task_category,
@@ -314,7 +314,7 @@ export default function PhysicalTasks() {
     .filter((task) => {
       const matchesSearch =
         task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.description.toLowerCase().includes(searchTerm.toLowerCase());
+        (task.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'all' || task.task_category === categoryFilter;
       return matchesSearch && matchesCategory;
     })
@@ -734,7 +734,7 @@ export default function PhysicalTasks() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Beschrijving</label>
                 <textarea
-                  value={taskForm.description}
+                  value={taskForm.description || ''}
                   onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
                   disabled={saving}
                   rows={3}
@@ -745,7 +745,7 @@ export default function PhysicalTasks() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Instructies</label>
                 <textarea
-                  value={taskForm.instructions}
+                  value={taskForm.instructions || ''}
                   onChange={(e) => setTaskForm({ ...taskForm, instructions: e.target.value })}
                   disabled={saving}
                   rows={4}

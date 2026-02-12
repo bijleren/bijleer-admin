@@ -60,7 +60,8 @@ const navigation = [
     submenu: [
       { name: 'Kijk', href: '/kleuterdidactiek/videos' },
       { name: 'Schrijf', href: '/kleuterdidactiek/schrijf' },
-      { name: 'Doe', href: '/kleuterdidactiek/doe' }
+      { name: 'Doe', href: '/kleuterdidactiek/doe' },
+      { name: 'Speel', href: '/kleuterdidactiek/speel' }
     ]
   },
   { name: 'Tables', href: '/tables', icon: Database },

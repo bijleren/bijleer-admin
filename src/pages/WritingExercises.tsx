@@ -25,8 +25,8 @@ interface WritingExercise {
   title: string;
   emoji: string;
   goal_codes: string[];
-  description: string;
-  instructions: string;
+  description: string | null;
+  instructions: string | null;
   tips: string[];
   exercise_type: string;
   sort_order: number;
@@ -39,7 +39,7 @@ interface LearningGame {
   id?: string;
   name: string;
   emoji: string;
-  description: string;
+  description: string | null;
   question_count: number;
   goal_codes: string[];
   game_type: string;
@@ -311,8 +311,8 @@ export default function WritingExercises() {
         title: exerciseForm.title.trim(),
         emoji: exerciseForm.emoji,
         goal_codes: exerciseForm.goal_codes,
-        description: exerciseForm.description.trim(),
-        instructions: exerciseForm.instructions.trim(),
+        description: exerciseForm.description?.trim() || '',
+        instructions: exerciseForm.instructions?.trim() || '',
         tips: exerciseForm.tips,
         exercise_type: exerciseForm.exercise_type,
         sort_order: exerciseForm.sort_order,
@@ -399,7 +399,7 @@ export default function WritingExercises() {
       const gameData = {
         name: gameForm.name.trim(),
         emoji: gameForm.emoji,
-        description: gameForm.description.trim(),
+        description: gameForm.description?.trim() || '',
         question_count: gameForm.question_count,
         goal_codes: gameForm.goal_codes,
         game_type: gameForm.game_type,
@@ -467,7 +467,7 @@ export default function WritingExercises() {
   const filteredAndSortedExercises = exercises
     .filter((exercise) =>
       exercise.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      exercise.description.toLowerCase().includes(searchTerm.toLowerCase())
+      (exercise.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       let aValue: any = a[sortField as keyof WritingExercise];
@@ -488,7 +488,7 @@ export default function WritingExercises() {
   const filteredAndSortedGames = games
     .filter((game) =>
       game.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      game.description.toLowerCase().includes(searchTerm.toLowerCase())
+      (game.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       let aValue: any = a[sortField as keyof LearningGame];
@@ -1055,7 +1055,7 @@ export default function WritingExercises() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Beschrijving</label>
                 <textarea
-                  value={exerciseForm.description}
+                  value={exerciseForm.description || ''}
                   onChange={(e) => setExerciseForm({ ...exerciseForm, description: e.target.value })}
                   disabled={saving}
                   rows={3}
@@ -1179,7 +1179,7 @@ export default function WritingExercises() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Beschrijving</label>
                 <textarea
-                  value={gameForm.description}
+                  value={gameForm.description || ''}
                   onChange={(e) => setGameForm({ ...gameForm, description: e.target.value })}
                   disabled={saving}
                   rows={3}
