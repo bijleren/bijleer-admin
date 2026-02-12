@@ -12,6 +12,7 @@ import Vormingen from './pages/Vormingen';
 import FAQ from './pages/FAQ';
 import Technieken from './pages/Technieken';
 import DigiTools from './pages/DigiTools';
+import ActivityTime from './pages/ActivityTime';
 import Tables from './pages/Tables';
 import Klankteken from './pages/Klankteken';
 import Vocabulary from './pages/Vocabulary';
@@ -45,6 +46,7 @@ function App() {
             <Route path="didactiek/faq" element={<FAQ />} />
             <Route path="didactiek/technieken" element={<Technieken />} />
             <Route path="apps/digitools" element={<DigiTools />} />
+            <Route path="apps/activi-tijd" element={<ActivityTime />} />
             <Route path="woordenschat/klankteken" element={<Klankteken />} />
             <Route path="woordenschat/woorden" element={<Vocabulary />} />
             <Route path="woordenschat/lidwoorden" element={<Lidwoorden />} />

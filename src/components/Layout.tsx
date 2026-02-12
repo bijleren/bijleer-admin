@@ -49,7 +49,8 @@ const navigation = [
     name: 'Apps',
     icon: Grid,
     submenu: [
-      { name: 'DigiTools', href: '/apps/digitools' }
+      { name: 'DigiTools', href: '/apps/digitools' },
+      { name: 'Activi-tijd', href: '/apps/activi-tijd' }
     ]
   },
   { name: 'Tables', href: '/tables', icon: Database },
