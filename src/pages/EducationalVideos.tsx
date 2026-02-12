@@ -21,9 +21,9 @@ import {
 interface EducationalVideo {
   id?: string;
   title: string;
-  description: string;
+  description: string | null;
   url: string;
-  thumbnail_url: string;
+  thumbnail_url: string | null;
   duration_minutes: number;
   is_global: boolean;
   school_id: string | null;
@@ -75,9 +75,9 @@ export default function EducationalVideos() {
 
   const [formData, setFormData] = useState<EducationalVideo>({
     title: '',
-    description: '',
+    description: null,
     url: '',
-    thumbnail_url: '',
+    thumbnail_url: null,
     duration_minutes: 0,
     is_global: true,
     school_id: null,
@@ -220,9 +220,9 @@ export default function EducationalVideos() {
     try {
       const videoData = {
         title: formData.title.trim(),
-        description: formData.description.trim(),
+        description: formData.description?.trim() || '',
         url: formData.url.trim(),
-        thumbnail_url: formData.thumbnail_url.trim(),
+        thumbnail_url: formData.thumbnail_url?.trim() || '',
         duration_minutes: formData.duration_minutes,
         is_global: formData.is_global,
         school_id: formData.is_global ? null : formData.school_id,
@@ -635,7 +635,7 @@ export default function EducationalVideos() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Beschrijving</label>
                 <textarea
-                  value={formData.description}
+                  value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   disabled={saving}
                   rows={3}
@@ -660,7 +660,7 @@ export default function EducationalVideos() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail URL</label>
                 <input
                   type="url"
-                  value={formData.thumbnail_url}
+                  value={formData.thumbnail_url || ''}
                   onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
                   disabled={saving}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"

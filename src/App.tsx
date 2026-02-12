@@ -23,6 +23,7 @@ import Statistics from './pages/Statistics';
 import Analysis from './pages/Analysis';
 import EducationalVideos from './pages/EducationalVideos';
 import WritingExercises from './pages/WritingExercises';
+import PhysicalTasks from './pages/PhysicalTasks';
 
 function App() {
   return (
@@ -58,6 +59,7 @@ function App() {
             <Route path="woordenschat/analyse" element={<Analysis />} />
             <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
+            <Route path="kleuterdidactiek/doe" element={<PhysicalTasks />} />
             <Route path="tables" element={<Tables />} />
           </Route>
         </Routes>

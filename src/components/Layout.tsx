@@ -59,7 +59,8 @@ const navigation = [
     icon: Baby,
     submenu: [
       { name: 'Kijk', href: '/kleuterdidactiek/videos' },
-      { name: 'Schrijf', href: '/kleuterdidactiek/schrijf' }
+      { name: 'Schrijf', href: '/kleuterdidactiek/schrijf' },
+      { name: 'Doe', href: '/kleuterdidactiek/doe' }
     ]
   },
   { name: 'Tables', href: '/tables', icon: Database },
