@@ -61,7 +61,8 @@ const navigation = [
       { name: 'Kijk', href: '/kleuterdidactiek/videos' },
       { name: 'Schrijf', href: '/kleuterdidactiek/schrijf' },
       { name: 'Doe', href: '/kleuterdidactiek/doe' },
-      { name: 'Speel', href: '/kleuterdidactiek/speel' }
+      { name: 'Speel', href: '/kleuterdidactiek/speel' },
+      { name: 'Woordenschat', href: '/kleuterdidactiek/woordenschat' }
     ]
   },
   { name: 'Tables', href: '/tables', icon: Database },

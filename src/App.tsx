@@ -25,6 +25,7 @@ import EducationalVideos from './pages/EducationalVideos';
 import WritingExercises from './pages/WritingExercises';
 import PhysicalTasks from './pages/PhysicalTasks';
 import LearningGames from './pages/LearningGames';
+import VocabularyManagement from './pages/VocabularyManagement';
 
 function App() {
   return (
@@ -62,6 +63,7 @@ function App() {
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
             <Route path="kleuterdidactiek/doe" element={<PhysicalTasks />} />
             <Route path="kleuterdidactiek/speel" element={<LearningGames />} />
+            <Route path="kleuterdidactiek/woordenschat" element={<VocabularyManagement />} />
             <Route path="tables" element={<Tables />} />
           </Route>
         </Routes>
