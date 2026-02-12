@@ -16,6 +16,7 @@ import {
   Grid,
   ChevronLeft,
   ChevronRight,
+  Baby,
 } from 'lucide-react';
 
 const navigation = [
@@ -51,6 +52,13 @@ const navigation = [
     submenu: [
       { name: 'DigiTools', href: '/apps/digitools' },
       { name: 'Activi-tijd', href: '/apps/activi-tijd' }
+    ]
+  },
+  {
+    name: 'Kleuterdidactiek',
+    icon: Baby,
+    submenu: [
+      { name: "Video's", href: '/kleuterdidactiek/videos' }
     ]
   },
   { name: 'Tables', href: '/tables', icon: Database },

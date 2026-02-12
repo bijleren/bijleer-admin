@@ -21,6 +21,7 @@ import CheckKlankteken from './pages/CheckKlankteken';
 import CheckBetekenis from './pages/CheckBetekenis';
 import Statistics from './pages/Statistics';
 import Analysis from './pages/Analysis';
+import EducationalVideos from './pages/EducationalVideos';
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
             <Route path="woordenschat/check-betekenis" element={<CheckBetekenis />} />
             <Route path="woordenschat/statistiek" element={<Statistics />} />
             <Route path="woordenschat/analyse" element={<Analysis />} />
+            <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="tables" element={<Tables />} />
           </Route>
         </Routes>
