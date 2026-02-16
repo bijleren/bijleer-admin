@@ -26,6 +26,7 @@ import WritingExercises from './pages/WritingExercises';
 import PhysicalTasks from './pages/PhysicalTasks';
 import LearningGames from './pages/LearningGames';
 import VocabularyManagement from './pages/VocabularyManagement';
+import NewWords from './pages/NewWords';
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
             <Route path="apps/activi-tijd" element={<ActivityTime />} />
             <Route path="woordenschat/klankteken" element={<Klankteken />} />
             <Route path="woordenschat/woorden" element={<Vocabulary />} />
+            <Route path="woordenschat/nieuwe-woorden" element={<NewWords />} />
             <Route path="woordenschat/lidwoorden" element={<Lidwoorden />} />
             <Route path="woordenschat/check-klankteken" element={<CheckKlankteken />} />
             <Route path="woordenschat/check-betekenis" element={<CheckBetekenis />} />

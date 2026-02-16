@@ -39,6 +39,7 @@ const navigation = [
     submenu: [
       { name: 'Klankteken', href: '/woordenschat/klankteken' },
       { name: 'Woordenschat', href: '/woordenschat/woorden' },
+      { name: 'Nieuwe Woorden', href: '/woordenschat/nieuwe-woorden' },
       { name: 'Lidwoorden', href: '/woordenschat/lidwoorden' },
       { name: 'Check Klankteken', href: '/woordenschat/check-klankteken' },
       { name: 'Check Betekenis', href: '/woordenschat/check-betekenis' },
