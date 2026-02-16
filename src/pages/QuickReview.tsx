@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CheckCircle, XCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { analyzeWord } from '../utils/klankteken';
 
 interface NewWord {
   id: string;
@@ -8,6 +9,7 @@ interface NewWord {
   batch_id: string;
   status: string;
   created_at: string;
+  klankteken?: string;
 }
 
 export default function QuickReview() {
@@ -63,11 +65,14 @@ export default function QuickReview() {
     const currentWord = words[currentIndex];
     setProcessing(true);
 
+    const klankteken = currentWord.klankteken || analyzeWord(currentWord.word);
+
     const { error: insertError } = await supabase
       .from('wordfrequency')
       .insert({
         word: currentWord.word,
-        frequency: 1
+        frequency: 1,
+        klankteken: klankteken
       });
 
     if (insertError) {
