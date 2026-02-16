@@ -136,7 +136,7 @@ export default function NewWords() {
     const processedWords = processText(importText);
 
     const { data: existingWords } = await supabase
-      .from('word_frequency')
+      .from('wordfrequency')
       .select('word')
       .in('word', processedWords);
 
@@ -169,7 +169,7 @@ export default function NewWords() {
     const processedWords = processText(importText);
 
     const { data: existingWords } = await supabase
-      .from('word_frequency')
+      .from('wordfrequency')
       .select('word')
       .in('word', processedWords);
 
@@ -262,7 +262,7 @@ export default function NewWords() {
     }));
 
     const { error: insertError } = await supabase
-      .from('word_frequency')
+      .from('wordfrequency')
       .insert(wordsForFrequency);
 
     if (insertError) {

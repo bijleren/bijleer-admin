@@ -64,7 +64,7 @@ export default function QuickReview() {
     setProcessing(true);
 
     const { error: insertError } = await supabase
-      .from('word_frequency')
+      .from('wordfrequency')
       .insert({
         word: currentWord.word,
         frequency: 1
