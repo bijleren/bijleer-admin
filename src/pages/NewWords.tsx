@@ -258,11 +258,7 @@ export default function NewWords() {
 
     const wordsForFrequency = wordsToApprove.map(w => ({
       word: w.word,
-      frequency: 1,
-      klankteken_check: 0,
-      lidwoord_check: 0,
-      betekenis_check: 0,
-      onboarded: 0
+      frequency: 1
     }));
 
     const { error: insertError } = await supabase
