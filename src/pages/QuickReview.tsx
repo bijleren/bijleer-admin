@@ -66,28 +66,13 @@ export default function QuickReview() {
     setProcessing(true);
 
     const klankteken = currentWord.klankteken || analyzeWord(currentWord.word);
-
-    const { error: insertError } = await supabase
-      .from('wordfrequency')
-      .insert({
-        word: currentWord.word,
-        frequency: 1,
-        klankteken: klankteken
-      });
-
-    if (insertError) {
-      console.error('Error inserting to word_frequency:', insertError);
-      alert('Error approving word');
-      setProcessing(false);
-      return;
-    }
-
     const { data: user } = await supabase.auth.getUser();
 
     const { error: updateError } = await supabase
       .from('new_words')
       .update({
-        status: 'approved',
+        status: 'reviewed',
+        klankteken: klankteken,
         reviewed_by: user?.user?.id,
         reviewed_at: new Date().toISOString()
       })
@@ -95,6 +80,9 @@ export default function QuickReview() {
 
     if (updateError) {
       console.error('Error updating new_words:', updateError);
+      alert('Error approving word');
+      setProcessing(false);
+      return;
     }
 
     setStats(prev => ({ ...prev, approved: prev.approved + 1 }));

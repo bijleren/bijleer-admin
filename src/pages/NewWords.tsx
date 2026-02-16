@@ -43,8 +43,9 @@ interface ImportStats {
 }
 
 export default function NewWords() {
-  const [activeTab, setActiveTab] = useState<'pending' | 'import' | 'history' | 'rejected'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'reviewed' | 'import' | 'history' | 'rejected'>('pending');
   const [pendingWords, setPendingWords] = useState<NewWord[]>([]);
+  const [reviewedWords, setReviewedWords] = useState<NewWord[]>([]);
   const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
   const [importText, setImportText] = useState('');
   const [batchName, setBatchName] = useState('');
@@ -59,6 +60,8 @@ export default function NewWords() {
   useEffect(() => {
     if (activeTab === 'pending') {
       loadPendingWords();
+    } else if (activeTab === 'reviewed') {
+      loadReviewedWords();
     } else if (activeTab === 'history') {
       loadImportHistory();
     } else if (activeTab === 'rejected') {
@@ -81,6 +84,28 @@ export default function NewWords() {
       console.error('Error loading pending words:', error);
     } else {
       setPendingWords(data.map(item => ({
+        ...item,
+        batch_name: item.import_batches?.batch_name
+      })));
+    }
+    setLoading(false);
+  };
+
+  const loadReviewedWords = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('new_words')
+      .select(`
+        *,
+        import_batches(batch_name)
+      `)
+      .eq('status', 'reviewed')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error loading reviewed words:', error);
+    } else {
+      setReviewedWords(data.map(item => ({
         ...item,
         batch_name: item.import_batches?.batch_name
       })));
@@ -248,17 +273,43 @@ export default function NewWords() {
   };
 
   const selectAll = () => {
-    if (selectedWords.size === pendingWords.length) {
+    const currentWords = activeTab === 'reviewed' ? reviewedWords : pendingWords;
+    if (selectedWords.size === currentWords.length) {
       setSelectedWords(new Set());
     } else {
-      setSelectedWords(new Set(pendingWords.map(w => w.id)));
+      setSelectedWords(new Set(currentWords.map(w => w.id)));
     }
   };
 
   const approveSelectedWords = async () => {
     if (selectedWords.size === 0) return;
 
-    const wordsToApprove = pendingWords.filter(w => selectedWords.has(w.id));
+    const { data: user } = await supabase.auth.getUser();
+
+    const { error: updateError } = await supabase
+      .from('new_words')
+      .update({
+        status: 'reviewed',
+        reviewed_by: user?.user?.id,
+        reviewed_at: new Date().toISOString()
+      })
+      .in('id', Array.from(selectedWords));
+
+    if (updateError) {
+      console.error('Error updating new_words:', updateError);
+      alert('Error moving words to reviewed');
+      return;
+    }
+
+    alert(`Successfully moved ${selectedWords.size} words to reviewed!`);
+    setSelectedWords(new Set());
+    loadPendingWords();
+  };
+
+  const approveReviewedWords = async () => {
+    if (selectedWords.size === 0) return;
+
+    const wordsToApprove = reviewedWords.filter(w => selectedWords.has(w.id));
 
     const wordsForFrequency = wordsToApprove.map(w => ({
       word: w.word,
@@ -271,8 +322,8 @@ export default function NewWords() {
       .insert(wordsForFrequency);
 
     if (insertError) {
-      console.error('Error inserting to word_frequency:', insertError);
-      alert('Error approving words');
+      console.error('Error inserting to wordfrequency:', insertError);
+      alert('Error approving words to vocabulary');
       return;
     }
 
@@ -289,13 +340,11 @@ export default function NewWords() {
 
     if (updateError) {
       console.error('Error updating new_words:', updateError);
-      alert('Error updating word status');
-      return;
     }
 
-    alert(`Successfully approved ${selectedWords.size} words!`);
+    alert(`Successfully approved ${wordsToApprove.length} words to vocabulary!`);
     setSelectedWords(new Set());
-    loadPendingWords();
+    loadReviewedWords();
   };
 
   const rejectSelectedWords = async () => {
@@ -385,15 +434,22 @@ export default function NewWords() {
       return;
     }
 
-    loadPendingWords();
+    if (activeTab === 'reviewed') {
+      loadReviewedWords();
+    } else {
+      loadPendingWords();
+    }
   };
 
   const regenerateAllKlankteken = async () => {
-    if (!confirm('Regenerate klankteken for all pending words? This will overwrite existing values.')) return;
+    const currentWords = activeTab === 'reviewed' ? reviewedWords : pendingWords;
+    const wordType = activeTab === 'reviewed' ? 'reviewed' : 'pending';
+
+    if (!confirm(`Regenerate klankteken for all ${wordType} words? This will overwrite existing values.`)) return;
 
     setLoading(true);
 
-    for (const word of pendingWords) {
+    for (const word of currentWords) {
       const newKlankteken = analyzeWord(word.word);
 
       await supabase
@@ -403,8 +459,13 @@ export default function NewWords() {
     }
 
     setLoading(false);
-    alert(`Regenerated klankteken for ${pendingWords.length} words!`);
-    loadPendingWords();
+    alert(`Regenerated klankteken for ${currentWords.length} words!`);
+
+    if (activeTab === 'reviewed') {
+      loadReviewedWords();
+    } else {
+      loadPendingWords();
+    }
   };
 
   return (
@@ -428,6 +489,17 @@ export default function NewWords() {
               >
                 <Eye className="inline-block w-5 h-5 mr-2" />
                 Pending Review ({pendingWords.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('reviewed')}
+                className={`px-6 py-4 text-sm font-medium border-b-2 ${
+                  activeTab === 'reviewed'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <CheckCircle className="inline-block w-5 h-5 mr-2" />
+                Reviewed ({reviewedWords.length})
               </button>
               <button
                 onClick={() => setActiveTab('import')}
@@ -496,7 +568,7 @@ export default function NewWords() {
                       className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      Approve ({selectedWords.size})
+                      Move to Reviewed ({selectedWords.size})
                     </button>
                     <button
                       onClick={rejectSelectedWords}
@@ -523,6 +595,109 @@ export default function NewWords() {
                 ) : (
                   <div className="space-y-3">
                     {pendingWords.map(word => (
+                      <div
+                        key={word.id}
+                        className={`p-4 border-2 rounded-lg transition-all ${
+                          selectedWords.has(word.id)
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedWords.has(word.id)}
+                                onChange={() => toggleWordSelection(word.id)}
+                                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                              />
+                              <div>
+                                <div className="font-medium text-gray-900 text-lg">{word.word}</div>
+                                {word.batch_name && (
+                                  <div className="text-xs text-gray-500 mt-1">{word.batch_name}</div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="mt-3 ml-8">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Klankteken
+                              </label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={editingKlankteken[word.id] !== undefined ? editingKlankteken[word.id] : (word.klankteken || '')}
+                                  onChange={(e) => updateKlankteken(word.id, e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-mono"
+                                  placeholder="No klankteken"
+                                />
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    regenerateKlankteken(word.id, word.word);
+                                  }}
+                                  className="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                                  title="Regenerate klankteken"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'reviewed' && (
+              <div>
+                <div className="mb-6 flex justify-between items-center">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">Reviewed Words</h2>
+                    <p className="text-sm text-gray-600 mt-1">Check klankteken and approve to add to vocabulary</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={selectAll}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                    >
+                      {selectedWords.size === reviewedWords.length ? 'Deselect All' : 'Select All'}
+                    </button>
+                    <button
+                      onClick={regenerateAllKlankteken}
+                      disabled={reviewedWords.length === 0}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+                    >
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Regenerate All Klankteken
+                    </button>
+                    <button
+                      onClick={approveReviewedWords}
+                      disabled={selectedWords.size === 0}
+                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Approve to Vocabulary ({selectedWords.size})
+                    </button>
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="mt-2 text-gray-600">Loading...</p>
+                  </div>
+                ) : reviewedWords.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    No reviewed words yet. Review words from the pending tab first.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {reviewedWords.map(word => (
                       <div
                         key={word.id}
                         className={`p-4 border-2 rounded-lg transition-all ${
