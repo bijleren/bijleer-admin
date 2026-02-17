@@ -13,6 +13,8 @@ interface NewWord {
 
 export default function QuickReview() {
   const [words, setWords] = useState<NewWord[]>([]);
+  const [originalWordIds, setOriginalWordIds] = useState<string[]>([]);
+  const [rejectedWordIds, setRejectedWordIds] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -52,6 +54,9 @@ export default function QuickReview() {
       console.error('Error loading words:', error);
     } else {
       setWords(data || []);
+      setOriginalWordIds((data || []).map(w => w.id));
+      setRejectedWordIds([]);
+      setStats({ rejected: 0 });
     }
     setLoading(false);
   };
@@ -89,6 +94,7 @@ export default function QuickReview() {
       console.error('Error updating new_words:', updateError);
     }
 
+    setRejectedWordIds(prev => [...prev, currentWord.id]);
     setStats(prev => ({ ...prev, rejected: prev.rejected + 1 }));
     moveToNext();
   }, [words, currentIndex, processing]);
@@ -118,7 +124,40 @@ export default function QuickReview() {
     }
   };
 
+  const handleApproveRemaining = async () => {
+    setProcessing(true);
+    const remainingWordIds = originalWordIds.filter(id => !rejectedWordIds.includes(id));
+
+    if (remainingWordIds.length === 0) {
+      setProcessing(false);
+      return;
+    }
+
+    const { data: user } = await supabase.auth.getUser();
+
+    const { error } = await supabase
+      .from('new_words')
+      .update({
+        status: 'reviewed',
+        reviewed_by: user?.user?.id,
+        reviewed_at: new Date().toISOString()
+      })
+      .in('id', remainingWordIds);
+
+    if (error) {
+      console.error('Error approving remaining words:', error);
+      alert('Error approving remaining words');
+    } else {
+      alert(`Successfully approved ${remainingWordIds.length} words!`);
+      setOriginalWordIds([]);
+      setRejectedWordIds([]);
+    }
+
+    setProcessing(false);
+  };
+
   const currentWord = words[currentIndex];
+  const remainingToApprove = originalWordIds.length - rejectedWordIds.length;
 
   if (loading) {
     return (
@@ -134,20 +173,48 @@ export default function QuickReview() {
   if (words.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-2xl mx-auto px-4">
           <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">All done!</h2>
+          <h2 className="mt-4 text-2xl font-bold text-gray-900">Quick Review Complete!</h2>
           <p className="mt-2 text-gray-600">
-            No pending words to review. {stats.rejected > 0 && `You rejected ${stats.rejected} word${stats.rejected > 1 ? 's' : ''} in this session.`}
+            You've reviewed all loaded words. {stats.rejected > 0 && `You rejected ${stats.rejected} word${stats.rejected > 1 ? 's' : ''} in this session.`}
           </p>
+
+          {remainingToApprove > 0 && (
+            <div className="mt-6 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">Ready to approve?</h3>
+              <p className="text-sm text-blue-800 mb-4">
+                You have {remainingToApprove} word{remainingToApprove > 1 ? 's' : ''} that {remainingToApprove > 1 ? 'weren\'t' : 'wasn\'t'} rejected.
+                Click below to mark {remainingToApprove > 1 ? 'them' : 'it'} as reviewed so {remainingToApprove > 1 ? 'they' : 'it'} can be processed into the vocabulary.
+              </p>
+              <button
+                onClick={handleApproveRemaining}
+                disabled={processing}
+                className="px-8 py-3 text-lg font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all"
+              >
+                {processing ? 'Processing...' : `Approve ${remainingToApprove} Word${remainingToApprove > 1 ? 's' : ''}`}
+              </button>
+            </div>
+          )}
+
           {stats.rejected > 0 && (
-            <div className="mt-4 flex justify-center">
+            <div className="mt-6 flex justify-center">
               <div className="bg-red-100 px-4 py-2 rounded-lg">
                 <div className="text-2xl font-bold text-red-700">{stats.rejected}</div>
                 <div className="text-sm text-red-600">Rejected</div>
               </div>
             </div>
           )}
+
+          <button
+            onClick={() => {
+              setWords([]);
+              loadWords();
+            }}
+            className="mt-6 px-6 py-3 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-lg hover:bg-blue-50"
+          >
+            Load Next Batch
+          </button>
         </div>
       </div>
     );
