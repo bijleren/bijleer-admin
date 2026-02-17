@@ -45,7 +45,8 @@ const navigation = [
       { name: 'Check Klankteken', href: '/woordenschat/check-klankteken' },
       { name: 'Check Betekenis', href: '/woordenschat/check-betekenis' },
       { name: 'Statistiek', href: '/woordenschat/statistiek' },
-      { name: 'Analyse', href: '/woordenschat/analyse' }
+      { name: 'Analyse', href: '/woordenschat/analyse' },
+      { name: 'Foneem Frequentie', href: '/woordenschat/foneem-frequentie' }
     ]
   },
   {

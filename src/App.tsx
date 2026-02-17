@@ -28,6 +28,7 @@ import LearningGames from './pages/LearningGames';
 import VocabularyManagement from './pages/VocabularyManagement';
 import NewWords from './pages/NewWords';
 import QuickReview from './pages/QuickReview';
+import PhonemeFrequency from './pages/PhonemeFrequency';
 
 function App() {
   return (
@@ -63,6 +64,7 @@ function App() {
             <Route path="woordenschat/check-betekenis" element={<CheckBetekenis />} />
             <Route path="woordenschat/statistiek" element={<Statistics />} />
             <Route path="woordenschat/analyse" element={<Analysis />} />
+            <Route path="woordenschat/foneem-frequentie" element={<PhonemeFrequency />} />
             <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
             <Route path="kleuterdidactiek/doe" element={<PhysicalTasks />} />
