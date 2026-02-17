@@ -55,7 +55,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'letters', label: 'Letters', visible: true, width: '150px' },
   { key: 'beschrijving', label: 'Beschrijving', visible: true, width: '250px' },
   { key: 'klinktals', label: 'Klinktals', visible: false, width: '150px' },
-  { key: 'audio', label: 'Audio', visible: false, width: '200px' },
+  { key: 'audio', label: 'Audio', visible: true, width: '220px' },
   { key: 'audio_uitleg', label: 'Audio Uitleg', visible: false, width: '200px' },
   { key: 'tool_uitleg', label: 'Tool Uitleg', visible: false, width: '200px' },
   { key: 'articulation', label: 'Articulatie', visible: false, width: '150px' },
@@ -200,6 +200,14 @@ export default function Klankteken() {
     ));
   };
 
+  const playAudio = (audioUrl: string) => {
+    const audio = new Audio(audioUrl);
+    audio.play().catch(error => {
+      console.error('Error playing audio:', error);
+      alert('Kon audio niet afspelen');
+    });
+  };
+
   const renderCellValue = (item: Klankteken, key: keyof Klankteken) => {
     const value = item[key];
 
@@ -217,12 +225,31 @@ export default function Klankteken() {
         }) : '-';
       case 'audio':
       case 'audio_uitleg':
+      case 'produce_audio':
+      case 'example_words_audio':
+        return value ? (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => playAudio(value as string)}
+              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Speel audio af"
+            >
+              <Volume2 className="w-4 h-4" />
+            </button>
+            <a
+              href={value as string}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline text-xs truncate block max-w-[120px]"
+            >
+              {(value as string).substring(0, 20)}...
+            </a>
+          </div>
+        ) : '-';
       case 'tool_uitleg':
       case 'imageWord':
       case 'imageTool':
-      case 'example_words_audio':
       case 'example_words_images':
-      case 'produce_audio':
         return value ? (
           <a
             href={value as string}
