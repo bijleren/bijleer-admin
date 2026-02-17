@@ -19,6 +19,7 @@ export default function QuickReview() {
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [stats, setStats] = useState({ rejected: 0 });
+  const [reviewComplete, setReviewComplete] = useState(false);
 
   useEffect(() => {
     loadWords();
@@ -43,6 +44,7 @@ export default function QuickReview() {
 
   const loadWords = async () => {
     setLoading(true);
+    setReviewComplete(false);
     const { data, error } = await supabase
       .from('new_words')
       .select('*')
@@ -57,6 +59,7 @@ export default function QuickReview() {
       setOriginalWordIds((data || []).map(w => w.id));
       setRejectedWordIds([]);
       setStats({ rejected: 0 });
+      setCurrentIndex(0);
     }
     setLoading(false);
   };
@@ -124,12 +127,17 @@ export default function QuickReview() {
     }
   };
 
+  const handleFinishReview = () => {
+    setReviewComplete(true);
+  };
+
   const handleApproveRemaining = async () => {
     setProcessing(true);
     const remainingWordIds = originalWordIds.filter(id => !rejectedWordIds.includes(id));
 
     if (remainingWordIds.length === 0) {
       setProcessing(false);
+      loadWords();
       return;
     }
 
@@ -149,8 +157,7 @@ export default function QuickReview() {
       alert('Error approving remaining words');
     } else {
       alert(`Successfully approved ${remainingWordIds.length} words!`);
-      setOriginalWordIds([]);
-      setRejectedWordIds([]);
+      loadWords();
     }
 
     setProcessing(false);
@@ -170,7 +177,7 @@ export default function QuickReview() {
     );
   }
 
-  if (words.length === 0) {
+  if (words.length === 0 || reviewComplete) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-2xl mx-auto px-4">
@@ -207,10 +214,7 @@ export default function QuickReview() {
           )}
 
           <button
-            onClick={() => {
-              setWords([]);
-              loadWords();
-            }}
+            onClick={loadWords}
             className="mt-6 px-6 py-3 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-lg hover:bg-blue-50"
           >
             Load Next Batch
@@ -280,6 +284,16 @@ export default function QuickReview() {
           >
             Next
             <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex justify-center mb-8">
+          <button
+            onClick={handleFinishReview}
+            className="px-8 py-4 text-lg font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 shadow-lg hover:shadow-xl transition-all"
+          >
+            <CheckCircle className="w-6 h-6 inline-block mr-2" />
+            Finish Review
           </button>
         </div>
 
