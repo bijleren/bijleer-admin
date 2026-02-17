@@ -20,14 +20,30 @@ export default function PhonemeFrequency() {
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase
-        .from('wordfrequency')
-        .select('klankteken')
-        .not('klankteken', 'is', null);
+      let allData: { klankteken: string | null }[] = [];
+      let from = 0;
+      const batchSize = 1000;
+      let hasMore = true;
 
-      if (fetchError) throw fetchError;
+      while (hasMore) {
+        const { data, error: fetchError } = await supabase
+          .from('wordfrequency')
+          .select('klankteken')
+          .not('klankteken', 'is', null)
+          .range(from, from + batchSize - 1);
 
-      if (!data || data.length === 0) {
+        if (fetchError) throw fetchError;
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          from += batchSize;
+          hasMore = data.length === batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      if (allData.length === 0) {
         setError('No words found with klankteken data');
         setLoading(false);
         return;
@@ -36,7 +52,7 @@ export default function PhonemeFrequency() {
       const phonemeMap = new Map<string, number>();
       let totalPhonemeCount = 0;
 
-      data.forEach(row => {
+      allData.forEach(row => {
         if (row.klankteken) {
           const phonemes = row.klankteken.split('-').filter(p => p.trim() !== '');
           phonemes.forEach(phoneme => {
@@ -56,7 +72,7 @@ export default function PhonemeFrequency() {
         .sort((a, b) => b.count - a.count);
 
       setPhonemeCounts(phonemeArray);
-      setTotalWords(data.length);
+      setTotalWords(allData.length);
       setTotalPhonemes(totalPhonemeCount);
     } catch (err) {
       console.error('Error calculating frequencies:', err);
