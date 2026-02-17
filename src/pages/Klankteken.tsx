@@ -370,9 +370,9 @@ export default function Klankteken() {
                 <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-20">
                   <tr>
                     <th className="sticky left-0 z-30 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                      ID
+                      Titel
                     </th>
-                    {visibleColumns.map((column) => (
+                    {visibleColumns.filter(col => col.key !== 'title').map((column) => (
                       <th
                         key={column.key}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-gray-50"
@@ -394,12 +394,12 @@ export default function Klankteken() {
                           <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
                             <Volume2 className="w-4 h-4 text-blue-600" />
                           </div>
-                          <span className="text-sm font-mono text-gray-900">
-                            {item.id}
+                          <span className="text-sm font-medium text-gray-900">
+                            {item.title}
                           </span>
                         </div>
                       </td>
-                      {visibleColumns.map((column) => (
+                      {visibleColumns.filter(col => col.key !== 'title').map((column) => (
                         <td
                           key={column.key}
                           className="px-6 py-4 whitespace-nowrap"
