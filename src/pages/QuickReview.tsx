@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircle, XCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { XCircle, ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { analyzeWord } from '../utils/klankteken';
 
 interface NewWord {
   id: string;
@@ -17,7 +16,7 @@ export default function QuickReview() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [stats, setStats] = useState({ approved: 0, rejected: 0 });
+  const [stats, setStats] = useState({ rejected: 0 });
 
   useEffect(() => {
     loadWords();
@@ -27,9 +26,7 @@ export default function QuickReview() {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (processing || words.length === 0) return;
 
-      if (e.key === 'a' || e.key === 'A') {
-        handleApprove();
-      } else if (e.key === 'r' || e.key === 'R') {
+      if (e.key === 'r' || e.key === 'R') {
         handleReject();
       } else if (e.key === 'ArrowLeft') {
         handlePrevious();
@@ -58,36 +55,6 @@ export default function QuickReview() {
     }
     setLoading(false);
   };
-
-  const handleApprove = useCallback(async () => {
-    if (words.length === 0 || processing) return;
-
-    const currentWord = words[currentIndex];
-    setProcessing(true);
-
-    const klankteken = currentWord.klankteken || analyzeWord(currentWord.word);
-    const { data: user } = await supabase.auth.getUser();
-
-    const { error: updateError } = await supabase
-      .from('new_words')
-      .update({
-        status: 'reviewed',
-        klankteken: klankteken,
-        reviewed_by: user?.user?.id,
-        reviewed_at: new Date().toISOString()
-      })
-      .eq('id', currentWord.id);
-
-    if (updateError) {
-      console.error('Error updating new_words:', updateError);
-      alert('Error approving word');
-      setProcessing(false);
-      return;
-    }
-
-    setStats(prev => ({ ...prev, approved: prev.approved + 1 }));
-    moveToNext();
-  }, [words, currentIndex, processing]);
 
   const handleReject = useCallback(async () => {
     if (words.length === 0 || processing) return;
@@ -171,18 +138,16 @@ export default function QuickReview() {
           <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
           <h2 className="mt-4 text-2xl font-bold text-gray-900">All done!</h2>
           <p className="mt-2 text-gray-600">
-            No pending words to review. You reviewed {stats.approved + stats.rejected} words in this session.
+            No pending words to review. {stats.rejected > 0 && `You rejected ${stats.rejected} word${stats.rejected > 1 ? 's' : ''} in this session.`}
           </p>
-          <div className="mt-4 flex justify-center gap-4">
-            <div className="bg-green-100 px-4 py-2 rounded-lg">
-              <div className="text-2xl font-bold text-green-700">{stats.approved}</div>
-              <div className="text-sm text-green-600">Approved</div>
+          {stats.rejected > 0 && (
+            <div className="mt-4 flex justify-center">
+              <div className="bg-red-100 px-4 py-2 rounded-lg">
+                <div className="text-2xl font-bold text-red-700">{stats.rejected}</div>
+                <div className="text-sm text-red-600">Rejected</div>
+              </div>
             </div>
-            <div className="bg-red-100 px-4 py-2 rounded-lg">
-              <div className="text-2xl font-bold text-red-700">{stats.rejected}</div>
-              <div className="text-sm text-red-600">Rejected</div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     );
@@ -196,19 +161,15 @@ export default function QuickReview() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Quick Review</h1>
               <p className="mt-2 text-gray-600">
-                Word {currentIndex + 1} of {words.length}
+                Word {currentIndex + 1} of {words.length} • Only reject words that don't belong
               </p>
             </div>
-            <div className="flex gap-4">
-              <div className="bg-green-100 px-4 py-2 rounded-lg">
-                <div className="text-xl font-bold text-green-700">{stats.approved}</div>
-                <div className="text-xs text-green-600">Approved</div>
-              </div>
+            {stats.rejected > 0 && (
               <div className="bg-red-100 px-4 py-2 rounded-lg">
                 <div className="text-xl font-bold text-red-700">{stats.rejected}</div>
                 <div className="text-xs text-red-600">Rejected</div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -226,7 +187,7 @@ export default function QuickReview() {
           </div>
         </div>
 
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-center items-center mb-8 gap-8">
           <button
             onClick={handlePrevious}
             disabled={currentIndex === 0}
@@ -236,24 +197,14 @@ export default function QuickReview() {
             Previous
           </button>
 
-          <div className="flex gap-4">
-            <button
-              onClick={handleReject}
-              disabled={processing}
-              className="flex items-center gap-2 px-8 py-4 text-lg font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all"
-            >
-              <XCircle className="w-6 h-6" />
-              Reject (R)
-            </button>
-            <button
-              onClick={handleApprove}
-              disabled={processing}
-              className="flex items-center gap-2 px-8 py-4 text-lg font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all"
-            >
-              <CheckCircle className="w-6 h-6" />
-              Approve (A)
-            </button>
-          </div>
+          <button
+            onClick={handleReject}
+            disabled={processing}
+            className="flex items-center gap-2 px-10 py-5 text-xl font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all"
+          >
+            <XCircle className="w-7 h-7" />
+            Reject (R)
+          </button>
 
           <button
             onClick={handleNext}
@@ -266,14 +217,15 @@ export default function QuickReview() {
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="font-medium text-blue-900 mb-2">How it works:</h3>
+          <p className="text-sm text-blue-800 mb-3">
+            Use arrows to browse through words. Only click Reject (R) for words that don't belong.
+            Good words will stay in the list for full review in "Nieuwe Woorden".
+          </p>
           <h3 className="font-medium text-blue-900 mb-2">Keyboard Shortcuts:</h3>
           <div className="text-sm text-blue-800 space-y-1">
             <div className="flex justify-between">
-              <span>Approve word</span>
-              <kbd className="px-2 py-1 bg-blue-100 rounded">A</kbd>
-            </div>
-            <div className="flex justify-between">
-              <span>Reject word</span>
+              <span>Reject word (only bad words!)</span>
               <kbd className="px-2 py-1 bg-blue-100 rounded">R</kbd>
             </div>
             <div className="flex justify-between">
