@@ -46,7 +46,8 @@ const navigation = [
       { name: 'Check Betekenis', href: '/woordenschat/check-betekenis' },
       { name: 'Statistiek', href: '/woordenschat/statistiek' },
       { name: 'Analyse', href: '/woordenschat/analyse' },
-      { name: 'Foneem Frequentie', href: '/woordenschat/foneem-frequentie' }
+      { name: 'Foneem Frequentie', href: '/woordenschat/foneem-frequentie' },
+      { name: 'Missing Images', href: '/woordenschat/missing-images' }
     ]
   },
   {

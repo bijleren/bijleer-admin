@@ -1,0 +1,486 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { Image, Check, X, SkipForward, Trash2, Search, Filter } from 'lucide-react';
+
+interface Word {
+  id: number;
+  word: string;
+  frequency: number;
+  klankteken: string | null;
+  image: string | null;
+  image_file: string | null;
+}
+
+interface Notification {
+  type: 'success' | 'error';
+  message: string;
+}
+
+type SortOption = 'shortest' | 'frequency' | 'random';
+type TabType = 'overview' | 'check';
+
+export default function MissingImages() {
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [words, setWords] = useState<Word[]>([]);
+  const [currentWord, setCurrentWord] = useState<Word | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [notification, setNotification] = useState<Notification | null>(null);
+  const [sortOption, setSortOption] = useState<SortOption>('shortest');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [totalWithoutImage, setTotalWithoutImage] = useState(0);
+
+  useEffect(() => {
+    fetchWordsWithoutImages();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'check' && !currentWord) {
+      loadNextWord();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (currentWord) {
+      checkImageExists(currentWord.word);
+    }
+  }, [currentWord]);
+
+  const fetchWordsWithoutImages = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('wordfrequency')
+        .select('id, word, frequency, klankteken, image, image_file')
+        .or('image.is.null,image.eq.')
+        .or('image_file.is.null,image_file.eq.')
+        .order('word', { ascending: true });
+
+      if (error) throw error;
+
+      const filtered = (data || []).filter(
+        (w) => (!w.image || w.image === '') && (!w.image_file || w.image_file === '')
+      );
+
+      setWords(filtered);
+      setTotalWithoutImage(filtered.length);
+    } catch (error) {
+      console.error('Error fetching words:', error);
+      showNotification('error', 'Failed to load words');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadNextWord = async (specificWord?: string) => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from('wordfrequency')
+        .select('id, word, frequency, klankteken, image, image_file')
+        .or('image.is.null,image.eq.')
+        .or('image_file.is.null,image_file.eq.');
+
+      if (specificWord) {
+        query = query.eq('word', specificWord);
+      } else {
+        switch (sortOption) {
+          case 'shortest':
+            query = query.order('word', { ascending: true });
+            break;
+          case 'frequency':
+            query = query.order('frequency', { ascending: false });
+            break;
+          case 'random':
+            break;
+        }
+      }
+
+      query = query.limit(sortOption === 'random' ? 100 : 1);
+
+      const { data, error } = await supabase.rpc('get_words_without_image', {
+        sort_type: sortOption,
+        search_word: specificWord || null
+      }).maybeSingle();
+
+      if (!data && !error) {
+        const { data: fallbackData, error: fallbackError } = await query;
+
+        if (fallbackError) throw fallbackError;
+
+        const filtered = (fallbackData || []).filter(
+          (w) => (!w.image || w.image === '') && (!w.image_file || w.image_file === '')
+        );
+
+        if (filtered.length > 0) {
+          const word = sortOption === 'random'
+            ? filtered[Math.floor(Math.random() * filtered.length)]
+            : filtered[0];
+          setCurrentWord(word);
+        } else {
+          setCurrentWord(null);
+          showNotification('success', 'All words have been checked!');
+        }
+      } else {
+        setCurrentWord(data);
+      }
+    } catch (error) {
+      console.error('Error loading word:', error);
+      showNotification('error', 'Failed to load word');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkImageExists = async (word: string) => {
+    setImageLoading(true);
+    setImageUrl(null);
+
+    const extensions = ['jpg', 'png'];
+    const baseUrl = 'https://www.instructielezen.be/img';
+
+    for (const ext of extensions) {
+      try {
+        const url = `${baseUrl}/${word}.${ext}`;
+        const response = await fetch(url, { method: 'HEAD' });
+        if (response.ok) {
+          setImageUrl(url);
+          setImageLoading(false);
+          return;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+
+    setImageLoading(false);
+  };
+
+  const updateImageStatus = async (status: '1' | '2') => {
+    if (!currentWord) return;
+
+    try {
+      const { error } = await supabase
+        .from('wordfrequency')
+        .update({ image: status })
+        .eq('id', currentWord.id);
+
+      if (error) throw error;
+
+      showNotification(
+        'success',
+        status === '1'
+          ? 'Marked as no image possible'
+          : 'Marked as has image'
+      );
+
+      await fetchWordsWithoutImages();
+      setTimeout(() => loadNextWord(), 500);
+    } catch (error) {
+      console.error('Error updating word:', error);
+      showNotification('error', 'Failed to update word');
+    }
+  };
+
+  const deleteWord = async () => {
+    if (!currentWord) return;
+
+    if (!confirm(`Are you sure you want to delete "${currentWord.word}"?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('wordfrequency')
+        .delete()
+        .eq('id', currentWord.id);
+
+      if (error) throw error;
+
+      showNotification('success', 'Word deleted successfully');
+      await fetchWordsWithoutImages();
+      setTimeout(() => loadNextWord(), 500);
+    } catch (error) {
+      console.error('Error deleting word:', error);
+      showNotification('error', 'Failed to delete word');
+    }
+  };
+
+  const handleSearch = () => {
+    if (searchTerm.trim()) {
+      loadNextWord(searchTerm.trim());
+    }
+  };
+
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const filteredWords = words.filter((word) =>
+    word.word.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <Image className="w-8 h-8" />
+            Missing Images
+          </h1>
+          <p className="mt-2 text-gray-600">
+            Manage words that need images
+          </p>
+        </div>
+
+        {notification && (
+          <div
+            className={`mb-6 p-4 rounded-lg ${
+              notification.type === 'success'
+                ? 'bg-green-50 text-green-800 border border-green-200'
+                : 'bg-red-50 text-red-800 border border-red-200'
+            }`}
+          >
+            {notification.message}
+          </div>
+        )}
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-blue-600 font-medium">
+                Words without images
+              </p>
+              <p className="text-2xl font-bold text-blue-900">
+                {totalWithoutImage}
+              </p>
+            </div>
+            <Image className="w-12 h-12 text-blue-400" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="border-b border-gray-200">
+            <div className="flex">
+              <button
+                onClick={() => setActiveTab('overview')}
+                className={`px-6 py-4 font-medium transition-colors ${
+                  activeTab === 'overview'
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Overview
+              </button>
+              <button
+                onClick={() => setActiveTab('check')}
+                className={`px-6 py-4 font-medium transition-colors ${
+                  activeTab === 'check'
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Check Images
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6">
+            {activeTab === 'overview' ? (
+              <div>
+                <div className="mb-6 flex gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search words..."
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <Search className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" />
+                    </div>
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="mt-2 text-gray-600">Loading words...</p>
+                  </div>
+                ) : filteredWords.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Image className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-600">
+                      {searchTerm
+                        ? 'No words found matching your search'
+                        : 'All words have images!'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Word
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Frequency
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Klankteken
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredWords.map((word) => (
+                          <tr key={word.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                              {word.word}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">
+                              {word.frequency}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600">
+                              {word.klankteken || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div className="mb-6 flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-5 h-5 text-gray-400" />
+                    <select
+                      value={sortOption}
+                      onChange={(e) => {
+                        setSortOption(e.target.value as SortOption);
+                        loadNextWord();
+                      }}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="shortest">Shortest word first</option>
+                      <option value="frequency">Highest frequency first</option>
+                      <option value="random">Random</option>
+                    </select>
+                  </div>
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                      placeholder="Search specific word..."
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <button
+                      onClick={handleSearch}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                      <Search className="w-4 h-4" />
+                      Search
+                    </button>
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="mt-2 text-gray-600">Loading word...</p>
+                  </div>
+                ) : !currentWord ? (
+                  <div className="text-center py-12">
+                    <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                    <p className="text-lg font-medium text-gray-900 mb-2">
+                      All done!
+                    </p>
+                    <p className="text-gray-600">
+                      No more words to check or none found
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="text-center mb-8">
+                      <h2 className="text-5xl font-bold text-gray-900 mb-2">
+                        {currentWord.word}
+                      </h2>
+                      <p className="text-gray-600">
+                        Frequency: {currentWord.frequency}
+                        {currentWord.klankteken && (
+                          <span className="ml-4">
+                            Klankteken: {currentWord.klankteken}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-lg p-8 mb-6 min-h-[300px] flex items-center justify-center">
+                      {imageLoading ? (
+                        <div className="text-center">
+                          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                          <p className="mt-4 text-gray-600">
+                            Checking for image...
+                          </p>
+                        </div>
+                      ) : imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={currentWord.word}
+                          className="max-w-full max-h-[400px] object-contain"
+                        />
+                      ) : (
+                        <div className="text-center">
+                          <Image className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                          <p className="text-gray-600">No image found</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-4 justify-center">
+                      <button
+                        onClick={() => loadNextWord()}
+                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2 font-medium"
+                      >
+                        <SkipForward className="w-5 h-5" />
+                        Skip
+                      </button>
+                      <button
+                        onClick={() => updateImageStatus('1')}
+                        className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2 font-medium"
+                      >
+                        <X className="w-5 h-5" />
+                        No Image Possible
+                      </button>
+                      <button
+                        onClick={() => updateImageStatus('2')}
+                        className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 font-medium"
+                      >
+                        <Check className="w-5 h-5" />
+                        Has Image
+                      </button>
+                      <button
+                        onClick={deleteWord}
+                        className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 font-medium"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                        Delete Word
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

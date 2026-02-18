@@ -29,6 +29,7 @@ import VocabularyManagement from './pages/VocabularyManagement';
 import NewWords from './pages/NewWords';
 import QuickReview from './pages/QuickReview';
 import PhonemeFrequency from './pages/PhonemeFrequency';
+import MissingImages from './pages/MissingImages';
 
 function App() {
   return (
@@ -65,6 +66,7 @@ function App() {
             <Route path="woordenschat/statistiek" element={<Statistics />} />
             <Route path="woordenschat/analyse" element={<Analysis />} />
             <Route path="woordenschat/foneem-frequentie" element={<PhonemeFrequency />} />
+            <Route path="woordenschat/missing-images" element={<MissingImages />} />
             <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
             <Route path="kleuterdidactiek/doe" element={<PhysicalTasks />} />
