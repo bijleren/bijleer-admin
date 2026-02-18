@@ -20,7 +20,7 @@ interface Notification {
   message: string;
 }
 
-type SortOption = 'shortest' | 'frequency' | 'random';
+type SortOption = 'shortest' | 'longest' | 'frequency-high' | 'frequency-low' | 'random';
 type TabType = 'overview' | 'check';
 
 export default function MissingImages() {
@@ -36,6 +36,9 @@ export default function MissingImages() {
   const [totalWithoutImage, setTotalWithoutImage] = useState(0);
   const [selectedWord, setSelectedWord] = useState<SelectedWord | null>(null);
   const [selectedImageLoading, setSelectedImageLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [overviewSortOption, setOverviewSortOption] = useState<SortOption>('shortest');
+  const itemsPerPage = 100;
 
   useEffect(() => {
     fetchWordsWithoutImages();
@@ -60,8 +63,7 @@ export default function MissingImages() {
         .from('wordfrequency')
         .select('id, word, frequency, klankteken, image, image_file')
         .or('image.is.null,image.eq.')
-        .or('image_file.is.null,image_file.eq.')
-        .order('word', { ascending: true });
+        .or('image_file.is.null,image_file.eq.');
 
       if (error) throw error;
 
@@ -95,8 +97,14 @@ export default function MissingImages() {
           case 'shortest':
             query = query.order('word', { ascending: true });
             break;
-          case 'frequency':
+          case 'longest':
+            query = query.order('word', { ascending: false });
+            break;
+          case 'frequency-high':
             query = query.order('frequency', { ascending: false });
+            break;
+          case 'frequency-low':
+            query = query.order('frequency', { ascending: true });
             break;
           case 'random':
             break;
@@ -192,6 +200,7 @@ export default function MissingImages() {
 
       if (word) {
         setSelectedWord(null);
+        setCurrentPage(1);
       } else {
         setTimeout(() => loadNextWord(), 500);
       }
@@ -261,9 +270,129 @@ export default function MissingImages() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const filteredWords = words.filter((word) =>
+  const getSortedWords = () => {
+    let sorted = [...words];
+
+    switch (overviewSortOption) {
+      case 'shortest':
+        sorted.sort((a, b) => a.word.length - b.word.length);
+        break;
+      case 'longest':
+        sorted.sort((a, b) => b.word.length - a.word.length);
+        break;
+      case 'frequency-high':
+        sorted.sort((a, b) => b.frequency - a.frequency);
+        break;
+      case 'frequency-low':
+        sorted.sort((a, b) => a.frequency - b.frequency);
+        break;
+    }
+
+    return sorted;
+  };
+
+  const filteredWords = getSortedWords().filter((word) =>
     word.word.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredWords.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedWords = filteredWords.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setSelectedWord(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const renderPagination = () => {
+    const pageNumbers = [];
+    const maxVisiblePages = 7;
+
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage < maxVisiblePages - 1) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <div className="flex items-center justify-center gap-2 mt-6">
+        <button
+          onClick={() => handlePageChange(1)}
+          disabled={currentPage === 1}
+          className="px-3 py-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+        >
+          First
+        </button>
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-3 py-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+        >
+          Previous
+        </button>
+
+        {startPage > 1 && (
+          <>
+            <button
+              onClick={() => handlePageChange(1)}
+              className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+            >
+              1
+            </button>
+            {startPage > 2 && <span className="px-2">...</span>}
+          </>
+        )}
+
+        {pageNumbers.map((page) => (
+          <button
+            key={page}
+            onClick={() => handlePageChange(page)}
+            className={`px-3 py-2 rounded-lg border ${
+              currentPage === page
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            {page}
+          </button>
+        ))}
+
+        {endPage < totalPages && (
+          <>
+            {endPage < totalPages - 1 && <span className="px-2">...</span>}
+            <button
+              onClick={() => handlePageChange(totalPages)}
+              className="px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50"
+            >
+              {totalPages}
+            </button>
+          </>
+        )}
+
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-3 py-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+        >
+          Next
+        </button>
+        <button
+          onClick={() => handlePageChange(totalPages)}
+          disabled={currentPage === totalPages}
+          className="px-3 py-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+        >
+          Last
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -334,18 +463,41 @@ export default function MissingImages() {
             {activeTab === 'overview' ? (
               <div>
                 <div className="mb-6 flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-5 h-5 text-gray-400" />
+                    <select
+                      value={overviewSortOption}
+                      onChange={(e) => {
+                        setOverviewSortOption(e.target.value as SortOption);
+                        setCurrentPage(1);
+                      }}
+                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="shortest">Shortest word first</option>
+                      <option value="longest">Longest word first</option>
+                      <option value="frequency-high">Highest frequency first</option>
+                      <option value="frequency-low">Lowest frequency first</option>
+                    </select>
+                  </div>
                   <div className="flex-1">
                     <div className="relative">
                       <input
                         type="text"
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setCurrentPage(1);
+                        }}
                         placeholder="Search words..."
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                       <Search className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" />
                     </div>
                   </div>
+                </div>
+
+                <div className="mb-4 text-sm text-gray-600">
+                  Showing {startIndex + 1}-{Math.min(endIndex, filteredWords.length)} of {filteredWords.length} words
                 </div>
 
                 {loading ? (
@@ -380,7 +532,7 @@ export default function MissingImages() {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {filteredWords.map((word) => (
+                          {paginatedWords.map((word) => (
                             <tr
                               key={word.id}
                               onClick={() => handleWordClick(word)}
@@ -404,6 +556,8 @@ export default function MissingImages() {
                         </tbody>
                       </table>
                     </div>
+
+                    {totalPages > 1 && renderPagination()}
 
                     {selectedWord && (
                       <div className="border-t border-gray-200 pt-6">
@@ -486,7 +640,9 @@ export default function MissingImages() {
                       className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="shortest">Shortest word first</option>
-                      <option value="frequency">Highest frequency first</option>
+                      <option value="longest">Longest word first</option>
+                      <option value="frequency-high">Highest frequency first</option>
+                      <option value="frequency-low">Lowest frequency first</option>
                       <option value="random">Random</option>
                     </select>
                   </div>
