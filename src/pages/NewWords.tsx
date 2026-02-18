@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, FileText, CheckCircle, XCircle, Trash2, Eye, Edit2 } from 'lucide-react';
+import { Upload, FileText, CheckCircle, XCircle, Trash2, Eye, Edit2, Play } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { analyzeWord } from '../utils/klankteken';
 
@@ -11,6 +11,11 @@ interface NewWord {
   created_at: string;
   batch_name?: string;
   klankteken?: string;
+}
+
+interface PhonemeMatch {
+  title: string;
+  audio: string;
 }
 
 interface ImportBatch {
@@ -56,6 +61,8 @@ export default function NewWords() {
   const [rejectedWords, setRejectedWords] = useState<RejectedWord[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingKlankteken, setEditingKlankteken] = useState<{ [key: string]: string }>({});
+  const [phonemeMatches, setPhonemeMatches] = useState<{ [key: string]: PhonemeMatch[] }>({});
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeTab === 'pending') {
@@ -83,10 +90,12 @@ export default function NewWords() {
     if (error) {
       console.error('Error loading pending words:', error);
     } else {
-      setPendingWords(data.map(item => ({
+      const words = data.map(item => ({
         ...item,
         batch_name: item.import_batches?.batch_name
-      })));
+      }));
+      setPendingWords(words);
+      await loadPhonemeMatches(words);
     }
     setLoading(false);
   };
@@ -105,10 +114,12 @@ export default function NewWords() {
     if (error) {
       console.error('Error loading reviewed words:', error);
     } else {
-      setReviewedWords(data.map(item => ({
+      const words = data.map(item => ({
         ...item,
         batch_name: item.import_batches?.batch_name
-      })));
+      }));
+      setReviewedWords(words);
+      await loadPhonemeMatches(words);
     }
     setLoading(false);
   };
@@ -141,6 +152,56 @@ export default function NewWords() {
       setRejectedWords(data || []);
     }
     setLoading(false);
+  };
+
+  const loadPhonemeMatches = async (words: NewWord[]) => {
+    const matches: { [key: string]: PhonemeMatch[] } = {};
+
+    for (const word of words) {
+      if (word.klankteken) {
+        const phonemes = word.klankteken.split('-').filter(p => p.trim());
+        const phonemeData: PhonemeMatch[] = [];
+
+        for (const phoneme of phonemes) {
+          const { data } = await supabase
+            .from('klankteken')
+            .select('title, audio')
+            .eq('title', phoneme)
+            .maybeSingle();
+
+          if (data) {
+            phonemeData.push(data);
+          }
+        }
+
+        if (phonemeData.length > 0) {
+          matches[word.id] = phonemeData;
+        }
+      }
+    }
+
+    setPhonemeMatches(matches);
+  };
+
+  const playAudio = (audioPath: string) => {
+    if (playingAudio === audioPath) {
+      setPlayingAudio(null);
+      return;
+    }
+
+    const audio = new Audio(audioPath);
+    setPlayingAudio(audioPath);
+
+    audio.onended = () => {
+      setPlayingAudio(null);
+    };
+
+    audio.onerror = () => {
+      setPlayingAudio(null);
+      alert('Error playing audio file');
+    };
+
+    audio.play();
   };
 
   const processText = (text: string): string[] => {
@@ -643,6 +704,34 @@ export default function NewWords() {
                                   <Edit2 className="w-4 h-4" />
                                 </button>
                               </div>
+                              {phonemeMatches[word.id] && phonemeMatches[word.id].length > 0 && (
+                                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                                  <div className="text-xs font-medium text-green-800 mb-2">
+                                    Found Phonemes ({phonemeMatches[word.id].length})
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {phonemeMatches[word.id].map((phoneme, idx) => (
+                                      <div key={idx} className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-green-300">
+                                        <span className="text-sm font-mono text-gray-900">{phoneme.title}</span>
+                                        {phoneme.audio && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              playAudio(phoneme.audio);
+                                            }}
+                                            className={`p-1 rounded hover:bg-green-100 ${
+                                              playingAudio === phoneme.audio ? 'text-green-600' : 'text-gray-600'
+                                            }`}
+                                            title="Play audio"
+                                          >
+                                            <Play className="w-3 h-3" fill={playingAudio === phoneme.audio ? 'currentColor' : 'none'} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -746,6 +835,34 @@ export default function NewWords() {
                                   <Edit2 className="w-4 h-4" />
                                 </button>
                               </div>
+                              {phonemeMatches[word.id] && phonemeMatches[word.id].length > 0 && (
+                                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                                  <div className="text-xs font-medium text-green-800 mb-2">
+                                    Found Phonemes ({phonemeMatches[word.id].length})
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {phonemeMatches[word.id].map((phoneme, idx) => (
+                                      <div key={idx} className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-green-300">
+                                        <span className="text-sm font-mono text-gray-900">{phoneme.title}</span>
+                                        {phoneme.audio && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              playAudio(phoneme.audio);
+                                            }}
+                                            className={`p-1 rounded hover:bg-green-100 ${
+                                              playingAudio === phoneme.audio ? 'text-green-600' : 'text-gray-600'
+                                            }`}
+                                            title="Play audio"
+                                          >
+                                            <Play className="w-3 h-3" fill={playingAudio === phoneme.audio ? 'currentColor' : 'none'} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
