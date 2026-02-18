@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Calculator, TrendingUp, AlertCircle } from 'lucide-react';
+import { Calculator, TrendingUp, AlertCircle, Play, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface PhonemeCount {
   phoneme: string;
   count: number;
   percentage: number;
+  existsInDatabase?: boolean;
+  audioPath?: string;
 }
 
 export default function PhonemeFrequency() {
@@ -14,6 +16,7 @@ export default function PhonemeFrequency() {
   const [totalWords, setTotalWords] = useState(0);
   const [totalPhonemes, setTotalPhonemes] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
 
   const calculateFrequencies = async () => {
     setLoading(true);
@@ -71,7 +74,23 @@ export default function PhonemeFrequency() {
         }))
         .sort((a, b) => b.count - a.count);
 
-      setPhonemeCounts(phonemeArray);
+      const enrichedPhonemes = await Promise.all(
+        phonemeArray.map(async (item) => {
+          const { data } = await supabase
+            .from('klankteken')
+            .select('title, audio')
+            .eq('title', item.phoneme)
+            .maybeSingle();
+
+          return {
+            ...item,
+            existsInDatabase: !!data,
+            audioPath: data?.audio || undefined
+          };
+        })
+      );
+
+      setPhonemeCounts(enrichedPhonemes);
       setTotalWords(allData.length);
       setTotalPhonemes(totalPhonemeCount);
     } catch (err) {
@@ -80,6 +99,27 @@ export default function PhonemeFrequency() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const playAudio = (audioPath: string) => {
+    if (playingAudio === audioPath) {
+      setPlayingAudio(null);
+      return;
+    }
+
+    const audio = new Audio(audioPath);
+    setPlayingAudio(audioPath);
+
+    audio.onended = () => {
+      setPlayingAudio(null);
+    };
+
+    audio.onerror = () => {
+      setPlayingAudio(null);
+      alert('Error playing audio file');
+    };
+
+    audio.play();
   };
 
   return (
@@ -176,6 +216,9 @@ export default function PhonemeFrequency() {
                         Foneem
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        In Database
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Frequentie
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -183,6 +226,9 @@ export default function PhonemeFrequency() {
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Visualisatie
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Audio
                       </th>
                     </tr>
                   </thead>
@@ -197,6 +243,19 @@ export default function PhonemeFrequency() {
                             {item.phoneme}
                           </span>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {item.existsInDatabase ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                              <CheckCircle className="w-3 h-3" />
+                              Ja
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-full">
+                              <XCircle className="w-3 h-3" />
+                              Nee
+                            </span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {item.count.toLocaleString()}
                         </td>
@@ -210,6 +269,23 @@ export default function PhonemeFrequency() {
                               style={{ width: `${Math.min(item.percentage * 2, 100)}%` }}
                             ></div>
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {item.audioPath ? (
+                            <button
+                              onClick={() => playAudio(item.audioPath!)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                playingAudio === item.audioPath
+                                  ? 'bg-green-100 text-green-600'
+                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              }`}
+                              title="Play audio"
+                            >
+                              <Play className="w-4 h-4" fill={playingAudio === item.audioPath ? 'currentColor' : 'none'} />
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-400">Geen audio</span>
+                          )}
                         </td>
                       </tr>
                     ))}
