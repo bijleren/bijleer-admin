@@ -157,25 +157,44 @@ export default function NewWords() {
   const loadPhonemeMatches = async (words: NewWord[]) => {
     const matches: { [key: string]: PhonemeMatch[] } = {};
 
+    const allPhonemes = new Set<string>();
+    words.forEach(word => {
+      if (word.klankteken) {
+        word.klankteken.split('-').filter(p => p.trim()).forEach(p => allPhonemes.add(p));
+      }
+    });
+
+    if (allPhonemes.size === 0) {
+      setPhonemeMatches({});
+      return;
+    }
+
+    const { data: phonemeData } = await supabase
+      .from('klankteken')
+      .select('title, audio')
+      .in('title', Array.from(allPhonemes));
+
+    if (!phonemeData) {
+      setPhonemeMatches({});
+      return;
+    }
+
+    const phonemeMap = new Map(phonemeData.map(p => [p.title, p]));
+
     for (const word of words) {
       if (word.klankteken) {
         const phonemes = word.klankteken.split('-').filter(p => p.trim());
-        const phonemeData: PhonemeMatch[] = [];
+        const foundPhonemes: PhonemeMatch[] = [];
 
         for (const phoneme of phonemes) {
-          const { data } = await supabase
-            .from('klankteken')
-            .select('title, audio')
-            .eq('title', phoneme)
-            .maybeSingle();
-
+          const data = phonemeMap.get(phoneme);
           if (data) {
-            phonemeData.push(data);
+            foundPhonemes.push(data);
           }
         }
 
-        if (phonemeData.length > 0) {
-          matches[word.id] = phonemeData;
+        if (foundPhonemes.length > 0) {
+          matches[word.id] = foundPhonemes;
         }
       }
     }
