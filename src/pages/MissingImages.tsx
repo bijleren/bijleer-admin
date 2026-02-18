@@ -11,6 +11,10 @@ interface Word {
   image_file: string | null;
 }
 
+interface SelectedWord extends Word {
+  imageUrl?: string | null;
+}
+
 interface Notification {
   type: 'success' | 'error';
   message: string;
@@ -30,6 +34,8 @@ export default function MissingImages() {
   const [sortOption, setSortOption] = useState<SortOption>('shortest');
   const [searchTerm, setSearchTerm] = useState('');
   const [totalWithoutImage, setTotalWithoutImage] = useState(0);
+  const [selectedWord, setSelectedWord] = useState<SelectedWord | null>(null);
+  const [selectedImageLoading, setSelectedImageLoading] = useState(false);
 
   useEffect(() => {
     fetchWordsWithoutImages();
@@ -157,14 +163,21 @@ export default function MissingImages() {
     setImageLoading(false);
   };
 
-  const updateImageStatus = async (status: '1' | '2') => {
-    if (!currentWord) return;
+  const updateImageStatus = async (status: '1' | '2', word?: Word) => {
+    const targetWord = word || currentWord;
+    if (!targetWord) return;
 
     try {
+      const updateData: { image: string; image_file?: string } = { image: status };
+
+      if (status === '2') {
+        updateData.image_file = `${targetWord.word}.png`;
+      }
+
       const { error } = await supabase
         .from('wordfrequency')
-        .update({ image: status })
-        .eq('id', currentWord.id);
+        .update(updateData)
+        .eq('id', targetWord.id);
 
       if (error) throw error;
 
@@ -172,11 +185,16 @@ export default function MissingImages() {
         'success',
         status === '1'
           ? 'Marked as no image possible'
-          : 'Marked as has image'
+          : `Marked as has image (${targetWord.word}.png)`
       );
 
       await fetchWordsWithoutImages();
-      setTimeout(() => loadNextWord(), 500);
+
+      if (word) {
+        setSelectedWord(null);
+      } else {
+        setTimeout(() => loadNextWord(), 500);
+      }
     } catch (error) {
       console.error('Error updating word:', error);
       showNotification('error', 'Failed to update word');
@@ -211,6 +229,31 @@ export default function MissingImages() {
     if (searchTerm.trim()) {
       loadNextWord(searchTerm.trim());
     }
+  };
+
+  const handleWordClick = async (word: Word) => {
+    setSelectedWord({ ...word, imageUrl: undefined });
+    setSelectedImageLoading(true);
+
+    const extensions = ['jpg', 'png'];
+    const baseUrl = 'https://www.instructielezen.be/img';
+    let foundUrl: string | null = null;
+
+    for (const ext of extensions) {
+      try {
+        const url = `${baseUrl}/${word.word}.${ext}`;
+        const response = await fetch(url, { method: 'HEAD' });
+        if (response.ok) {
+          foundUrl = url;
+          break;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+
+    setSelectedWord((prev) => prev ? { ...prev, imageUrl: foundUrl } : null);
+    setSelectedImageLoading(false);
   };
 
   const showNotification = (type: 'success' | 'error', message: string) => {
@@ -320,37 +363,112 @@ export default function MissingImages() {
                     </p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Word
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Frequency
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Klankteken
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredWords.map((word) => (
-                          <tr key={word.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                              {word.word}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-600">
-                              {word.frequency}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-600">
-                              {word.klankteken || '-'}
-                            </td>
+                  <div>
+                    <div className="overflow-x-auto mb-6">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-gray-50 border-b border-gray-200">
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Word
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Frequency
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Klankteken
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {filteredWords.map((word) => (
+                            <tr
+                              key={word.id}
+                              onClick={() => handleWordClick(word)}
+                              className={`cursor-pointer transition-colors ${
+                                selectedWord?.id === word.id
+                                  ? 'bg-blue-50 hover:bg-blue-100'
+                                  : 'hover:bg-gray-50'
+                              }`}
+                            >
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                {word.word}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {word.frequency}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {word.klankteken || '-'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {selectedWord && (
+                      <div className="border-t border-gray-200 pt-6">
+                        <div className="bg-white rounded-lg border border-gray-200 p-6">
+                          <div className="text-center mb-6">
+                            <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                              {selectedWord.word}
+                            </h3>
+                            <p className="text-gray-600">
+                              Frequency: {selectedWord.frequency}
+                              {selectedWord.klankteken && (
+                                <span className="ml-4">
+                                  Klankteken: {selectedWord.klankteken}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+
+                          <div className="bg-gray-50 rounded-lg p-6 mb-6 min-h-[250px] flex items-center justify-center">
+                            {selectedImageLoading ? (
+                              <div className="text-center">
+                                <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                                <p className="mt-3 text-gray-600">
+                                  Checking for image...
+                                </p>
+                              </div>
+                            ) : selectedWord.imageUrl ? (
+                              <img
+                                src={selectedWord.imageUrl}
+                                alt={selectedWord.word}
+                                className="max-w-full max-h-[300px] object-contain"
+                              />
+                            ) : (
+                              <div className="text-center">
+                                <Image className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                <p className="text-gray-600">No image found</p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex gap-3 justify-center">
+                            <button
+                              onClick={() => setSelectedWord(null)}
+                              className="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => updateImageStatus('1', selectedWord)}
+                              className="px-5 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2 font-medium"
+                            >
+                              <X className="w-4 h-4" />
+                              No Image Possible
+                            </button>
+                            <button
+                              onClick={() => updateImageStatus('2', selectedWord)}
+                              className="px-5 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 font-medium"
+                            >
+                              <Check className="w-4 h-4" />
+                              Image Added
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -464,7 +582,7 @@ export default function MissingImages() {
                         className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 font-medium"
                       >
                         <Check className="w-5 h-5" />
-                        Has Image
+                        Image Added
                       </button>
                       <button
                         onClick={deleteWord}
