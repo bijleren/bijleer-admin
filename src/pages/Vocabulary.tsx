@@ -119,6 +119,7 @@ export default function Vocabulary() {
   const [selectedWord, setSelectedWord] = useState<WordFrequency | null>(null);
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
   const [showColumnToggle, setShowColumnToggle] = useState(false);
+  const [editingKlankteken, setEditingKlankteken] = useState<{ id: number; value: string } | null>(null);
 
   useEffect(() => {
     fetchWords();
@@ -244,8 +245,79 @@ export default function Vocabulary() {
     ));
   };
 
+  const handleKlanktekenClick = (word: WordFrequency) => {
+    setEditingKlankteken({ id: word.id, value: word.klankteken || '' });
+  };
+
+  const handleKlanktekenSave = async (wordId: number) => {
+    if (!editingKlankteken) return;
+
+    try {
+      const { error } = await supabase
+        .from('wordfrequency')
+        .update({
+          klankteken: editingKlankteken.value,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', wordId);
+
+      if (error) throw error;
+
+      setWords(words.map(w =>
+        w.id === wordId ? { ...w, klankteken: editingKlankteken.value, updated_at: new Date().toISOString() } : w
+      ));
+      setFilteredWords(filteredWords.map(w =>
+        w.id === wordId ? { ...w, klankteken: editingKlankteken.value, updated_at: new Date().toISOString() } : w
+      ));
+      setEditingKlankteken(null);
+    } catch (error) {
+      console.error('Error updating klankteken:', error);
+      alert('Er is een fout opgetreden bij het opslaan van het klankteken.');
+    }
+  };
+
+  const handleKlanktekenCancel = () => {
+    setEditingKlankteken(null);
+  };
+
+  const handleKlanktekenKeyDown = (e: React.KeyboardEvent, wordId: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleKlanktekenSave(wordId);
+    } else if (e.key === 'Escape') {
+      handleKlanktekenCancel();
+    }
+  };
+
   const renderCellValue = (word: WordFrequency, key: keyof WordFrequency) => {
     const value = word[key];
+
+    if (key === 'klankteken') {
+      if (editingKlankteken?.id === word.id) {
+        return (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={editingKlankteken.value}
+              onChange={(e) => setEditingKlankteken({ ...editingKlankteken, value: e.target.value })}
+              onKeyDown={(e) => handleKlanktekenKeyDown(e, word.id)}
+              onBlur={() => handleKlanktekenSave(word.id)}
+              autoFocus
+              className="flex-1 px-2 py-1 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+        );
+      }
+      return (
+        <span
+          onClick={() => handleKlanktekenClick(word)}
+          className="text-sm text-gray-900 cursor-pointer hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded transition-colors block"
+          title="Klik om te bewerken"
+        >
+          {value || '-'}
+        </span>
+      );
+    }
 
     if (value === null || value === undefined) return '-';
 
@@ -457,12 +529,12 @@ export default function Vocabulary() {
               </table>
             </div>
 
-            {totalPages > 1 && (
-              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  Resultaten {startIndex + 1} - {Math.min(endIndex, filteredWords.length)} van{' '}
-                  {filteredWords.length}
-                </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                Resultaten {startIndex + 1} - {Math.min(endIndex, filteredWords.length)} van{' '}
+                {filteredWords.length}
+              </div>
+              {totalPages > 1 && (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
@@ -482,8 +554,8 @@ export default function Vocabulary() {
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>
