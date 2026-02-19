@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Baby,
+  Monitor,
 } from 'lucide-react';
 
 const navigation = [
@@ -67,6 +68,13 @@ const navigation = [
       { name: 'Doe', href: '/kleuterdidactiek/doe' },
       { name: 'Speel', href: '/kleuterdidactiek/speel' },
       { name: 'Woordenschat', href: '/kleuterdidactiek/woordenschat' }
+    ]
+  },
+  {
+    name: 'Platform',
+    icon: Monitor,
+    submenu: [
+      { name: 'Demo', href: '/platform/demo' }
     ]
   },
   { name: 'Tables', href: '/tables', icon: Database },

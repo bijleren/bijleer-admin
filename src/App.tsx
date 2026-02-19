@@ -30,6 +30,9 @@ import NewWords from './pages/NewWords';
 import QuickReview from './pages/QuickReview';
 import PhonemeFrequency from './pages/PhonemeFrequency';
 import MissingImages from './pages/MissingImages';
+import DemoManagement from './pages/DemoManagement';
+import PublicDemos from './pages/PublicDemos';
+import DemoRegistrations from './pages/DemoRegistrations';
 
 function App() {
   return (
@@ -37,6 +40,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/demos" element={<PublicDemos />} />
           <Route
             path="/"
             element={
@@ -73,6 +77,8 @@ function App() {
             <Route path="kleuterdidactiek/speel" element={<LearningGames />} />
             <Route path="kleuterdidactiek/woordenschat" element={<VocabularyManagement />} />
             <Route path="tables" element={<Tables />} />
+            <Route path="platform/demo" element={<DemoManagement />} />
+            <Route path="platform/demo/:sessionId/registrations" element={<DemoRegistrations />} />
           </Route>
         </Routes>
       </AuthProvider>
