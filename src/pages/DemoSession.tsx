@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Calendar, Users, CheckCircle, ArrowLeft, MapPin, Clock, Download } from 'lucide-react';
+import { Calendar, CheckCircle, ArrowLeft, MapPin, Clock, Download } from 'lucide-react';
 import { generateICS, downloadICS } from '../utils/calendar';
 
 interface Platform {
@@ -207,13 +207,6 @@ export default function DemoSession() {
                   <span>{session.location}</span>
                 </div>
               )}
-              <div className="flex items-center gap-3 text-gray-700">
-                <Users className="w-5 h-5 text-blue-600" />
-                <span>
-                  {session.registration_count} ingeschreven
-                  {session.max_participants && ` (max ${session.max_participants})`}
-                </span>
-              </div>
             </div>
 
             <div className="mb-8">
