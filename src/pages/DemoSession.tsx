@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Calendar, Users, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Calendar, Users, CheckCircle, ArrowLeft, MapPin, Clock, Download } from 'lucide-react';
+import { generateICS, downloadICS } from '../utils/calendar';
 
 interface Platform {
   id: string;
@@ -18,6 +19,8 @@ interface DemoSession {
   max_participants: number | null;
   recording_url: string | null;
   slug: string | null;
+  duration_minutes: number | null;
+  location: string | null;
   platform?: Platform;
   registration_count?: number;
   is_full?: boolean;
@@ -102,7 +105,7 @@ export default function DemoSession() {
 
       if (error) {
         if (error.code === '23505') {
-          alert('You are already registered for this demo session.');
+          alert('Je bent al ingeschreven voor deze demo sessie.');
         } else {
           throw error;
         }
@@ -112,14 +115,14 @@ export default function DemoSession() {
       setRegistrationSuccess(true);
     } catch (error) {
       console.error('Error registering:', error);
-      alert('Error registering for demo. Please try again.');
+      alert('Fout bij het inschrijven voor de demo. Probeer het opnieuw.');
     } finally {
       setRegistering(false);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-GB', {
+    return new Date(dateString).toLocaleString('nl-NL', {
       weekday: 'long',
       day: '2-digit',
       month: 'long',
@@ -129,12 +132,26 @@ export default function DemoSession() {
     });
   };
 
+  const handleAddToCalendar = () => {
+    if (!session) return;
+
+    const icsContent = generateICS(
+      session.title,
+      session.description || '',
+      session.location || '',
+      new Date(session.session_date),
+      session.duration_minutes || 60
+    );
+
+    downloadICS(`demo-${session.slug || session.id}.ics`, icsContent);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading session...</p>
+          <p className="mt-4 text-gray-600">Sessie laden...</p>
         </div>
       </div>
     );
@@ -154,7 +171,7 @@ export default function DemoSession() {
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to All Sessions
+          Terug naar alle sessies
         </button>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -165,74 +182,99 @@ export default function DemoSession() {
               </span>
               <h1 className="text-3xl font-bold text-gray-900 mb-4">{session.title}</h1>
               {session.description && (
-                <p className="text-lg text-gray-600">{session.description}</p>
+                <div
+                  className="text-lg text-gray-600 prose prose-blue max-w-none"
+                  dangerouslySetInnerHTML={{ __html: session.description }}
+                />
               )}
             </div>
 
-            <div className="space-y-3 mb-8 pb-8 border-b border-gray-200">
+            <div className="space-y-3 mb-6 pb-6 border-b border-gray-200">
               <div className="flex items-center gap-3 text-gray-700">
                 <Calendar className="w-5 h-5 text-blue-600" />
                 <span className="font-medium">{formatDate(session.session_date)}</span>
               </div>
+              {session.duration_minutes && (
+                <div className="flex items-center gap-3 text-gray-700">
+                  <Clock className="w-5 h-5 text-blue-600" />
+                  <span>{session.duration_minutes} minuten</span>
+                </div>
+              )}
+              {session.location && (
+                <div className="flex items-center gap-3 text-gray-700">
+                  <MapPin className="w-5 h-5 text-blue-600" />
+                  <span>{session.location}</span>
+                </div>
+              )}
               <div className="flex items-center gap-3 text-gray-700">
                 <Users className="w-5 h-5 text-blue-600" />
                 <span>
-                  {session.registration_count} registered
+                  {session.registration_count} ingeschreven
                   {session.max_participants && ` (max ${session.max_participants})`}
                 </span>
               </div>
             </div>
 
+            <div className="mb-8">
+              <button
+                onClick={handleAddToCalendar}
+                className="w-full sm:w-auto px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                <Download className="w-5 h-5" />
+                Toevoegen aan agenda
+              </button>
+            </div>
+
             {isPastSession ? (
               <div className="text-center py-8">
-                <p className="text-gray-600 mb-4">This session has already taken place.</p>
+                <p className="text-gray-600 mb-4">Deze sessie heeft al plaatsgevonden.</p>
                 <button
                   onClick={() => navigate('/demos')}
                   className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
                 >
-                  View Other Sessions
+                  Bekijk andere sessies
                 </button>
               </div>
             ) : registrationSuccess ? (
               <div className="text-center py-8">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Inschrijving geslaagd!</h2>
                 <p className="text-gray-600 mb-6">
-                  You will receive a confirmation email with the demo session details.
+                  Je ontvangt een bevestigingsmail met de details van de demo sessie.
                 </p>
                 <button
                   onClick={() => navigate('/demos')}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
-                  View Other Sessions
+                  Bekijk andere sessies
                 </button>
               </div>
             ) : session.is_full ? (
               <div className="text-center py-8">
-                <p className="text-gray-600 mb-4">This session is currently full.</p>
+                <p className="text-gray-600 mb-4">Deze sessie is momenteel vol.</p>
                 <button
                   onClick={() => navigate('/demos')}
                   className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
                 >
-                  View Other Sessions
+                  Bekijk andere sessies
                 </button>
               </div>
             ) : (
               <form onSubmit={handleRegister} className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">Register for This Session</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Inschrijven voor deze sessie</h2>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address *
+                    E-mailadres *
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="your@email.com"
+                    placeholder="jouw@email.com"
                     required
                   />
                 </div>
@@ -246,7 +288,7 @@ export default function DemoSession() {
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"
                   />
                   <label htmlFor="wants_recording" className="ml-3 text-sm text-gray-700">
-                    Send me the recording after the demo session
+                    Stuur mij de opname na de demo sessie
                   </label>
                 </div>
 
@@ -255,7 +297,7 @@ export default function DemoSession() {
                   disabled={registering}
                   className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 font-medium text-lg"
                 >
-                  {registering ? 'Registering...' : 'Register Now'}
+                  {registering ? 'Inschrijven...' : 'Nu inschrijven'}
                 </button>
               </form>
             )}

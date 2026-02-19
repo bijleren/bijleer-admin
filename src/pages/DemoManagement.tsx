@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Calendar, Plus, Edit2, Trash2, Users, Video, ExternalLink, Link2, Check } from 'lucide-react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface Platform {
   id: string;
@@ -19,6 +21,8 @@ interface DemoSession {
   is_published: boolean;
   recording_url: string | null;
   slug: string | null;
+  duration_minutes: number | null;
+  location: string | null;
   platform?: Platform;
   registration_count?: number;
 }
@@ -41,6 +45,8 @@ export default function DemoManagement() {
     is_published: false,
     recording_url: '',
     slug: '',
+    duration_minutes: '60',
+    location: '',
   });
 
   useEffect(() => {
@@ -100,6 +106,8 @@ export default function DemoManagement() {
         is_published: session.is_published,
         recording_url: session.recording_url || '',
         slug: session.slug || '',
+        duration_minutes: session.duration_minutes?.toString() || '60',
+        location: session.location || '',
       });
     } else {
       setEditingSession(null);
@@ -112,6 +120,8 @@ export default function DemoManagement() {
         is_published: false,
         recording_url: '',
         slug: '',
+        duration_minutes: '60',
+        location: '',
       });
     }
     setShowSessionModal(true);
@@ -135,6 +145,8 @@ export default function DemoManagement() {
         is_published: formData.is_published,
         recording_url: formData.recording_url || null,
         slug: formData.slug || null,
+        duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : 60,
+        location: formData.location || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -424,24 +436,63 @@ export default function DemoManagement() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description
                 </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <div className="border border-gray-300 rounded-lg">
+                  <ReactQuill
+                    theme="snow"
+                    value={formData.description}
+                    onChange={(value) => setFormData({ ...formData, description: value })}
+                    modules={{
+                      toolbar: [
+                        [{ header: [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ list: 'ordered' }, { list: 'bullet' }],
+                        ['link'],
+                        ['clean'],
+                      ],
+                    }}
+                    className="bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Duration (minutes) *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.duration_minutes}
+                    onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="1"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Max Participants
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.max_participants}
+                    onChange={(e) => setFormData({ ...formData, max_participants: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    min="1"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Max Participants
+                  Location / Meeting Link
                 </label>
                 <input
-                  type="number"
-                  value={formData.max_participants}
-                  onChange={(e) => setFormData({ ...formData, max_participants: e.target.value })}
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  min="1"
+                  placeholder="e.g., Online via Zoom, or physical address"
                 />
               </div>
 
