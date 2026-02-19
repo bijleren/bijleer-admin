@@ -222,7 +222,10 @@ export default function PublicDemos() {
                     </div>
 
                     {session.description && (
-                      <p className="text-gray-600 mb-4">{session.description}</p>
+                      <div
+                        className="text-gray-600 mb-4 prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: session.description }}
+                      />
                     )}
 
                     <div className="space-y-2 mb-6">
@@ -275,7 +278,10 @@ export default function PublicDemos() {
                     </div>
 
                     {session.description && (
-                      <p className="text-gray-600 mb-4">{session.description}</p>
+                      <div
+                        className="text-gray-600 mb-4 prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: session.description }}
+                      />
                     )}
 
                     <div className="space-y-2 mb-6">
