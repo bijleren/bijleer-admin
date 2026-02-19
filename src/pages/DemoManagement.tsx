@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Calendar, Plus, Edit2, Trash2, Users, Video, ExternalLink } from 'lucide-react';
+import { Calendar, Plus, Edit2, Trash2, Users, Video, ExternalLink, Link2, Check } from 'lucide-react';
 
 interface Platform {
   id: string;
@@ -18,6 +18,7 @@ interface DemoSession {
   max_participants: number | null;
   is_published: boolean;
   recording_url: string | null;
+  slug: string | null;
   platform?: Platform;
   registration_count?: number;
 }
@@ -29,6 +30,7 @@ export default function DemoManagement() {
   const [loading, setLoading] = useState(true);
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [editingSession, setEditingSession] = useState<DemoSession | null>(null);
+  const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     platform_id: '',
@@ -38,6 +40,7 @@ export default function DemoManagement() {
     max_participants: '',
     is_published: false,
     recording_url: '',
+    slug: '',
   });
 
   useEffect(() => {
@@ -96,6 +99,7 @@ export default function DemoManagement() {
         max_participants: session.max_participants?.toString() || '',
         is_published: session.is_published,
         recording_url: session.recording_url || '',
+        slug: session.slug || '',
       });
     } else {
       setEditingSession(null);
@@ -107,6 +111,7 @@ export default function DemoManagement() {
         max_participants: '',
         is_published: false,
         recording_url: '',
+        slug: '',
       });
     }
     setShowSessionModal(true);
@@ -129,6 +134,7 @@ export default function DemoManagement() {
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
         is_published: formData.is_published,
         recording_url: formData.recording_url || null,
+        slug: formData.slug || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -183,6 +189,22 @@ export default function DemoManagement() {
     });
   };
 
+  const copySessionLink = async (session: DemoSession) => {
+    const baseUrl = window.location.origin;
+    const link = session.slug
+      ? `${baseUrl}/demos/${session.slug}`
+      : `${baseUrl}/demos/${session.id}`;
+
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedSessionId(session.id);
+      setTimeout(() => setCopiedSessionId(null), 2000);
+    } catch (error) {
+      console.error('Error copying link:', error);
+      alert('Failed to copy link. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -229,6 +251,9 @@ export default function DemoManagement() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Recording
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Share
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -295,6 +320,28 @@ export default function DemoManagement() {
                       </a>
                     ) : (
                       <span className="text-sm text-gray-400">No recording</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {session.is_published ? (
+                      <button
+                        onClick={() => copySessionLink(session)}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        {copiedSessionId === session.id ? (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Link2 className="w-4 h-4" />
+                            Copy Link
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <span className="text-sm text-gray-400">Unpublished</span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -396,6 +443,23 @@ export default function DemoManagement() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   min="1"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  URL Slug
+                </label>
+                <input
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., spelling-intro-march-2024"
+                  pattern="[a-z0-9\-]*"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Optional friendly URL (lowercase letters, numbers, and hyphens only)
+                </p>
               </div>
 
               <div>

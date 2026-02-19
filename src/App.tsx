@@ -33,6 +33,7 @@ import MissingImages from './pages/MissingImages';
 import DemoManagement from './pages/DemoManagement';
 import PublicDemos from './pages/PublicDemos';
 import DemoRegistrations from './pages/DemoRegistrations';
+import DemoSession from './pages/DemoSession';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/demos" element={<PublicDemos />} />
+          <Route path="/demos/:identifier" element={<DemoSession />} />
           <Route
             path="/"
             element={
