@@ -5,13 +5,19 @@ export function generateICS(
   startDate: Date,
   durationMinutes: number
 ): string {
-  const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+  const belgianDate = new Date(
+    startDate.toLocaleString('en-US', { timeZone: 'Europe/Brussels' })
+  );
+  const endDate = new Date(belgianDate.getTime() + durationMinutes * 60000);
 
   const formatDate = (date: Date): string => {
-    return date
-      .toISOString()
-      .replace(/[-:]/g, '')
-      .replace(/\.\d{3}/, '');
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${year}${month}${day}T${hours}${minutes}${seconds}`;
   };
 
   const stripHTML = (html: string): string => {
@@ -29,8 +35,8 @@ export function generateICS(
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `DTSTART:${formatDate(startDate)}`,
-    `DTEND:${formatDate(endDate)}`,
+    `DTSTART;TZID=Europe/Brussels:${formatDate(belgianDate)}`,
+    `DTEND;TZID=Europe/Brussels:${formatDate(endDate)}`,
     `DTSTAMP:${formatDate(new Date())}`,
     `SUMMARY:${title}`,
     `DESCRIPTION:${cleanDescription}`,
