@@ -1,62 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { BookA, Music, Image as ImageIcon, MessageSquare, CheckCircle, BarChart3 } from 'lucide-react';
+import { BarChart3, RefreshCw, Clock, Database } from 'lucide-react';
 
-interface DetailedStats {
-  totalWords: number;
-  wordsWithAudio: number;
-  wordsWithImage: number;
-  wordsWithAudioChecked: number;
-  percentAudioChecked: number;
-  wordsWithKlankteken: number;
-  wordsWithKlanktekenChecked: number;
-  percentKlanktekenChecked: number;
-  wordsWithBetekenis: number;
-  percentWordsWithBetekenis: number;
-  wordsWithBetekenisChecked: number;
-  percentBetekenisChecked: number;
-  wordsAudioBetekenis: number;
-  percentAudioBetekenis: number;
-  wordsAudioBetekenisChecked: number;
-  percentAudioBetekenisChecked: number;
-  wordsAllFour: number;
-  percentAllFour: number;
-  wordsAllFourChecked: number;
-  percentAllFourChecked: number;
-  wordsAudioKlanktekenImage: number;
-  percentAudioKlanktekenImage: number;
-  wordsAudioKlanktekenImageChecked: number;
-  percentAudioKlanktekenImageChecked: number;
+interface KeyStat {
+  stat_key: string;
+  stat_value: number;
+  last_updated: string;
 }
 
 export default function Statistics() {
-  const [stats, setStats] = useState<DetailedStats>({
-    totalWords: 0,
-    wordsWithAudio: 0,
-    wordsWithImage: 0,
-    wordsWithAudioChecked: 0,
-    percentAudioChecked: 0,
-    wordsWithKlankteken: 0,
-    wordsWithKlanktekenChecked: 0,
-    percentKlanktekenChecked: 0,
-    wordsWithBetekenis: 0,
-    percentWordsWithBetekenis: 0,
-    wordsWithBetekenisChecked: 0,
-    percentBetekenisChecked: 0,
-    wordsAudioBetekenis: 0,
-    percentAudioBetekenis: 0,
-    wordsAudioBetekenisChecked: 0,
-    percentAudioBetekenisChecked: 0,
-    wordsAllFour: 0,
-    percentAllFour: 0,
-    wordsAllFourChecked: 0,
-    percentAllFourChecked: 0,
-    wordsAudioKlanktekenImage: 0,
-    percentAudioKlanktekenImage: 0,
-    wordsAudioKlanktekenImageChecked: 0,
-    percentAudioKlanktekenImageChecked: 0,
-  });
+  const [stats, setStats] = useState<Record<string, KeyStat>>({});
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
 
   useEffect(() => {
     fetchStats();
@@ -65,454 +21,359 @@ export default function Statistics() {
   const fetchStats = async () => {
     try {
       setLoading(true);
+      const { data, error } = await supabase
+        .from('key_stats')
+        .select('*');
 
-      const { count: totalWords } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true });
+      if (error) throw error;
 
-      const { count: wordsWithAudio } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .eq('audio', 1);
+      const statsMap: Record<string, KeyStat> = {};
+      let latestUpdate = '';
 
-      const { count: wordsWithImage } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .eq('image', 1);
-
-      const { count: wordsWithAudioChecked } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .eq('audio', 1)
-        .eq('audio_checked', 1);
-
-      const { count: wordsWithKlankteken } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .not('klankteken', 'is', null)
-        .neq('klankteken', '');
-
-      const { count: wordsWithKlanktekenChecked } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .not('klankteken', 'is', null)
-        .neq('klankteken', '')
-        .eq('klankteken_checked', 1);
-
-      const { count: wordsWithBetekenis } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .not('betekenis', 'is', null)
-        .neq('betekenis', '');
-
-      const { count: wordsWithBetekenisChecked } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .not('betekenis', 'is', null)
-        .neq('betekenis', '')
-        .eq('betekenis_check', 1);
-
-      const { count: wordsAudioBetekenis } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .eq('audio', 1)
-        .not('betekenis', 'is', null)
-        .neq('betekenis', '');
-
-      const { count: wordsAudioBetekenisChecked } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .eq('audio', 1)
-        .eq('audio_checked', 1)
-        .not('betekenis', 'is', null)
-        .neq('betekenis', '')
-        .eq('betekenis_check', 1);
-
-      const { count: wordsAllFour } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .eq('audio', 1)
-        .not('betekenis', 'is', null)
-        .neq('betekenis', '')
-        .not('klankteken', 'is', null)
-        .neq('klankteken', '')
-        .eq('image', 1);
-
-      const { count: wordsAllFourChecked } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .eq('audio', 1)
-        .eq('audio_checked', 1)
-        .not('betekenis', 'is', null)
-        .neq('betekenis', '')
-        .eq('betekenis_check', 1)
-        .not('klankteken', 'is', null)
-        .neq('klankteken', '')
-        .eq('klankteken_checked', 1)
-        .eq('image', 1);
-
-      const { count: wordsAudioKlanktekenImage } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .eq('audio', 1)
-        .not('klankteken', 'is', null)
-        .neq('klankteken', '')
-        .eq('image', 1);
-
-      const { count: wordsAudioKlanktekenImageChecked } = await supabase
-        .from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .eq('audio', 1)
-        .eq('audio_checked', 1)
-        .not('klankteken', 'is', null)
-        .neq('klankteken', '')
-        .eq('klankteken_checked', 1)
-        .eq('image', 1);
-
-      const total = totalWords || 0;
-      const audio = wordsWithAudio || 0;
-      const klankteken = wordsWithKlankteken || 0;
-      const betekenis = wordsWithBetekenis || 0;
-      const audioBetekenis = wordsAudioBetekenis || 0;
-      const allFour = wordsAllFour || 0;
-      const audioKlanktekenImage = wordsAudioKlanktekenImage || 0;
-
-      setStats({
-        totalWords: total,
-        wordsWithAudio: audio,
-        wordsWithImage: wordsWithImage || 0,
-        wordsWithAudioChecked: wordsWithAudioChecked || 0,
-        percentAudioChecked: audio > 0 ? Math.round(((wordsWithAudioChecked || 0) / audio) * 100 * 100) / 100 : 0,
-        wordsWithKlankteken: klankteken,
-        wordsWithKlanktekenChecked: wordsWithKlanktekenChecked || 0,
-        percentKlanktekenChecked: klankteken > 0 ? Math.round(((wordsWithKlanktekenChecked || 0) / klankteken) * 100 * 100) / 100 : 0,
-        wordsWithBetekenis: betekenis,
-        percentWordsWithBetekenis: total > 0 ? Math.round((betekenis / total) * 100 * 100) / 100 : 0,
-        wordsWithBetekenisChecked: wordsWithBetekenisChecked || 0,
-        percentBetekenisChecked: betekenis > 0 ? Math.round(((wordsWithBetekenisChecked || 0) / betekenis) * 100 * 100) / 100 : 0,
-        wordsAudioBetekenis: audioBetekenis,
-        percentAudioBetekenis: total > 0 ? Math.round((audioBetekenis / total) * 100 * 100) / 100 : 0,
-        wordsAudioBetekenisChecked: wordsAudioBetekenisChecked || 0,
-        percentAudioBetekenisChecked: audioBetekenis > 0 ? Math.round(((wordsAudioBetekenisChecked || 0) / audioBetekenis) * 100 * 100) / 100 : 0,
-        wordsAllFour: allFour,
-        percentAllFour: total > 0 ? Math.round((allFour / total) * 100 * 100) / 100 : 0,
-        wordsAllFourChecked: wordsAllFourChecked || 0,
-        percentAllFourChecked: allFour > 0 ? Math.round(((wordsAllFourChecked || 0) / allFour) * 100 * 100) / 100 : 0,
-        wordsAudioKlanktekenImage: audioKlanktekenImage,
-        percentAudioKlanktekenImage: total > 0 ? Math.round((audioKlanktekenImage / total) * 100 * 100) / 100 : 0,
-        wordsAudioKlanktekenImageChecked: wordsAudioKlanktekenImageChecked || 0,
-        percentAudioKlanktekenImageChecked: audioKlanktekenImage > 0 ? Math.round(((wordsAudioKlanktekenImageChecked || 0) / audioKlanktekenImage) * 100 * 100) / 100 : 0,
+      data?.forEach((stat) => {
+        statsMap[stat.stat_key] = stat;
+        if (!latestUpdate || new Date(stat.last_updated) > new Date(latestUpdate)) {
+          latestUpdate = stat.last_updated;
+        }
       });
+
+      setStats(statsMap);
+      setLastUpdated(latestUpdate);
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error('Error fetching statistics:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const refreshStats = async () => {
+    try {
+      setRefreshing(true);
+      const { error } = await supabase.rpc('refresh_key_stats');
+
+      if (error) throw error;
+
+      await fetchStats();
+    } catch (error) {
+      console.error('Error refreshing statistics:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const getStatValue = (key: string): number => {
+    return stats[key]?.stat_value || 0;
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'Never';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const calculatePercentage = (value: number, total: number): string => {
+    if (total === 0) return '0';
+    return ((value / total) * 100).toFixed(1);
+  };
+
+  const totalWords = getStatValue('total_words');
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading statistics...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Statistieken</h1>
-        <p className="text-gray-600 mt-1">Overzicht van woordenschat data</p>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="bg-blue-100 p-2 rounded-lg">
-            <BookA className="w-5 h-5 text-blue-600" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900">Basis Statistieken</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-600 font-medium">Totaal Woorden</p>
-            <p className="text-3xl font-bold text-blue-900">{stats.totalWords}</p>
-          </div>
-          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-            <p className="text-sm text-green-600 font-medium">Woorden met Audio</p>
-            <p className="text-3xl font-bold text-green-900">{stats.wordsWithAudio}</p>
-          </div>
-          <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-            <p className="text-sm text-purple-600 font-medium">Woorden met Afbeelding</p>
-            <p className="text-3xl font-bold text-purple-900">{stats.wordsWithImage}</p>
-          </div>
-          <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-            <p className="text-sm text-orange-600 font-medium">Woorden met Betekenis</p>
-            <p className="text-3xl font-bold text-orange-900">{stats.wordsWithBetekenis}</p>
-            <p className="text-xs text-orange-600 mt-1">
-              {stats.percentWordsWithBetekenis}% van alle woorden
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <BarChart3 className="w-8 h-8" />
+              System Statistics
+            </h1>
+            <p className="mt-2 text-gray-600">
+              Pre-calculated statistics updated nightly at 2 AM
             </p>
           </div>
+          <button
+            onClick={refreshStats}
+            disabled={refreshing}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh Now'}
+          </button>
         </div>
-      </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="bg-green-100 p-2 rounded-lg">
-            <CheckCircle className="w-5 h-5 text-green-600" />
+        {lastUpdated && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-blue-600" />
+            <span className="text-sm text-blue-800">
+              Last updated: {formatDate(lastUpdated)}
+            </span>
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Controle Statistieken</h2>
-        </div>
-        <div className="space-y-6">
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <Music className="w-5 h-5 text-green-600" />
-              <h3 className="font-semibold text-gray-900">Audio Controle</h3>
-            </div>
-            <div className="ml-8 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Totaal te controleren</span>
-                <span className="font-bold text-red-600">
-                  {stats.wordsWithAudio - stats.wordsWithAudioChecked}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Gecontroleerd</span>
-                <span className="font-bold text-gray-900">
-                  {stats.wordsWithAudioChecked} van {stats.wordsWithAudio}
-                </span>
-              </div>
-              <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-green-500 transition-all"
-                  style={{ width: `${stats.percentAudioChecked}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-green-600 font-medium">{stats.percentAudioChecked}%</p>
-            </div>
-          </div>
+        )}
 
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <BookA className="w-5 h-5 text-blue-600" />
-              <h3 className="font-semibold text-gray-900">Klankteken Controle</h3>
-            </div>
-            <div className="ml-8 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Woorden met klankteken</span>
-                <span className="font-bold text-gray-900">{stats.wordsWithKlankteken}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Totaal te controleren</span>
-                <span className="font-bold text-red-600">
-                  {stats.wordsWithKlankteken - stats.wordsWithKlanktekenChecked}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Gecontroleerd</span>
-                <span className="font-bold text-gray-900">
-                  {stats.wordsWithKlanktekenChecked} van {stats.wordsWithKlankteken}
-                </span>
-              </div>
-              <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 transition-all"
-                  style={{ width: `${stats.percentKlanktekenChecked}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-blue-600 font-medium">{stats.percentKlanktekenChecked}%</p>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <MessageSquare className="w-5 h-5 text-orange-600" />
-              <h3 className="font-semibold text-gray-900">Betekenis Controle</h3>
-            </div>
-            <div className="ml-8 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Totaal te controleren</span>
-                <span className="font-bold text-red-600">
-                  {stats.wordsWithBetekenis - stats.wordsWithBetekenisChecked}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Gecontroleerd</span>
-                <span className="font-bold text-gray-900">
-                  {stats.wordsWithBetekenisChecked} van {stats.wordsWithBetekenis}
-                </span>
-              </div>
-              <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-orange-500 transition-all"
-                  style={{ width: `${stats.percentBetekenisChecked}%` }}
-                ></div>
-              </div>
-              <p className="text-sm text-orange-600 font-medium">{stats.percentBetekenisChecked}%</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="bg-purple-100 p-2 rounded-lg">
-            <BarChart3 className="w-5 h-5 text-purple-600" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900">Combinatie Statistieken</h2>
-        </div>
         <div className="space-y-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Music className="w-4 h-4 text-green-600" />
-              <span className="text-lg font-medium">+</span>
-              <MessageSquare className="w-4 h-4 text-orange-600" />
-              <h3 className="font-semibold text-gray-900 ml-2">Audio + Betekenis</h3>
-            </div>
-            <div className="ml-8 space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-700">Totaal woorden met beide</span>
-                  <span className="font-bold text-gray-900">{stats.wordsAudioBetekenis}</span>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Database className="w-6 h-6" />
+              Overview
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Total Words</h3>
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                 </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 transition-all"
-                    style={{ width: `${stats.percentAudioBetekenis}%` }}
-                  ></div>
+                <p className="text-3xl font-bold text-gray-900">{totalWords.toLocaleString()}</p>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Words with Image</h3>
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
                 </div>
-                <p className="text-sm text-blue-600 font-medium mt-1">
-                  {stats.percentAudioBetekenis}% van alle woorden
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_with_image').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_with_image'), totalWords)}% of total
                 </p>
               </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-700">Totaal te controleren</span>
-                  <span className="font-bold text-red-600">
-                    {stats.wordsAudioBetekenis - stats.wordsAudioBetekenisChecked}
-                  </span>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Words with Audio</h3>
+                  <div className="w-3 h-3 rounded-full bg-purple-500"></div>
                 </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-700">Volledig gecontroleerd</span>
-                  <span className="font-bold text-gray-900">
-                    {stats.wordsAudioBetekenisChecked} van {stats.wordsAudioBetekenis}
-                  </span>
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_with_audio').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_with_audio'), totalWords)}% of total
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Words with Betekenis</h3>
+                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
                 </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-green-500 transition-all"
-                    style={{ width: `${stats.percentAudioBetekenisChecked}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm text-green-600 font-medium mt-1">
-                  {stats.percentAudioBetekenisChecked}%
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_with_betekenis').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_with_betekenis'), totalWords)}% of total
                 </p>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Music className="w-4 h-4 text-green-600" />
-              <span className="text-lg font-medium">+</span>
-              <BookA className="w-4 h-4 text-blue-600" />
-              <span className="text-lg font-medium">+</span>
-              <ImageIcon className="w-4 h-4 text-purple-600" />
-              <h3 className="font-semibold text-gray-900 ml-2">Audio + Klankteken + Afbeelding</h3>
-            </div>
-            <div className="ml-8 space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-700">Totaal woorden met alledrie</span>
-                  <span className="font-bold text-gray-900">{stats.wordsAudioKlanktekenImage}</span>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Combinations</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Image + Audio</h3>
+                  <div className="w-3 h-3 rounded-full bg-teal-500"></div>
                 </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 transition-all"
-                    style={{ width: `${stats.percentAudioKlanktekenImage}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm text-blue-600 font-medium mt-1">
-                  {stats.percentAudioKlanktekenImage}% van alle woorden
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_with_image_and_audio').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_with_image_and_audio'), totalWords)}% of total
                 </p>
               </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-700">Totaal te controleren</span>
-                  <span className="font-bold text-red-600">
-                    {stats.wordsAudioKlanktekenImage - stats.wordsAudioKlanktekenImageChecked}
-                  </span>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Image + Betekenis</h3>
+                  <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
                 </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-700">Volledig gecontroleerd</span>
-                  <span className="font-bold text-gray-900">
-                    {stats.wordsAudioKlanktekenImageChecked} van {stats.wordsAudioKlanktekenImage}
-                  </span>
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_with_image_and_betekenis').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_with_image_and_betekenis'), totalWords)}% of total
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Audio + Betekenis</h3>
+                  <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
                 </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-green-500 transition-all"
-                    style={{ width: `${stats.percentAudioKlanktekenImageChecked}%` }}
-                  ></div>
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_with_audio_and_betekenis').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_with_audio_and_betekenis'), totalWords)}% of total
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">All Three</h3>
+                  <div className="w-3 h-3 rounded-full bg-pink-500"></div>
                 </div>
-                <p className="text-sm text-green-600 font-medium mt-1">
-                  {stats.percentAudioKlanktekenImageChecked}%
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_with_all_three').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_with_all_three'), totalWords)}% of total
                 </p>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Music className="w-4 h-4 text-green-600" />
-              <span className="text-lg font-medium">+</span>
-              <MessageSquare className="w-4 h-4 text-orange-600" />
-              <span className="text-lg font-medium">+</span>
-              <BookA className="w-4 h-4 text-blue-600" />
-              <span className="text-lg font-medium">+</span>
-              <ImageIcon className="w-4 h-4 text-purple-600" />
-              <h3 className="font-semibold text-gray-900 ml-2">Audio + Betekenis + Klankteken + Afbeelding</h3>
-            </div>
-            <div className="ml-8 space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-700">Totaal complete woorden</span>
-                  <span className="font-bold text-gray-900">{stats.wordsAllFour}</span>
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Completion Status</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Complete Words</h3>
+                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                 </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 transition-all"
-                    style={{ width: `${stats.percentAllFour}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm text-blue-600 font-medium mt-1">
-                  {stats.percentAllFour}% van alle woorden
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_complete').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_complete'), totalWords)}% of total
                 </p>
               </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-700">Totaal te controleren</span>
-                  <span className="font-bold text-red-600">
-                    {stats.wordsAllFour - stats.wordsAllFourChecked}
-                  </span>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Missing Image</h3>
+                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
                 </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-700">Volledig gecontroleerd</span>
-                  <span className="font-bold text-gray-900">
-                    {stats.wordsAllFourChecked} van {stats.wordsAllFour}
-                  </span>
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_missing_image').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_missing_image'), totalWords)}% of total
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Missing Audio</h3>
+                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
                 </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-green-500 transition-all"
-                    style={{ width: `${stats.percentAllFourChecked}%` }}
-                  ></div>
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_missing_audio').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_missing_audio'), totalWords)}% of total
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Missing Betekenis</h3>
+                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
                 </div>
-                <p className="text-sm text-green-600 font-medium mt-1">
-                  {stats.percentAllFourChecked}%
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_missing_betekenis').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_missing_betekenis'), totalWords)}% of total
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-600">Missing Klankteken</h3>
+                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                </div>
+                <p className="text-3xl font-bold text-gray-900">
+                  {getStatValue('words_missing_klankteken').toLocaleString()}
+                </p>
+                <p className="mt-2 text-sm text-gray-500">
+                  {calculatePercentage(getStatValue('words_missing_klankteken'), totalWords)}% of total
                 </p>
               </div>
             </div>
-          </div>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Progress Overview</h2>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="space-y-6">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Images</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {calculatePercentage(getStatValue('words_with_image'), totalWords)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-green-500 h-3 rounded-full transition-all"
+                      style={{
+                        width: `${calculatePercentage(getStatValue('words_with_image'), totalWords)}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Audio</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {calculatePercentage(getStatValue('words_with_audio'), totalWords)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-purple-500 h-3 rounded-full transition-all"
+                      style={{
+                        width: `${calculatePercentage(getStatValue('words_with_audio'), totalWords)}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Betekenis</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {calculatePercentage(getStatValue('words_with_betekenis'), totalWords)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-orange-500 h-3 rounded-full transition-all"
+                      style={{
+                        width: `${calculatePercentage(getStatValue('words_with_betekenis'), totalWords)}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Complete (All Data)</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {calculatePercentage(getStatValue('words_complete'), totalWords)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div
+                      className="bg-emerald-500 h-3 rounded-full transition-all"
+                      style={{
+                        width: `${calculatePercentage(getStatValue('words_complete'), totalWords)}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
