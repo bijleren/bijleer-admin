@@ -116,7 +116,7 @@ export default function PublicDemos() {
 
       if (error) {
         if (error.code === '23505') {
-          alert('You are already registered for this demo session.');
+          alert('Je bent al ingeschreven voor deze demosessie.');
         } else {
           throw error;
         }
@@ -130,18 +130,18 @@ export default function PublicDemos() {
       }, 2000);
     } catch (error) {
       console.error('Error registering:', error);
-      alert('Error registering for demo. Please try again.');
+      alert('Fout bij inschrijven voor demo. Probeer het opnieuw.');
     } finally {
       setRegistering(false);
     }
   };
 
   const requestRecording = async (sessionId: string, sessionTitle: string) => {
-    const email = prompt('Enter your email address to receive the recording:');
+    const email = prompt('Voer je e-mailadres in om de opname te ontvangen:');
     if (!email) return;
 
     if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      alert('Please enter a valid email address.');
+      alert('Voer een geldig e-mailadres in.');
       return;
     }
 
@@ -156,22 +156,22 @@ export default function PublicDemos() {
 
       if (error) {
         if (error.code === '23505') {
-          alert('You have already requested the recording for this session.');
+          alert('Je hebt de opname voor deze sessie al aangevraagd.');
         } else {
           throw error;
         }
         return;
       }
 
-      alert('Recording request submitted! You will receive the recording link via email.');
+      alert('Opname-aanvraag ingediend! Je ontvangt de opnamelink via e-mail.');
     } catch (error) {
       console.error('Error requesting recording:', error);
-      alert('Error submitting request. Please try again.');
+      alert('Fout bij indienen van aanvraag. Probeer het opnieuw.');
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-GB', {
+    return new Date(dateString).toLocaleString('nl-NL', {
       weekday: 'long',
       day: '2-digit',
       month: 'long',
@@ -186,7 +186,7 @@ export default function PublicDemos() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading demo sessions...</p>
+          <p className="mt-4 text-gray-600">Demosessies laden...</p>
         </div>
       </div>
     );
@@ -196,15 +196,15 @@ export default function PublicDemos() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Platform Demo Sessions</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Platform Demosessies</h1>
           <p className="text-lg text-gray-600">
-            Join our live demo sessions to see our platforms in action
+            Neem deel aan onze live demosessies om onze platforms in actie te zien
           </p>
         </div>
 
         {upcomingSessions.length > 0 && (
           <div className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Upcoming Sessions</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Aankomende Sessies</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {upcomingSessions.map((session) => (
                 <div
@@ -232,7 +232,7 @@ export default function PublicDemos() {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Users className="w-4 h-4" />
-                        {session.registration_count} registered
+                        {session.registration_count} ingeschreven
                         {session.max_participants && ` (max ${session.max_participants})`}
                       </div>
                     </div>
@@ -246,7 +246,7 @@ export default function PublicDemos() {
                           : 'bg-blue-600 text-white hover:bg-blue-700'
                       }`}
                     >
-                      {session.is_full ? 'Session Full' : 'Register Now'}
+                      {session.is_full ? 'Sessie Vol' : 'Inschrijven'}
                     </button>
                   </div>
                 </div>
@@ -257,7 +257,7 @@ export default function PublicDemos() {
 
         {pastSessions.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Past Sessions</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Afgelopen Sessies</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {pastSessions.map((session) => (
                 <div
@@ -290,7 +290,7 @@ export default function PublicDemos() {
                       className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium flex items-center justify-center gap-2"
                     >
                       <Video className="w-4 h-4" />
-                      Request Recording
+                      Opname Aanvragen
                     </button>
                   </div>
                 </div>
@@ -302,8 +302,8 @@ export default function PublicDemos() {
         {upcomingSessions.length === 0 && pastSessions.length === 0 && (
           <div className="text-center py-12">
             <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-600 mb-2">No Demo Sessions Available</h3>
-            <p className="text-gray-500">Check back soon for upcoming demo sessions!</p>
+            <h3 className="text-xl font-medium text-gray-600 mb-2">Geen Demosessies Beschikbaar</h3>
+            <p className="text-gray-500">Kom binnenkort terug voor aankomende demosessies!</p>
           </div>
         )}
       </div>
@@ -315,14 +315,14 @@ export default function PublicDemos() {
               {registrationSuccess ? (
                 <div className="text-center py-8">
                   <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Inschrijving Geslaagd!</h2>
                   <p className="text-gray-600">
-                    You will receive a confirmation email with the demo session details.
+                    Je ontvangt een bevestigingsmail met de details van de demosessie.
                   </p>
                 </div>
               ) : (
                 <>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Register for Demo</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Inschrijven voor Demo</h2>
                   <div className="mb-6">
                     <h3 className="font-semibold text-lg text-gray-900">{selectedSession.title}</h3>
                     <p className="text-sm text-gray-600 mt-1">
@@ -333,7 +333,7 @@ export default function PublicDemos() {
                   <form onSubmit={handleRegister} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Email Address *
+                        E-mailadres *
                       </label>
                       <input
                         type="email"
@@ -353,7 +353,7 @@ export default function PublicDemos() {
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"
                       />
                       <label htmlFor="wants_recording" className="ml-2 text-sm text-gray-700">
-                        Send me the recording after the demo session
+                        Stuur mij de opname na de demosessie
                       </label>
                     </div>
 
@@ -363,14 +363,14 @@ export default function PublicDemos() {
                         disabled={registering}
                         className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                       >
-                        {registering ? 'Registering...' : 'Register'}
+                        {registering ? 'Inschrijven...' : 'Inschrijven'}
                       </button>
                       <button
                         type="button"
                         onClick={closeRegistrationModal}
                         className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
                       >
-                        Cancel
+                        Annuleren
                       </button>
                     </div>
                   </form>
