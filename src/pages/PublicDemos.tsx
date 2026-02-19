@@ -233,11 +233,6 @@ export default function PublicDemos() {
                         <Calendar className="w-4 h-4" />
                         {formatDate(session.session_date)}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Users className="w-4 h-4" />
-                        {session.registration_count} ingeschreven
-                        {session.max_participants && ` (max ${session.max_participants})`}
-                      </div>
                     </div>
 
                     <button
