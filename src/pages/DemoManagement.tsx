@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Calendar, Plus, Edit2, Trash2, Users, Video, ExternalLink, Link2, Check } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { toDateTimeLocalString, fromDateTimeLocalString, formatBelgianDateTime } from '../utils/dateTime';
 
 interface Platform {
   id: string;
@@ -99,7 +100,7 @@ export default function DemoManagement() {
       setEditingSession(session);
       setFormData({
         platform_id: session.platform_id,
-        session_date: new Date(session.session_date).toISOString().slice(0, 16),
+        session_date: toDateTimeLocalString(session.session_date),
         title: session.title,
         description: session.description || '',
         max_participants: session.max_participants?.toString() || '',
@@ -138,7 +139,7 @@ export default function DemoManagement() {
     try {
       const sessionData = {
         platform_id: formData.platform_id,
-        session_date: new Date(formData.session_date).toISOString(),
+        session_date: fromDateTimeLocalString(formData.session_date),
         title: formData.title,
         description: formData.description || null,
         max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
@@ -192,14 +193,7 @@ export default function DemoManagement() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('nl-BE', {
-      timeZone: 'Europe/Brussels',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatBelgianDateTime(dateString);
   };
 
   const copySessionLink = async (session: DemoSession) => {

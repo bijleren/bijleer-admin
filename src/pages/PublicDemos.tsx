@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Calendar, Users, Video, CheckCircle, Clock } from 'lucide-react';
+import { Calendar, Video, CheckCircle, Clock } from 'lucide-react';
+import { formatLongDateTime } from '../utils/dateTime';
 
 interface Platform {
   id: string;
@@ -171,14 +172,7 @@ export default function PublicDemos() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('nl-NL', {
-      weekday: 'long',
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatLongDateTime(dateString);
   };
 
   if (loading) {
