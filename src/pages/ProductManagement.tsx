@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Plus, Edit2, Save, X, Check } from 'lucide-react';
+import { Plus, Edit2, Save, X, Check, Trash2 } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -31,8 +31,10 @@ export default function ProductManagement() {
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<string | null>(null);
   const [editingTier, setEditingTier] = useState<string | null>(null);
+  const [addingTierForProduct, setAddingTierForProduct] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Product>>({});
   const [tierForm, setTierForm] = useState<Partial<PricingTier>>({});
+  const [newTierForm, setNewTierForm] = useState<Partial<PricingTier>>({});
 
   useEffect(() => {
     fetchData();
@@ -136,6 +138,71 @@ export default function ProductManagement() {
 
   function getTiersForProduct(productId: string) {
     return tiers.filter((t) => t.product_id === productId);
+  }
+
+  function startAddingTier(productId: string) {
+    setAddingTierForProduct(productId);
+    setNewTierForm({
+      product_id: productId,
+      tier_code: '',
+      tier_name: '',
+      price_eur: 0,
+      storage_gb: undefined,
+      features: [],
+      is_active: true,
+      sort_order: 0,
+    });
+  }
+
+  function cancelAddingTier() {
+    setAddingTierForProduct(null);
+    setNewTierForm({});
+  }
+
+  async function createTier() {
+    if (!addingTierForProduct || !newTierForm.tier_code || !newTierForm.tier_name) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('pricing_tiers').insert({
+        product_id: addingTierForProduct,
+        tier_code: newTierForm.tier_code,
+        tier_name: newTierForm.tier_name,
+        price_eur: newTierForm.price_eur || 0,
+        storage_gb: newTierForm.storage_gb,
+        features: newTierForm.features || [],
+        is_active: newTierForm.is_active ?? true,
+        sort_order: newTierForm.sort_order || 0,
+      });
+
+      if (error) throw error;
+
+      alert('Pricing tier created successfully');
+      setAddingTierForProduct(null);
+      setNewTierForm({});
+      fetchData();
+    } catch (error) {
+      console.error('Error creating tier:', error);
+      alert('Failed to create tier');
+    }
+  }
+
+  async function deleteTier(tierId: string) {
+    if (!confirm('Are you sure you want to delete this tier?')) return;
+
+    try {
+      const { error } = await supabase.from('pricing_tiers').delete().eq('id', tierId);
+
+      if (error) throw error;
+
+      alert('Tier deleted successfully');
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting tier:', error);
+      alert('Failed to delete tier');
+    }
   }
 
   if (loading) {
@@ -312,11 +379,148 @@ export default function ProductManagement() {
                 </div>
               </div>
 
-              {productTiers.length > 0 && (
-                <div className="p-6">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                    Pricing Tiers
+              <div className="p-6 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Pricing Tiers ({productTiers.length})
                   </h3>
+                  {addingTierForProduct !== product.id && (
+                    <button
+                      onClick={() => startAddingTier(product.id)}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Tier
+                    </button>
+                  )}
+                </div>
+
+                {addingTierForProduct === product.id && (
+                  <div className="mb-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                      Create New Tier
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Tier Code <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={newTierForm.tier_code || ''}
+                          onChange={(e) =>
+                            setNewTierForm({
+                              ...newTierForm,
+                              tier_code: e.target.value.toUpperCase(),
+                            })
+                          }
+                          placeholder="e.g., BASIC, PRO, PREMIUM"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Tier Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={newTierForm.tier_name || ''}
+                          onChange={(e) =>
+                            setNewTierForm({ ...newTierForm, tier_name: e.target.value })
+                          }
+                          placeholder="e.g., Basic Plan"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Price (EUR/year) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newTierForm.price_eur || ''}
+                          onChange={(e) =>
+                            setNewTierForm({
+                              ...newTierForm,
+                              price_eur: parseFloat(e.target.value),
+                            })
+                          }
+                          placeholder="0.00"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Storage (GB)
+                        </label>
+                        <input
+                          type="number"
+                          value={newTierForm.storage_gb || ''}
+                          onChange={(e) =>
+                            setNewTierForm({
+                              ...newTierForm,
+                              storage_gb: parseInt(e.target.value),
+                            })
+                          }
+                          placeholder="Optional"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Sort Order
+                        </label>
+                        <input
+                          type="number"
+                          value={newTierForm.sort_order || 0}
+                          onChange={(e) =>
+                            setNewTierForm({
+                              ...newTierForm,
+                              sort_order: parseInt(e.target.value),
+                            })
+                          }
+                          placeholder="0"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                      </div>
+                      <div className="flex items-center pt-6">
+                        <input
+                          type="checkbox"
+                          id="new-tier-active"
+                          checked={newTierForm.is_active ?? true}
+                          onChange={(e) =>
+                            setNewTierForm({ ...newTierForm, is_active: e.target.checked })
+                          }
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <label
+                          htmlFor="new-tier-active"
+                          className="ml-2 text-sm text-gray-700"
+                        >
+                          Active
+                        </label>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={createTier}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                      >
+                        <Check className="w-4 h-4" />
+                        Create Tier
+                      </button>
+                      <button
+                        onClick={cancelAddingTier}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {productTiers.length > 0 && (
                   <div className="space-y-3">
                     {productTiers.map((tier) => {
                       const isEditingTier = editingTier === tier.id;
@@ -439,21 +643,36 @@ export default function ProductManagement() {
                                 </button>
                               </>
                             ) : (
-                              <button
-                                onClick={() => startEditingTier(tier)}
-                                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
-                                title="Edit Tier"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => startEditingTier(tier)}
+                                  className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg"
+                                  title="Edit Tier"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => deleteTier(tier.id)}
+                                  className="p-2 text-red-600 hover:bg-red-100 rounded-lg"
+                                  title="Delete Tier"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                </div>
-              )}
+                )}
+
+                {productTiers.length === 0 && addingTierForProduct !== product.id && (
+                  <p className="text-sm text-gray-500 italic">
+                    No pricing tiers defined. Click "Add Tier" to create one.
+                  </p>
+                )}
+              </div>
             </div>
           );
         })}
