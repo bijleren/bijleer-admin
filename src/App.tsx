@@ -38,6 +38,7 @@ import LicenseOverview from './pages/LicenseOverview';
 import VoucherManagement from './pages/VoucherManagement';
 import ManualGrants from './pages/ManualGrants';
 import LicenseReports from './pages/LicenseReports';
+import ProductManagement from './pages/ProductManagement';
 
 function App() {
   return (
@@ -89,6 +90,7 @@ function App() {
             <Route path="licensing/vouchers" element={<VoucherManagement />} />
             <Route path="licensing/manual-grants" element={<ManualGrants />} />
             <Route path="licensing/reports" element={<LicenseReports />} />
+            <Route path="licensing/products" element={<ProductManagement />} />
           </Route>
         </Routes>
       </AuthProvider>

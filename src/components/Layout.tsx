@@ -85,7 +85,8 @@ const navigation = [
       { name: 'Overview', href: '/licensing/overview' },
       { name: 'Vouchers', href: '/licensing/vouchers' },
       { name: 'Manual Grants', href: '/licensing/manual-grants' },
-      { name: 'Reports', href: '/licensing/reports' }
+      { name: 'Reports', href: '/licensing/reports' },
+      { name: 'Products', href: '/licensing/products' }
     ]
   },
   { name: 'Tables', href: '/tables', icon: Database },
