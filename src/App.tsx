@@ -34,6 +34,10 @@ import DemoManagement from './pages/DemoManagement';
 import PublicDemos from './pages/PublicDemos';
 import DemoRegistrations from './pages/DemoRegistrations';
 import DemoSession from './pages/DemoSession';
+import LicenseOverview from './pages/LicenseOverview';
+import VoucherManagement from './pages/VoucherManagement';
+import ManualGrants from './pages/ManualGrants';
+import LicenseReports from './pages/LicenseReports';
 
 function App() {
   return (
@@ -81,6 +85,10 @@ function App() {
             <Route path="tables" element={<Tables />} />
             <Route path="platform/demo" element={<DemoManagement />} />
             <Route path="platform/demo/:sessionId/registrations" element={<DemoRegistrations />} />
+            <Route path="licensing/overview" element={<LicenseOverview />} />
+            <Route path="licensing/vouchers" element={<VoucherManagement />} />
+            <Route path="licensing/manual-grants" element={<ManualGrants />} />
+            <Route path="licensing/reports" element={<LicenseReports />} />
           </Route>
         </Routes>
       </AuthProvider>

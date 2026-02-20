@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Baby,
   Monitor,
+  Key,
 } from 'lucide-react';
 
 const navigation = [
@@ -75,6 +76,16 @@ const navigation = [
     icon: Monitor,
     submenu: [
       { name: 'Demo', href: '/platform/demo' }
+    ]
+  },
+  {
+    name: 'Licensing',
+    icon: Key,
+    submenu: [
+      { name: 'Overview', href: '/licensing/overview' },
+      { name: 'Vouchers', href: '/licensing/vouchers' },
+      { name: 'Manual Grants', href: '/licensing/manual-grants' },
+      { name: 'Reports', href: '/licensing/reports' }
     ]
   },
   { name: 'Tables', href: '/tables', icon: Database },
