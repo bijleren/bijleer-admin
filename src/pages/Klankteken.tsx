@@ -388,7 +388,7 @@ export default function Klankteken() {
                 </select>
                 <input
                   type="text"
-                  placeholder="bijv. aa, ij, oo..."
+                  placeholder="bijv. g, a, oo..."
                   value={patternFilter}
                   onChange={(e) => setPatternFilter(e.target.value)}
                   className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

@@ -143,16 +143,23 @@ export default function Vocabulary() {
       filtered = filtered.filter((word) => {
         if (!word.klankteken) return false;
 
-        const klanktekens = word.klankteken.toLowerCase().split('-');
+        const fullKlankteken = word.klankteken.toLowerCase();
+        const klanktekens = fullKlankteken.split('-');
 
         switch (patternMode) {
           case 'starts':
-            return klanktekens.some(kt => kt.startsWith(pattern));
+            if (pattern.includes('-')) {
+              return fullKlankteken.startsWith(pattern);
+            }
+            return klanktekens.some(kt => kt === pattern || kt.startsWith(pattern));
           case 'ends':
-            return klanktekens.some(kt => kt.endsWith(pattern));
+            if (pattern.includes('-')) {
+              return fullKlankteken.endsWith(pattern);
+            }
+            return klanktekens.some(kt => kt === pattern || kt.endsWith(pattern));
           case 'contains':
           default:
-            return klanktekens.some(kt => kt.includes(pattern));
+            return fullKlankteken.includes(pattern);
         }
       });
     }
@@ -489,7 +496,7 @@ export default function Vocabulary() {
                 </select>
                 <input
                   type="text"
-                  placeholder="bijv. aa, ij, oo..."
+                  placeholder="bijv. g, doffe-n, aa..."
                   value={patternFilter}
                   onChange={(e) => setPatternFilter(e.target.value)}
                   className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
