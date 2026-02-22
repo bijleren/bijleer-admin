@@ -131,8 +131,11 @@ export default function Klankteken() {
     }
 
     setFilteredData(filtered);
-    setCurrentPage(1);
   }, [searchQuery, patternFilter, patternMode, data]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, patternFilter, patternMode]);
 
   const fetchData = async () => {
     try {

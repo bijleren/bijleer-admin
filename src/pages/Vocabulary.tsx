@@ -165,8 +165,11 @@ export default function Vocabulary() {
     }
 
     setFilteredWords(filtered);
-    setCurrentPage(1);
   }, [searchQuery, patternFilter, patternMode, words]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, patternFilter, patternMode]);
 
   const fetchWords = async () => {
     try {
