@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Volume2, Plus, Edit2, Trash2, Search, ChevronLeft, ChevronRight, Columns, Check } from 'lucide-react';
+import { Volume2, Plus, Edit2, Trash2, Search, ChevronLeft, ChevronRight, Columns, Check, Filter } from 'lucide-react';
 import PhonemeModal from '../components/PhonemeModal';
 
 interface Klankteken {
@@ -88,6 +88,8 @@ export default function Klankteken() {
   const [filteredData, setFilteredData] = useState<Klankteken[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [patternFilter, setPatternFilter] = useState('');
+  const [patternMode, setPatternMode] = useState<'starts' | 'ends' | 'contains'>('contains');
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Klankteken | null>(null);
@@ -99,20 +101,38 @@ export default function Klankteken() {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredData(data);
-    } else {
-      const filtered = data.filter((item) =>
+    let filtered = data;
+
+    if (searchQuery.trim() !== '') {
+      filtered = filtered.filter((item) =>
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.type && item.type.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.word && item.word.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.letters && item.letters.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (item.beschrijving && item.beschrijving.toLowerCase().includes(searchQuery.toLowerCase()))
       );
-      setFilteredData(filtered);
     }
+
+    if (patternFilter.trim() !== '') {
+      const pattern = patternFilter.toLowerCase();
+      filtered = filtered.filter((item) => {
+        const title = item.title.toLowerCase();
+
+        switch (patternMode) {
+          case 'starts':
+            return title.startsWith(pattern);
+          case 'ends':
+            return title.endsWith(pattern);
+          case 'contains':
+          default:
+            return title.includes(pattern);
+        }
+      });
+    }
+
+    setFilteredData(filtered);
     setCurrentPage(1);
-  }, [searchQuery, data]);
+  }, [searchQuery, patternFilter, patternMode, data]);
 
   const fetchData = async () => {
     try {
@@ -338,7 +358,7 @@ export default function Klankteken() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-200 space-y-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -349,6 +369,54 @@ export default function Klankteken() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
+
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <Filter className="w-5 h-5 text-gray-500 flex-shrink-0" />
+            <div className="flex items-center gap-2 flex-1">
+              <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Klankteken filter:
+              </span>
+              <div className="flex items-center gap-2 flex-1">
+                <select
+                  value={patternMode}
+                  onChange={(e) => setPatternMode(e.target.value as 'starts' | 'ends' | 'contains')}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  <option value="starts">Begint met</option>
+                  <option value="ends">Eindigt met</option>
+                  <option value="contains">Bevat</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="bijv. aa, ij, oo..."
+                  value={patternFilter}
+                  onChange={(e) => setPatternFilter(e.target.value)}
+                  className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {patternFilter && (
+                  <button
+                    onClick={() => setPatternFilter('')}
+                    className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    Wis
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {(searchQuery || patternFilter) && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-600">
+                {filteredData.length} {filteredData.length === 1 ? 'resultaat' : 'resultaten'} gevonden
+              </span>
+              {searchQuery && patternFilter && (
+                <span className="text-gray-500">
+                  (zoektekst én patroon filter actief)
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {filteredData.length === 0 ? (
