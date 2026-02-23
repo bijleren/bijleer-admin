@@ -37,12 +37,11 @@ interface VocabularyWord {
   id?: string;
   category_id: string;
   word: string;
-  definition: string | null;
-  example_sentence: string | null;
-  difficulty_level: number;
-  sort_order: number;
+  goal_codes: string[];
+  sort_order: number | null;
   is_active: boolean;
   created_at?: string;
+  updated_at?: string;
   category_name?: string;
 }
 
@@ -128,6 +127,14 @@ export default function VocabularyManagement() {
     goal_codes: [],
     word_count: 0,
     category_type: 'wereldoriëntatie',
+    sort_order: 0,
+    is_active: true,
+  });
+
+  const [wordForm, setWordForm] = useState<VocabularyWord>({
+    category_id: '',
+    word: '',
+    goal_codes: [],
     sort_order: 0,
     is_active: true,
   });
@@ -369,6 +376,93 @@ export default function VocabularyManagement() {
     }
   };
 
+  const handleCreateWord = () => {
+    setEditingId(null);
+    setWordForm({
+      category_id: categories.length > 0 ? categories[0].id || '' : '',
+      word: '',
+      goal_codes: [],
+      sort_order: words.length,
+      is_active: true,
+    });
+    setGoalCodesInput('');
+    setShowModal(true);
+  };
+
+  const handleEditWord = (word: VocabularyWord) => {
+    setEditingId(word.id || null);
+    setWordForm(word);
+    setGoalCodesInput(word.goal_codes.join(', '));
+    setShowModal(true);
+  };
+
+  const handleSaveWord = async () => {
+    if (!wordForm.word.trim()) {
+      showNotification('error', 'Woord is verplicht');
+      return;
+    }
+    if (!wordForm.category_id) {
+      showNotification('error', 'Categorie is verplicht');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const goalCodes = goalCodesInput
+        .split(',')
+        .map((g) => g.trim())
+        .filter((g) => g);
+
+      const wordData = {
+        category_id: wordForm.category_id,
+        word: wordForm.word.trim(),
+        goal_codes: goalCodes,
+        sort_order: wordForm.sort_order,
+        is_active: wordForm.is_active,
+      };
+
+      if (editingId) {
+        const { error } = await supabase.from('vocabulary_words').update(wordData).eq('id', editingId);
+
+        if (error) throw error;
+        showNotification('success', 'Woord succesvol bijgewerkt');
+      } else {
+        const { error } = await supabase.from('vocabulary_words').insert([wordData]);
+
+        if (error) throw error;
+        showNotification('success', 'Woord succesvol toegevoegd');
+      }
+
+      await fetchAllData();
+      setShowModal(false);
+    } catch (error) {
+      console.error('Error saving word:', error);
+      showNotification('error', 'Fout bij opslaan woord');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteWord = async (id: string) => {
+    if (!confirm('Weet je zeker dat je dit woord wilt verwijderen?')) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      const { error } = await supabase.from('vocabulary_words').delete().eq('id', id);
+
+      if (error) throw error;
+      showNotification('success', 'Woord succesvol verwijderd');
+      await fetchAllData();
+    } catch (error) {
+      console.error('Error deleting word:', error);
+      showNotification('error', 'Fout bij verwijderen woord');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -429,12 +523,12 @@ export default function VocabularyManagement() {
           <p className="text-gray-600 mt-1">Beheer woordenschat categorieën en woorden</p>
         </div>
         <button
-          onClick={handleCreateCategory}
-          disabled={activeTab !== 'categories'}
+          onClick={activeTab === 'categories' ? handleCreateCategory : handleCreateWord}
+          disabled={activeTab !== 'categories' && activeTab !== 'words'}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="w-5 h-5" />
-          Nieuwe Categorie
+          {activeTab === 'categories' ? 'Nieuwe Categorie' : 'Nieuw Woord'}
         </button>
       </div>
 
@@ -755,17 +849,20 @@ export default function VocabularyManagement() {
                       Woord
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Definitie
+                      Doelcodes
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Niveau
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Actief
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Acties
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {words.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                         Geen woorden gevonden
                       </td>
                     </tr>
@@ -774,8 +871,45 @@ export default function VocabularyManagement() {
                       <tr key={word.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-600">{word.category_name}</td>
                         <td className="px-6 py-4 font-medium text-gray-900">{word.word}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600 max-w-md truncate">{word.definition}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">Niveau {word.difficulty_level}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {word.goal_codes.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {word.goal_codes.map((code, idx) => (
+                                <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                                  {code}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">Geen doelcodes</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {word.is_active ? (
+                            <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                          ) : (
+                            <span className="inline-block w-2 h-2 bg-gray-300 rounded-full"></span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleEditWord(word)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Bewerken"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => word.id && handleDeleteWord(word.id)}
+                              disabled={deletingId === word.id}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Verwijderen"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -880,7 +1014,13 @@ export default function VocabularyManagement() {
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">
-                  {editingId ? 'Categorie Bewerken' : 'Nieuwe Categorie'}
+                  {activeTab === 'categories'
+                    ? editingId
+                      ? 'Categorie Bewerken'
+                      : 'Nieuwe Categorie'
+                    : editingId
+                    ? 'Woord Bewerken'
+                    : 'Nieuw Woord'}
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
@@ -893,6 +1033,8 @@ export default function VocabularyManagement() {
             </div>
 
             <div className="p-6 space-y-4">
+              {activeTab === 'categories' ? (
+                <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Naam *</label>
@@ -995,6 +1137,79 @@ export default function VocabularyManagement() {
                   <span className="text-sm font-medium text-gray-700">Actief</span>
                 </label>
               </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Categorie *</label>
+                    <select
+                      value={wordForm.category_id}
+                      onChange={(e) => setWordForm({ ...wordForm, category_id: e.target.value })}
+                      disabled={saving}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">Selecteer categorie...</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.emoji} {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Woord *</label>
+                    <input
+                      type="text"
+                      value={wordForm.word}
+                      onChange={(e) => setWordForm({ ...wordForm, word: e.target.value })}
+                      disabled={saving}
+                      placeholder="bijv. appelbloom, verkeersdrempel"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Doelcodes (gescheiden door komma's)
+                    </label>
+                    <input
+                      type="text"
+                      value={goalCodesInput}
+                      onChange={(e) => setGoalCodesInput(e.target.value)}
+                      disabled={saving}
+                      placeholder="4.1.3, 2.4.5"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Volgorde</label>
+                      <input
+                        type="number"
+                        value={wordForm.sort_order || 0}
+                        onChange={(e) => setWordForm({ ...wordForm, sort_order: parseInt(e.target.value) || 0 })}
+                        disabled={saving}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2 h-full pt-8">
+                        <input
+                          type="checkbox"
+                          checked={wordForm.is_active}
+                          onChange={(e) => setWordForm({ ...wordForm, is_active: e.target.checked })}
+                          disabled={saving}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Actief</span>
+                      </label>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
@@ -1006,7 +1221,7 @@ export default function VocabularyManagement() {
                 Annuleren
               </button>
               <button
-                onClick={handleSaveCategory}
+                onClick={activeTab === 'categories' ? handleSaveCategory : handleSaveWord}
                 disabled={saving}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
