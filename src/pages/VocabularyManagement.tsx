@@ -27,6 +27,7 @@ interface VocabularyCategory {
   goal_codes: string[];
   word_count: number;
   category_type: string;
+  color_code: string | null;
   sort_order: number;
   is_active: boolean;
   created_at?: string;
@@ -128,6 +129,7 @@ export default function VocabularyManagement() {
     goal_codes: [],
     word_count: 0,
     category_type: 'wereldoriëntatie',
+    color_code: null,
     sort_order: 0,
     is_active: true,
   });
@@ -288,6 +290,7 @@ export default function VocabularyManagement() {
       goal_codes: [],
       word_count: 0,
       category_type: 'wereldoriëntatie',
+      color_code: null,
       sort_order: categories.length,
       is_active: true,
     });
@@ -322,6 +325,7 @@ export default function VocabularyManagement() {
         goal_codes: goalCodes,
         word_count: categoryForm.word_count,
         category_type: categoryForm.category_type,
+        color_code: categoryForm.color_code?.trim() || null,
         sort_order: categoryForm.sort_order,
         is_active: categoryForm.is_active,
       };
@@ -742,6 +746,9 @@ export default function VocabularyManagement() {
                           <SortIcon field="category_type" />
                         </button>
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Kleur
+                      </th>
                       <th className="px-6 py-3 text-left">
                         <button
                           onClick={() => handleSort('word_count')}
@@ -771,7 +778,7 @@ export default function VocabularyManagement() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredAndSortedCategories.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                        <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                           Geen categorieën gevonden
                         </td>
                       </tr>
@@ -793,6 +800,19 @@ export default function VocabularyManagement() {
                               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                 {typeInfo.emoji} {typeInfo.label}
                               </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              {category.color_code ? (
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-6 h-6 rounded border border-gray-300"
+                                    style={{ backgroundColor: category.color_code }}
+                                  ></div>
+                                  <span className="text-xs text-gray-600 font-mono">{category.color_code}</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-400">Geen kleur</span>
+                              )}
                             </td>
                             <td className="px-6 py-4 text-sm text-gray-600">{category.word_count}</td>
                             <td className="px-6 py-4 text-sm text-gray-600">{category.sort_order}</td>
@@ -1109,6 +1129,28 @@ export default function VocabularyManagement() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Kleurcode</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={categoryForm.color_code || '#3B82F6'}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, color_code: e.target.value })}
+                    disabled={saving}
+                    className="w-16 h-10 border border-gray-300 rounded-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <input
+                    type="text"
+                    value={categoryForm.color_code || ''}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, color_code: e.target.value })}
+                    disabled={saving}
+                    placeholder="#3B82F6"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed font-mono"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Gebruik hex kleurcode (bijv. #3B82F6)</p>
               </div>
 
               <div>
