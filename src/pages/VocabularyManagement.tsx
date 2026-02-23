@@ -162,7 +162,7 @@ export default function VocabularyManagement() {
   }, []);
 
   useEffect(() => {
-    if (selectedSchool !== 'all') {
+    if (selectedSchool) {
       fetchCustomWords();
       fetchPracticeLogs();
       fetchStats();
@@ -174,13 +174,13 @@ export default function VocabularyManagement() {
       const { data, error } = await supabase
         .from('schools')
         .select('id, name')
-        .eq('is_active', true)
         .order('name', { ascending: true });
 
       if (error) throw error;
       setSchools(data || []);
     } catch (error) {
       console.error('Error fetching schools:', error);
+      showNotification('error', 'Fout bij ophalen scholen');
     }
   };
 
