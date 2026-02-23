@@ -50,7 +50,8 @@ interface CustomVocabulary {
   school_id: string;
   category_id: string;
   word: string;
-  definition: string | null;
+  goal_codes: string[];
+  is_deleted: boolean;
   created_by: string;
   created_at: string;
   category_name?: string;
@@ -58,12 +59,11 @@ interface CustomVocabulary {
 
 interface PracticeLog {
   id: string;
-  category_id: string;
   group_id: string;
-  practiced_at: string;
-  score: number;
+  word: string;
+  goal_codes: string[] | null;
+  clicked_at: string;
   created_by: string;
-  category_name?: string;
 }
 
 interface Stats {
@@ -212,18 +212,12 @@ export default function VocabularyManagement() {
     try {
       const { data, error } = await supabase
         .from('vocabulary_practice_log')
-        .select(`
-          *,
-          vocabulary_categories(name)
-        `)
-        .order('practiced_at', { ascending: false });
+        .select('*')
+        .order('clicked_at', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
-      const logsData = (data || []).map((log: any) => ({
-        ...log,
-        category_name: log.vocabulary_categories?.name || 'Onbekend',
-      }));
-      setPracticeLogs(logsData);
+      setPracticeLogs(data || []);
     } catch (error) {
       console.error('Error fetching practice logs:', error);
       showNotification('error', 'Fout bij ophalen oefenlogs');
@@ -236,7 +230,7 @@ export default function VocabularyManagement() {
         supabase.from('vocabulary_categories').select('created_at, is_active, category_type'),
         supabase.from('vocabulary_words').select('id'),
         supabase.from('custom_vocabulary').select('id'),
-        supabase.from('vocabulary_practice_log').select('score, practiced_at'),
+        supabase.from('vocabulary_practice_log').select('id, clicked_at'),
       ]);
 
       const now = new Date();
@@ -249,10 +243,7 @@ export default function VocabularyManagement() {
       const totalCustomWords = customData.data?.length || 0;
       const totalPracticeLogs = logsData.data?.length || 0;
 
-      const avgScore =
-        totalPracticeLogs > 0
-          ? (logsData.data || []).reduce((acc, log) => acc + (log.score || 0), 0) / totalPracticeLogs
-          : 0;
+      const avgScore = 0;
 
       const typeBreakdown = CATEGORY_TYPES.map((type) => ({
         type: type.label,
@@ -930,7 +921,7 @@ export default function VocabularyManagement() {
                       Woord
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Definitie
+                      Doelcodes
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                       Datum
@@ -949,7 +940,19 @@ export default function VocabularyManagement() {
                       <tr key={word.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-600">{word.category_name}</td>
                         <td className="px-6 py-4 font-medium text-gray-900">{word.word}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600 max-w-md truncate">{word.definition}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {word.goal_codes && word.goal_codes.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {word.goal_codes.map((code, idx) => (
+                                <span key={idx} className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
+                                  {code}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
                           {new Date(word.created_at).toLocaleDateString('nl-NL')}
                         </td>
@@ -967,13 +970,13 @@ export default function VocabularyManagement() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Categorie
+                      Woord
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Doelcodes
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                       Datum
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Score
                     </th>
                   </tr>
                 </thead>
@@ -987,9 +990,22 @@ export default function VocabularyManagement() {
                   ) : (
                     practiceLogs.map((log) => (
                       <tr key={log.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 font-medium text-gray-900">{log.category_name}</td>
+                        <td className="px-6 py-4 font-medium text-gray-900">{log.word}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">
-                          {new Date(log.practiced_at).toLocaleDateString('nl-NL', {
+                          {log.goal_codes && log.goal_codes.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {log.goal_codes.map((code, idx) => (
+                                <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                                  {code}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {new Date(log.clicked_at).toLocaleDateString('nl-NL', {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric',
@@ -997,7 +1013,6 @@ export default function VocabularyManagement() {
                             minute: '2-digit',
                           })}
                         </td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">{log.score}%</td>
                       </tr>
                     ))
                   )}
