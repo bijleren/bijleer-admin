@@ -321,9 +321,8 @@ export default function VocabularyManagement() {
       const categoryData = {
         name: categoryForm.name.trim(),
         emoji: categoryForm.emoji,
-        description: categoryForm.description?.trim() || '',
+        goal_description: categoryForm.description?.trim() || '',
         goal_codes: goalCodes,
-        word_count: categoryForm.word_count,
         category_type: categoryForm.category_type,
         color_code: categoryForm.color_code?.trim() || null,
         sort_order: categoryForm.sort_order,
