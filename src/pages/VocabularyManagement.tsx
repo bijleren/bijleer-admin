@@ -84,7 +84,18 @@ interface Stats {
 
 type SortField = 'name' | 'category_type' | 'word_count' | 'created_at' | 'sort_order';
 type SortOrder = 'asc' | 'desc';
-type TabType = 'categories' | 'words' | 'custom' | 'practice';
+type TabType = 'categories' | 'words' | 'custom' | 'practice' | 'types';
+
+interface School {
+  id: string;
+  name: string;
+}
+
+interface CategoryType {
+  value: string;
+  label: string;
+  emoji: string;
+}
 
 const CATEGORY_TYPES = [
   { value: 'wereldoriëntatie', label: 'Wereldoriëntatie', emoji: '🌍' },
@@ -99,6 +110,9 @@ export default function VocabularyManagement() {
   const [words, setWords] = useState<VocabularyWord[]>([]);
   const [customWords, setCustomWords] = useState<CustomVocabulary[]>([]);
   const [practiceLogs, setPracticeLogs] = useState<PracticeLog[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<string>('all');
+  const [categoryTypes, setCategoryTypes] = useState<CategoryType[]>(CATEGORY_TYPES);
   const [stats, setStats] = useState<Stats>({
     totalCategories: 0,
     activeCategories: 0,
@@ -143,8 +157,32 @@ export default function VocabularyManagement() {
   });
 
   useEffect(() => {
+    fetchSchools();
     fetchAllData();
   }, []);
+
+  useEffect(() => {
+    if (selectedSchool !== 'all') {
+      fetchCustomWords();
+      fetchPracticeLogs();
+      fetchStats();
+    }
+  }, [selectedSchool]);
+
+  const fetchSchools = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setSchools(data || []);
+    } catch (error) {
+      console.error('Error fetching schools:', error);
+    }
+  };
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -191,13 +229,18 @@ export default function VocabularyManagement() {
 
   const fetchCustomWords = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('custom_vocabulary')
         .select(`
           *,
           vocabulary_categories(name)
-        `)
-        .order('created_at', { ascending: false });
+        `);
+
+      if (selectedSchool !== 'all') {
+        query = query.eq('school_id', selectedSchool);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       const customData = (data || []).map((word: any) => ({
@@ -213,9 +256,24 @@ export default function VocabularyManagement() {
 
   const fetchPracticeLogs = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('vocabulary_practice_log')
-        .select('*')
+        .select('*');
+
+      // Filter by school via groups if school selected
+      if (selectedSchool !== 'all') {
+        const { data: groups } = await supabase
+          .from('groups')
+          .select('id')
+          .eq('school_id', selectedSchool);
+
+        if (groups && groups.length > 0) {
+          const groupIds = groups.map(g => g.id);
+          query = query.in('group_id', groupIds);
+        }
+      }
+
+      const { data, error } = await query
         .order('clicked_at', { ascending: false })
         .limit(100);
 
@@ -543,6 +601,30 @@ export default function VocabularyManagement() {
         </div>
       )}
 
+      {/* School Selector */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="flex items-center gap-4">
+          <label className="text-sm font-medium text-gray-700">School Filter:</label>
+          <select
+            value={selectedSchool}
+            onChange={(e) => setSelectedSchool(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">Alle Scholen (Systeem-brede data)</option>
+            {schools.map((school) => (
+              <option key={school.id} value={school.id}>
+                {school.name}
+              </option>
+            ))}
+          </select>
+          <span className="text-sm text-gray-500">
+            {selectedSchool === 'all'
+              ? 'Let op: Custom woorden en oefensessies zijn schoolspecifiek'
+              : 'Toont alleen data voor geselecteerde school'}
+          </span>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
@@ -684,6 +766,19 @@ export default function VocabularyManagement() {
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
                 Oefensessies ({stats.totalPracticeLogs})
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('types')}
+              className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'types'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4" />
+                Types ({categoryTypes.length})
               </div>
             </button>
           </div>
@@ -1074,6 +1169,57 @@ export default function VocabularyManagement() {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {activeTab === 'types' && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Let op:</strong> Deze types worden gebruikt voor het categoriseren van woordenschat.
+                  Je kunt de naam, emoji en waarde bewerken, maar zorg ervoor dat categorieën die al deze types gebruiken ook worden bijgewerkt.
+                </p>
+              </div>
+
+              <div className="grid gap-4">
+                {categoryTypes.map((type, index) => (
+                  <div key={type.value} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-4">
+                      <span className="text-3xl">{type.emoji}</span>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{type.label}</h3>
+                        <p className="text-sm text-gray-500">Waarde: {type.value}</p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Gebruikt door {stats.typeBreakdown.find(t => t.type === type.label)?.count || 0} categorieën
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            const newEmoji = prompt('Nieuwe emoji:', type.emoji);
+                            if (newEmoji) {
+                              const updated = [...categoryTypes];
+                              updated[index] = { ...type, emoji: newEmoji };
+                              setCategoryTypes(updated);
+                              showNotification('success', 'Emoji bijgewerkt');
+                            }
+                          }}
+                          className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                        >
+                          Wijzig Emoji
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>Opmerking:</strong> Het wijzigen van type-waarden vereist database migratie en wordt momenteel niet ondersteund via de interface.
+                  Neem contact op met de beheerder voor structurele wijzigingen.
+                </p>
+              </div>
             </div>
           )}
         </div>
