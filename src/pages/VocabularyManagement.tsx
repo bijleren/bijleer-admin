@@ -260,7 +260,6 @@ export default function VocabularyManagement() {
         .from('vocabulary_practice_log')
         .select('*');
 
-      // Filter by school via groups if school selected
       if (selectedSchool !== 'all') {
         const { data: groups } = await supabase
           .from('groups')
@@ -270,6 +269,8 @@ export default function VocabularyManagement() {
         if (groups && groups.length > 0) {
           const groupIds = groups.map(g => g.id);
           query = query.in('group_id', groupIds);
+        } else {
+          query = query.eq('group_id', '00000000-0000-0000-0000-000000000000');
         }
       }
 
@@ -287,11 +288,30 @@ export default function VocabularyManagement() {
 
   const fetchStats = async () => {
     try {
+      let customQuery = supabase.from('custom_vocabulary').select('id');
+      let logsQuery = supabase.from('vocabulary_practice_log').select('id, clicked_at');
+
+      if (selectedSchool !== 'all') {
+        customQuery = customQuery.eq('school_id', selectedSchool);
+
+        const { data: groups } = await supabase
+          .from('groups')
+          .select('id')
+          .eq('school_id', selectedSchool);
+
+        if (groups && groups.length > 0) {
+          const groupIds = groups.map(g => g.id);
+          logsQuery = logsQuery.in('group_id', groupIds);
+        } else {
+          logsQuery = logsQuery.eq('group_id', '00000000-0000-0000-0000-000000000000');
+        }
+      }
+
       const [categoriesData, wordsData, customData, logsData] = await Promise.all([
         supabase.from('vocabulary_categories').select('created_at, is_active, category_type'),
         supabase.from('vocabulary_words').select('id'),
-        supabase.from('custom_vocabulary').select('id'),
-        supabase.from('vocabulary_practice_log').select('id, clicked_at'),
+        customQuery,
+        logsQuery,
       ]);
 
       const now = new Date();
