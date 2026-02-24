@@ -399,8 +399,10 @@ export default function NewWords() {
 
     let successCount = 0;
     let skipCount = 0;
+    const successfulWordIds = new Set<string>();
 
-    for (const wordData of wordsForFrequency) {
+    for (let i = 0; i < wordsForFrequency.length; i++) {
+      const wordData = wordsForFrequency[i];
       const { error: insertError } = await supabase
         .from('wordfrequency')
         .upsert(wordData, {
@@ -413,6 +415,7 @@ export default function NewWords() {
         skipCount++;
       } else {
         successCount++;
+        successfulWordIds.add(wordsToApprove[i].id);
       }
     }
 
@@ -430,7 +433,7 @@ export default function NewWords() {
         reviewed_by: user?.user?.id,
         reviewed_at: new Date().toISOString()
       })
-      .in('id', Array.from(selectedWords));
+      .in('id', Array.from(successfulWordIds));
 
     if (updateError) {
       console.error('Error updating new_words:', updateError);
@@ -442,8 +445,8 @@ export default function NewWords() {
       alert(`Successfully approved ${successCount} words to vocabulary!`);
     }
 
+    setReviewedWords(prevWords => prevWords.filter(w => !successfulWordIds.has(w.id)));
     setSelectedWords(new Set());
-    loadReviewedWords();
   };
 
   const rejectSelectedWords = async () => {
