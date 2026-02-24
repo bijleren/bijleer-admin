@@ -432,17 +432,23 @@ export default function NewWords() {
 
     const { data: user } = await supabase.auth.getUser();
 
-    const { error: updateError } = await supabase
-      .from('new_words')
-      .update({
-        status: 'approved',
-        reviewed_by: user?.user?.id,
-        reviewed_at: new Date().toISOString()
-      })
-      .in('id', Array.from(allProcessedWordIds));
+    if (allProcessedWordIds.size > 0) {
+      const idsArray = Array.from(allProcessedWordIds);
 
-    if (updateError) {
-      console.error('Error updating new_words:', updateError);
+      for (const id of idsArray) {
+        const { error: updateError } = await supabase
+          .from('new_words')
+          .update({
+            status: 'approved',
+            reviewed_by: user?.user?.id,
+            reviewed_at: new Date().toISOString()
+          })
+          .eq('id', id);
+
+        if (updateError) {
+          console.error('Error updating new_word:', id, updateError);
+        }
+      }
     }
 
     if (successCount === 0) {
