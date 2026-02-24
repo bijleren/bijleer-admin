@@ -397,13 +397,27 @@ export default function NewWords() {
       klankteken: editingKlankteken[w.id] || w.klankteken
     }));
 
-    const { error: insertError } = await supabase
-      .from('wordfrequency')
-      .insert(wordsForFrequency);
+    let successCount = 0;
+    let skipCount = 0;
 
-    if (insertError) {
-      console.error('Error inserting to wordfrequency:', insertError);
-      alert('Error approving words to vocabulary');
+    for (const wordData of wordsForFrequency) {
+      const { error: insertError } = await supabase
+        .from('wordfrequency')
+        .upsert(wordData, {
+          onConflict: 'word',
+          ignoreDuplicates: false
+        });
+
+      if (insertError) {
+        console.error('Error inserting to wordfrequency:', insertError, wordData);
+        skipCount++;
+      } else {
+        successCount++;
+      }
+    }
+
+    if (skipCount === wordsForFrequency.length) {
+      alert('Error: Failed to approve any words to vocabulary');
       return;
     }
 
@@ -422,7 +436,12 @@ export default function NewWords() {
       console.error('Error updating new_words:', updateError);
     }
 
-    alert(`Successfully approved ${wordsToApprove.length} words to vocabulary!`);
+    if (skipCount > 0) {
+      alert(`Approved ${successCount} words to vocabulary. ${skipCount} words were skipped (already exist or errors).`);
+    } else {
+      alert(`Successfully approved ${successCount} words to vocabulary!`);
+    }
+
     setSelectedWords(new Set());
     loadReviewedWords();
   };
