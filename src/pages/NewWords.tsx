@@ -391,36 +391,44 @@ export default function NewWords() {
 
     const wordsToApprove = reviewedWords.filter(w => selectedWords.has(w.id));
 
-    const wordsForFrequency = wordsToApprove.map(w => ({
-      word: w.word,
-      frequency: 1,
-      klankteken: editingKlankteken[w.id] || w.klankteken
-    }));
-
     let successCount = 0;
     let skipCount = 0;
     const successfulWordIds = new Set<string>();
 
-    for (let i = 0; i < wordsForFrequency.length; i++) {
-      const wordData = wordsForFrequency[i];
+    for (const word of wordsToApprove) {
+      const { data: existing } = await supabase
+        .from('wordfrequency')
+        .select('word')
+        .eq('word', word.word)
+        .maybeSingle();
+
+      if (existing) {
+        console.log(`Word "${word.word}" already exists in vocabulary, skipping`);
+        skipCount++;
+        continue;
+      }
+
+      const wordData = {
+        word: word.word,
+        frequency: 1,
+        klankteken: editingKlankteken[word.id] || word.klankteken
+      };
+
       const { error: insertError } = await supabase
         .from('wordfrequency')
-        .upsert(wordData, {
-          onConflict: 'word',
-          ignoreDuplicates: false
-        });
+        .insert(wordData);
 
       if (insertError) {
         console.error('Error inserting to wordfrequency:', insertError, wordData);
         skipCount++;
       } else {
         successCount++;
-        successfulWordIds.add(wordsToApprove[i].id);
+        successfulWordIds.add(word.id);
       }
     }
 
-    if (skipCount === wordsForFrequency.length) {
-      alert('Error: Failed to approve any words to vocabulary');
+    if (successCount === 0) {
+      alert('No new words were added. All selected words already exist in vocabulary.');
       return;
     }
 
