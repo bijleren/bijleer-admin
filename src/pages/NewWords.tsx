@@ -453,8 +453,8 @@ export default function NewWords() {
       alert(`Successfully approved ${successCount} words to vocabulary!`);
     }
 
-    setReviewedWords(prevWords => prevWords.filter(w => !allProcessedWordIds.has(w.id)));
     setSelectedWords(new Set());
+    await loadReviewedWords();
   };
 
   const rejectSelectedWords = async () => {
