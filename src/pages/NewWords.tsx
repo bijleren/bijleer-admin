@@ -389,24 +389,16 @@ export default function NewWords() {
   const approveReviewedWords = async () => {
     if (selectedWords.size === 0) return;
 
-    setLoading(true);
-
     const wordsToApprove = reviewedWords.filter(w => selectedWords.has(w.id));
 
     const wordsForFrequency = wordsToApprove.map(w => ({
       word: w.word,
       frequency: 1,
-      klankteken: editingKlankteken[w.id] || w.klankteken,
-      aantal_klankgroepen: 0,
-      forbidden: 0,
-      has_multiple_meanings: 0,
-      klankgroup_checked: 0,
-      onboarded: 0
+      klankteken: editingKlankteken[w.id] || w.klankteken
     }));
 
     let successCount = 0;
     let skipCount = 0;
-    const errors: string[] = [];
 
     for (const wordData of wordsForFrequency) {
       const { error: insertError } = await supabase
@@ -418,7 +410,6 @@ export default function NewWords() {
 
       if (insertError) {
         console.error('Error inserting to wordfrequency:', insertError, wordData);
-        errors.push(`${wordData.word}: ${insertError.message}`);
         skipCount++;
       } else {
         successCount++;
@@ -426,8 +417,7 @@ export default function NewWords() {
     }
 
     if (skipCount === wordsForFrequency.length) {
-      alert(`Error: Failed to approve any words to vocabulary.\n\nErrors:\n${errors.slice(0, 5).join('\n')}`);
-      setLoading(false);
+      alert('Error: Failed to approve any words to vocabulary');
       return;
     }
 
@@ -445,8 +435,6 @@ export default function NewWords() {
     if (updateError) {
       console.error('Error updating new_words:', updateError);
     }
-
-    setLoading(false);
 
     if (skipCount > 0) {
       alert(`Approved ${successCount} words to vocabulary. ${skipCount} words were skipped (already exist or errors).`);
@@ -816,11 +804,11 @@ export default function NewWords() {
                     </button>
                     <button
                       onClick={approveReviewedWords}
-                      disabled={selectedWords.size === 0 || loading}
+                      disabled={selectedWords.size === 0}
                       className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      {loading ? 'Processing...' : `Approve to Vocabulary (${selectedWords.size})`}
+                      Approve to Vocabulary ({selectedWords.size})
                     </button>
                   </div>
                 </div>
