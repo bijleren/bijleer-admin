@@ -394,8 +394,11 @@ export default function NewWords() {
     let successCount = 0;
     let skipCount = 0;
     const successfulWordIds = new Set<string>();
+    const allProcessedWordIds = new Set<string>();
 
     for (const word of wordsToApprove) {
+      allProcessedWordIds.add(word.id);
+
       const { data: existing } = await supabase
         .from('wordfrequency')
         .select('word')
@@ -427,11 +430,6 @@ export default function NewWords() {
       }
     }
 
-    if (successCount === 0) {
-      alert('No new words were added. All selected words already exist in vocabulary.');
-      return;
-    }
-
     const { data: user } = await supabase.auth.getUser();
 
     const { error: updateError } = await supabase
@@ -441,19 +439,21 @@ export default function NewWords() {
         reviewed_by: user?.user?.id,
         reviewed_at: new Date().toISOString()
       })
-      .in('id', Array.from(successfulWordIds));
+      .in('id', Array.from(allProcessedWordIds));
 
     if (updateError) {
       console.error('Error updating new_words:', updateError);
     }
 
-    if (skipCount > 0) {
+    if (successCount === 0) {
+      alert('No new words were added. All selected words already exist in vocabulary.');
+    } else if (skipCount > 0) {
       alert(`Approved ${successCount} words to vocabulary. ${skipCount} words were skipped (already exist or errors).`);
     } else {
       alert(`Successfully approved ${successCount} words to vocabulary!`);
     }
 
-    setReviewedWords(prevWords => prevWords.filter(w => !successfulWordIds.has(w.id)));
+    setReviewedWords(prevWords => prevWords.filter(w => !allProcessedWordIds.has(w.id)));
     setSelectedWords(new Set());
   };
 
