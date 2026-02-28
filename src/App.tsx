@@ -39,6 +39,7 @@ import VoucherManagement from './pages/VoucherManagement';
 import ManualGrants from './pages/ManualGrants';
 import LicenseReports from './pages/LicenseReports';
 import ProductManagement from './pages/ProductManagement';
+import ContactMessages from './pages/ContactMessages';
 
 function App() {
   return (
@@ -86,6 +87,7 @@ function App() {
             <Route path="tables" element={<Tables />} />
             <Route path="platform/demo" element={<DemoManagement />} />
             <Route path="platform/demo/:sessionId/registrations" element={<DemoRegistrations />} />
+            <Route path="platform/contact-messages" element={<ContactMessages />} />
             <Route path="licensing/overview" element={<LicenseOverview />} />
             <Route path="licensing/vouchers" element={<VoucherManagement />} />
             <Route path="licensing/manual-grants" element={<ManualGrants />} />

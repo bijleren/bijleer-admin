@@ -19,6 +19,7 @@ import {
   Baby,
   Monitor,
   Key,
+  Mail,
 } from 'lucide-react';
 
 const navigation = [
@@ -75,7 +76,8 @@ const navigation = [
     name: 'Platform',
     icon: Monitor,
     submenu: [
-      { name: 'Demo', href: '/platform/demo' }
+      { name: 'Demo', href: '/platform/demo' },
+      { name: 'Contact Messages', href: '/platform/contact-messages' }
     ]
   },
   {
