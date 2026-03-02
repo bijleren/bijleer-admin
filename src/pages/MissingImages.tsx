@@ -1015,6 +1015,87 @@ export default function MissingImages() {
           </div>
         </div>
       </div>
+
+      {showUploadModal && uploadTargetWord && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Upload Image</h3>
+              <p className="text-gray-600 mt-1">
+                Upload image for: <span className="font-semibold">{uploadTargetWord.word}</span>
+              </p>
+            </div>
+
+            <ImageDropzone
+              onFileSelect={handleFileSelect}
+              disabled={isUploading}
+            />
+
+            {uploadingFile && (
+              <div className="mt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadingFile(null);
+                    setShowUploadModal(false);
+                    setUploadTargetWord(null);
+                  }}
+                  disabled={isUploading}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUploadSubmit}
+                  disabled={isUploading}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Uploading {Math.round(uploadProgress)}%
+                    </>
+                  ) : (
+                    <>
+                      <UploadIcon className="w-4 h-4" />
+                      Upload Image
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {!uploadingFile && (
+              <div className="mt-4 space-y-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await updateImageStatus('1', uploadTargetWord);
+                    setShowUploadModal(false);
+                    setUploadTargetWord(null);
+                  }}
+                  disabled={isUploading}
+                  className="w-full px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 font-medium disabled:opacity-50"
+                >
+                  <X className="w-4 h-4" />
+                  No Image Possible
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUploadModal(false);
+                    setUploadTargetWord(null);
+                  }}
+                  className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
