@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Image, Check, X, SkipForward, Trash2, Search, Filter } from 'lucide-react';
+import { Image, Check, X, SkipForward, Trash2, Search, Filter, Upload as UploadIcon } from 'lucide-react';
+import ImageDropzone from '../components/ImageDropzone';
+import { uploadImageToExternalServer, validateImageFile } from '../services/imageUploadService';
 
 interface Word {
   id: number;
@@ -39,6 +41,11 @@ export default function MissingImages() {
   const [currentPage, setCurrentPage] = useState(1);
   const [overviewSortOption, setOverviewSortOption] = useState<SortOption>('shortest');
   const itemsPerPage = 100;
+  const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadTargetWord, setUploadTargetWord] = useState<Word | null>(null);
 
   useEffect(() => {
     fetchWordsWithoutImages();
@@ -268,6 +275,123 @@ export default function MissingImages() {
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleUploadClick = (word: Word) => {
+    setUploadTargetWord(word);
+    setShowUploadModal(true);
+    setUploadingFile(null);
+    setUploadProgress(0);
+  };
+
+  const handleFileSelect = (file: File) => {
+    const error = validateImageFile(file);
+    if (error) {
+      showNotification('error', error);
+      return;
+    }
+    setUploadingFile(file);
+  };
+
+  const handleUploadSubmit = async () => {
+    if (!uploadingFile || !uploadTargetWord || isUploading) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const result = await uploadImageToExternalServer(
+        uploadTargetWord.word,
+        uploadingFile,
+        (progress) => setUploadProgress(progress)
+      );
+
+      if (result.success && result.filename) {
+        const { error: dbError } = await supabase
+          .from('wordfrequency')
+          .update({
+            image_file: result.filename,
+            image: '2'
+          })
+          .eq('id', uploadTargetWord.id);
+
+        if (dbError) {
+          showNotification('error', 'Upload succeeded but database update failed');
+          console.error('Database error:', dbError);
+        } else {
+          showNotification('success', `Image uploaded for "${uploadTargetWord.word}"`);
+          await fetchWordsWithoutImages();
+          setShowUploadModal(false);
+          setUploadTargetWord(null);
+          setUploadingFile(null);
+
+          if (selectedWord?.id === uploadTargetWord.id) {
+            setSelectedWord(null);
+          }
+        }
+      } else {
+        showNotification('error', result.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      showNotification('error', error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleCheckUploadClick = (word: Word) => {
+    setUploadTargetWord(word);
+    setShowUploadModal(true);
+    setUploadingFile(null);
+    setUploadProgress(0);
+  };
+
+  const handleCheckUploadSubmit = async () => {
+    if (!uploadingFile || !uploadTargetWord || isUploading) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const result = await uploadImageToExternalServer(
+        uploadTargetWord.word,
+        uploadingFile,
+        (progress) => setUploadProgress(progress)
+      );
+
+      if (result.success && result.filename) {
+        const { error: dbError } = await supabase
+          .from('wordfrequency')
+          .update({
+            image_file: result.filename,
+            image: '2'
+          })
+          .eq('id', uploadTargetWord.id);
+
+        if (dbError) {
+          showNotification('error', 'Upload succeeded but database update failed');
+          console.error('Database error:', dbError);
+        } else {
+          showNotification('success', `Image uploaded for "${uploadTargetWord.word}"`);
+          await fetchWordsWithoutImages();
+          setShowUploadModal(false);
+          setUploadTargetWord(null);
+          setUploadingFile(null);
+
+          setTimeout(() => loadNextWord(), 500);
+        }
+      } else {
+        showNotification('error', result.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      showNotification('error', error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const getSortedWords = () => {
@@ -529,27 +653,50 @@ export default function MissingImages() {
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                               Klankteken
                             </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Actions
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                           {paginatedWords.map((word) => (
                             <tr
                               key={word.id}
-                              onClick={() => handleWordClick(word)}
-                              className={`cursor-pointer transition-colors ${
+                              className={`transition-colors ${
                                 selectedWord?.id === word.id
                                   ? 'bg-blue-50 hover:bg-blue-100'
                                   : 'hover:bg-gray-50'
                               }`}
                             >
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                              <td
+                                className="px-4 py-3 text-sm font-medium text-gray-900 cursor-pointer"
+                                onClick={() => handleWordClick(word)}
+                              >
                                 {word.word}
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-600">
+                              <td
+                                className="px-4 py-3 text-sm text-gray-600 cursor-pointer"
+                                onClick={() => handleWordClick(word)}
+                              >
                                 {word.frequency}
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-600">
+                              <td
+                                className="px-4 py-3 text-sm text-gray-600 cursor-pointer"
+                                onClick={() => handleWordClick(word)}
+                              >
                                 {word.klankteken || '-'}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUploadClick(word);
+                                  }}
+                                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                  title="Upload image"
+                                >
+                                  <UploadIcon className="w-4 h-4" />
+                                </button>
                               </td>
                             </tr>
                           ))}
@@ -576,24 +723,70 @@ export default function MissingImages() {
                             </p>
                           </div>
 
-                          <div className="bg-gray-50 rounded-lg p-6 mb-6 min-h-[250px] flex items-center justify-center">
+                          <div className="mb-6">
                             {selectedImageLoading ? (
-                              <div className="text-center">
-                                <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-                                <p className="mt-3 text-gray-600">
-                                  Checking for image...
-                                </p>
+                              <div className="bg-gray-50 rounded-lg p-6 min-h-[250px] flex items-center justify-center">
+                                <div className="text-center">
+                                  <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                                  <p className="mt-3 text-gray-600">
+                                    Checking for image...
+                                  </p>
+                                </div>
                               </div>
                             ) : selectedWord.imageUrl ? (
-                              <img
-                                src={selectedWord.imageUrl}
-                                alt={selectedWord.word}
-                                className="max-w-full max-h-[300px] object-contain"
-                              />
+                              <div className="bg-gray-50 rounded-lg p-6 min-h-[250px] flex items-center justify-center">
+                                <img
+                                  src={selectedWord.imageUrl}
+                                  alt={selectedWord.word}
+                                  className="max-w-full max-h-[300px] object-contain"
+                                />
+                              </div>
                             ) : (
-                              <div className="text-center">
-                                <Image className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                <p className="text-gray-600">No image found</p>
+                              <div className="space-y-4">
+                                <div className="bg-gray-50 rounded-lg p-6 min-h-[200px] flex items-center justify-center">
+                                  <div className="text-center">
+                                    <Image className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                    <p className="text-gray-600">No image found</p>
+                                  </div>
+                                </div>
+                                <ImageDropzone
+                                  onFileSelect={(file) => {
+                                    setUploadingFile(file);
+                                    setUploadTargetWord(selectedWord);
+                                  }}
+                                  disabled={isUploading}
+                                />
+                                {uploadingFile && uploadTargetWord?.id === selectedWord.id && (
+                                  <div className="flex gap-3">
+                                    <button
+                                      onClick={() => {
+                                        setUploadingFile(null);
+                                        setUploadTargetWord(null);
+                                      }}
+                                      disabled={isUploading}
+                                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={handleUploadSubmit}
+                                      disabled={isUploading}
+                                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                      {isUploading ? (
+                                        <>
+                                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                          Uploading {Math.round(uploadProgress)}%
+                                        </>
+                                      ) : (
+                                        <>
+                                          <UploadIcon className="w-4 h-4" />
+                                          Upload Image
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -696,24 +889,70 @@ export default function MissingImages() {
                       </p>
                     </div>
 
-                    <div className="bg-gray-50 rounded-lg p-8 mb-6 min-h-[300px] flex items-center justify-center">
+                    <div className="mb-6">
                       {imageLoading ? (
-                        <div className="text-center">
-                          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                          <p className="mt-4 text-gray-600">
-                            Checking for image...
-                          </p>
+                        <div className="bg-gray-50 rounded-lg p-8 min-h-[300px] flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                            <p className="mt-4 text-gray-600">
+                              Checking for image...
+                            </p>
+                          </div>
                         </div>
                       ) : imageUrl ? (
-                        <img
-                          src={imageUrl}
-                          alt={currentWord.word}
-                          className="max-w-full max-h-[400px] object-contain"
-                        />
+                        <div className="bg-gray-50 rounded-lg p-8 min-h-[300px] flex items-center justify-center">
+                          <img
+                            src={imageUrl}
+                            alt={currentWord.word}
+                            className="max-w-full max-h-[400px] object-contain"
+                          />
+                        </div>
                       ) : (
-                        <div className="text-center">
-                          <Image className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                          <p className="text-gray-600">No image found</p>
+                        <div className="space-y-4">
+                          <div className="bg-gray-50 rounded-lg p-8 min-h-[250px] flex items-center justify-center">
+                            <div className="text-center">
+                              <Image className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                              <p className="text-gray-600">No image found</p>
+                            </div>
+                          </div>
+                          <ImageDropzone
+                            onFileSelect={(file) => {
+                              setUploadingFile(file);
+                              setUploadTargetWord(currentWord);
+                            }}
+                            disabled={isUploading}
+                          />
+                          {uploadingFile && uploadTargetWord?.id === currentWord.id && (
+                            <div className="flex gap-3">
+                              <button
+                                onClick={() => {
+                                  setUploadingFile(null);
+                                  setUploadTargetWord(null);
+                                }}
+                                disabled={isUploading}
+                                className="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+                              >
+                                Cancel Upload
+                              </button>
+                              <button
+                                onClick={handleCheckUploadSubmit}
+                                disabled={isUploading}
+                                className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                              >
+                                {isUploading ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    Uploading {Math.round(uploadProgress)}%
+                                  </>
+                                ) : (
+                                  <>
+                                    <UploadIcon className="w-5 h-5" />
+                                    Upload Image
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

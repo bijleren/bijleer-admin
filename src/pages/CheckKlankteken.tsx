@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Save, SkipForward, Volume2, Trash2, RefreshCw } from 'lucide-react';
+import { Save, SkipForward, Volume2, Trash2, RefreshCw, Upload as UploadIcon, Image as ImageIcon } from 'lucide-react';
+import ImageDropzone from '../components/ImageDropzone';
+import { uploadImageToExternalServer, validateImageFile } from '../services/imageUploadService';
 
 interface Word {
   id: number;
@@ -122,6 +124,12 @@ export default function CheckKlankteken() {
   const [stats, setStats] = useState({ total: 0, checked: 0, unchecked: 0 });
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showUploadSection, setShowUploadSection] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -291,10 +299,85 @@ export default function CheckKlankteken() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const checkImageExists = async (word: string) => {
+    setImageLoading(true);
+    setImageUrl(null);
+
+    const extensions = ['jpg', 'png', 'gif'];
+    const baseUrl = 'https://www.instructielezen.be/img';
+
+    for (const ext of extensions) {
+      try {
+        const url = `${baseUrl}/${word}.${ext}`;
+        const response = await fetch(url, { method: 'HEAD' });
+        if (response.ok) {
+          setImageUrl(url);
+          setImageLoading(false);
+          return;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+
+    setImageLoading(false);
+  };
+
+  const handleUploadSubmit = async () => {
+    if (!uploadingFile || !currentWord || isUploading) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const result = await uploadImageToExternalServer(
+        currentWord.word,
+        uploadingFile,
+        (progress) => setUploadProgress(progress)
+      );
+
+      if (result.success && result.filename) {
+        const { error: dbError } = await supabase
+          .from('wordfrequency')
+          .update({
+            image_file: result.filename,
+            image: '2'
+          })
+          .eq('id', currentWord.id);
+
+        if (dbError) {
+          showNotification('error', 'Upload succeeded but database update failed');
+          console.error('Database error:', dbError);
+        } else {
+          showNotification('success', `Image uploaded for "${currentWord.word}"`);
+          setUploadingFile(null);
+          setShowUploadSection(false);
+          await checkImageExists(currentWord.word);
+        }
+      } else {
+        showNotification('error', result.error || 'Upload failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      showNotification('error', error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
     fetchRandomWord();
   }, []);
+
+  useEffect(() => {
+    if (currentWord) {
+      checkImageExists(currentWord.word);
+      setShowUploadSection(false);
+      setUploadingFile(null);
+    }
+  }, [currentWord]);
 
   return (
     <div className="w-full h-full p-6 space-y-6">
@@ -340,17 +423,96 @@ export default function CheckKlankteken() {
             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
 
-          <div className="text-center space-y-4">
-            <div className="inline-block px-4 py-2 bg-gray-100 rounded-lg">
-              <p className="text-sm text-gray-600">Woord #{currentWord.id}</p>
-            </div>
-            <h2 className="text-5xl font-bold text-gray-900">{currentWord.word}</h2>
-            {currentWord.opmerking && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-sm font-medium text-yellow-900">Opmerking:</p>
-                <p className="text-yellow-800">{currentWord.opmerking}</p>
+          <div className="space-y-4">
+            <div className="text-center space-y-4">
+              <div className="inline-block px-4 py-2 bg-gray-100 rounded-lg">
+                <p className="text-sm text-gray-600">Woord #{currentWord.id}</p>
               </div>
-            )}
+              <h2 className="text-5xl font-bold text-gray-900">{currentWord.word}</h2>
+              {currentWord.opmerking && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-sm font-medium text-yellow-900">Opmerking:</p>
+                  <p className="text-yellow-800">{currentWord.opmerking}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-900">Image</h3>
+                {!imageUrl && !showUploadSection && (
+                  <button
+                    onClick={() => setShowUploadSection(true)}
+                    className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    <UploadIcon className="w-4 h-4" />
+                    Upload Image
+                  </button>
+                )}
+              </div>
+
+              {imageLoading ? (
+                <div className="bg-gray-50 rounded-lg p-6 min-h-[200px] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                    <p className="mt-3 text-gray-600">Checking for image...</p>
+                  </div>
+                </div>
+              ) : imageUrl ? (
+                <div className="bg-gray-50 rounded-lg p-6 min-h-[200px] flex items-center justify-center">
+                  <img
+                    src={imageUrl}
+                    alt={currentWord.word}
+                    className="max-w-full max-h-[300px] object-contain"
+                  />
+                </div>
+              ) : showUploadSection ? (
+                <div className="space-y-3">
+                  <ImageDropzone
+                    onFileSelect={(file) => setUploadingFile(file)}
+                    disabled={isUploading}
+                  />
+                  {uploadingFile && (
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setUploadingFile(null);
+                          setShowUploadSection(false);
+                        }}
+                        disabled={isUploading}
+                        className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleUploadSubmit}
+                        disabled={isUploading}
+                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {isUploading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            Uploading {Math.round(uploadProgress)}%
+                          </>
+                        ) : (
+                          <>
+                            <UploadIcon className="w-4 h-4" />
+                            Upload
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-gray-50 rounded-lg p-6 min-h-[200px] flex items-center justify-center">
+                  <div className="text-center">
+                    <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-600">No image found</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4">
