@@ -791,27 +791,32 @@ export default function MissingImages() {
                             )}
                           </div>
 
-                          <div className="flex gap-3 justify-center">
+                          <div className="flex gap-3 justify-center flex-wrap">
                             <button
                               onClick={() => setSelectedWord(null)}
-                              className="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                              disabled={isUploading}
+                              className="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
                             >
                               Cancel
                             </button>
                             <button
                               onClick={() => updateImageStatus('1', selectedWord)}
-                              className="px-5 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2 font-medium"
+                              disabled={isUploading}
+                              className="px-5 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
                             >
                               <X className="w-4 h-4" />
                               No Image Possible
                             </button>
-                            <button
-                              onClick={() => updateImageStatus('2', selectedWord)}
-                              className="px-5 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 font-medium"
-                            >
-                              <Check className="w-4 h-4" />
-                              Image Added
-                            </button>
+                            {selectedWord.imageUrl && (
+                              <button
+                                onClick={() => updateImageStatus('2', selectedWord)}
+                                disabled={isUploading}
+                                className="px-5 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
+                              >
+                                <Check className="w-4 h-4" />
+                                Confirm Image
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -957,7 +962,7 @@ export default function MissingImages() {
                       )}
                     </div>
 
-                    <div className="flex gap-4 justify-center">
+                    <div className="flex gap-4 justify-center flex-wrap">
                       <button
                         onClick={() => loadNextWord()}
                         className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2 font-medium"
@@ -967,21 +972,26 @@ export default function MissingImages() {
                       </button>
                       <button
                         onClick={() => updateImageStatus('1')}
-                        className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2 font-medium"
+                        disabled={isUploading}
+                        className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
                       >
                         <X className="w-5 h-5" />
                         No Image Possible
                       </button>
-                      <button
-                        onClick={() => updateImageStatus('2')}
-                        className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 font-medium"
-                      >
-                        <Check className="w-5 h-5" />
-                        Image Added
-                      </button>
+                      {imageUrl && (
+                        <button
+                          onClick={() => updateImageStatus('2')}
+                          disabled={isUploading}
+                          className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
+                        >
+                          <Check className="w-5 h-5" />
+                          Confirm Image
+                        </button>
+                      )}
                       <button
                         onClick={deleteWord}
-                        className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 font-medium"
+                        disabled={isUploading}
+                        className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
                       >
                         <Trash2 className="w-5 h-5" />
                         Delete Word
