@@ -759,6 +759,7 @@ export default function MissingImages() {
                                 {uploadingFile && uploadTargetWord?.id === selectedWord.id && (
                                   <div className="flex gap-3">
                                     <button
+                                      type="button"
                                       onClick={() => {
                                         setUploadingFile(null);
                                         setUploadTargetWord(null);
@@ -769,6 +770,7 @@ export default function MissingImages() {
                                       Cancel
                                     </button>
                                     <button
+                                      type="button"
                                       onClick={handleUploadSubmit}
                                       disabled={isUploading}
                                       className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
@@ -793,6 +795,7 @@ export default function MissingImages() {
 
                           <div className="flex gap-3 justify-center flex-wrap">
                             <button
+                              type="button"
                               onClick={() => setSelectedWord(null)}
                               disabled={isUploading}
                               className="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50"
@@ -800,6 +803,7 @@ export default function MissingImages() {
                               Cancel
                             </button>
                             <button
+                              type="button"
                               onClick={() => updateImageStatus('1', selectedWord)}
                               disabled={isUploading}
                               className="px-5 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
@@ -809,6 +813,7 @@ export default function MissingImages() {
                             </button>
                             {selectedWord.imageUrl && (
                               <button
+                                type="button"
                                 onClick={() => updateImageStatus('2', selectedWord)}
                                 disabled={isUploading}
                                 className="px-5 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
@@ -930,6 +935,7 @@ export default function MissingImages() {
                           {uploadingFile && uploadTargetWord?.id === currentWord.id && (
                             <div className="flex gap-3">
                               <button
+                                type="button"
                                 onClick={() => {
                                   setUploadingFile(null);
                                   setUploadTargetWord(null);
@@ -940,6 +946,7 @@ export default function MissingImages() {
                                 Cancel Upload
                               </button>
                               <button
+                                type="button"
                                 onClick={handleCheckUploadSubmit}
                                 disabled={isUploading}
                                 className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
@@ -964,6 +971,7 @@ export default function MissingImages() {
 
                     <div className="flex gap-4 justify-center flex-wrap">
                       <button
+                        type="button"
                         onClick={() => loadNextWord()}
                         className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2 font-medium"
                       >
@@ -971,6 +979,7 @@ export default function MissingImages() {
                         Skip
                       </button>
                       <button
+                        type="button"
                         onClick={() => updateImageStatus('1')}
                         disabled={isUploading}
                         className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
@@ -980,6 +989,7 @@ export default function MissingImages() {
                       </button>
                       {imageUrl && (
                         <button
+                          type="button"
                           onClick={() => updateImageStatus('2')}
                           disabled={isUploading}
                           className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"
@@ -989,6 +999,7 @@ export default function MissingImages() {
                         </button>
                       )}
                       <button
+                        type="button"
                         onClick={deleteWord}
                         disabled={isUploading}
                         className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 font-medium disabled:opacity-50"

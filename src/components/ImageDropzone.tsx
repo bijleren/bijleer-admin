@@ -164,6 +164,7 @@ export default function ImageDropzone({
                 ({Math.round(selectedFile.size / 1024)} KB)
               </span>
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   clearSelection();
