@@ -90,9 +90,9 @@ export default function Schools() {
   const filteredSchools = schools
     .filter(
       (school) =>
-        school.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        school.school_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        school.city?.toLowerCase().includes(searchTerm.toLowerCase())
+        (school.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (school.school_code?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (school.city?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       let aValue = a[sortField];
@@ -266,7 +266,7 @@ export default function Schools() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="text-sm font-mono text-gray-700 bg-gray-50 px-2 py-1 rounded">
-                      {school.school_code}
+                      {school.school_code || 'N/A'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
