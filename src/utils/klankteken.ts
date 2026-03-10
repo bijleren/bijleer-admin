@@ -1,8 +1,8 @@
 const tripleVowels = ['aai', 'ooi', 'oei', 'ieu', 'eeu'];
-const doubleVowels = ['ie', 'ei', 'ui', 'ij', 'ou', 'eu', 'oe', 'au', 'ea'];
+const doubleVowels = ['ie', 'ei', 'ui', 'ij', 'ou', 'eu', 'oe', 'au', 'ea', 'ai'];
 const longVowels = ['aa', 'ee', 'uu', 'oo'];
 const doubleConsonants = ['zz', 'rr', 'tt', 'pp', 'ss', 'dd', 'ff', 'gg', 'kk', 'll', 'mm', 'ww', 'vv', 'bb', 'nn'];
-const consonantClusters = ['sch', 'ch', 'ng', 'nk', 'th', 'dt'];
+const consonantClusters = ['sch', 'ch', 'nk', 'th', 'dt'];
 const vowels = ['a', 'e', 'i', 'o', 'u'];
 const accentedVowels = ['é', 'è', 'à', 'ö', 'ë', 'ï'];
 const consonants = ['b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'y', 'z'];
@@ -33,6 +33,13 @@ export function analyzeWord(word: string): string {
   while (i < length) {
     let found = false;
 
+    if (word.substring(i, i + 2) === 'ge' && (i === 0 || i === 2 || i === 3)) {
+      detectedPhonemes.push('g');
+      detectedPhonemes.push('doffe');
+      i += 2;
+      continue;
+    }
+
     for (const cluster of tripleVowels) {
       if (word.substring(i, i + 3) === cluster) {
         detectedPhonemes.push(cluster);
@@ -47,6 +54,12 @@ export function analyzeWord(word: string): string {
     }
     if (found) continue;
 
+    if (word.substring(i, i + 2) === 'ai') {
+      detectedPhonemes.push('aialsij');
+      i += 2;
+      continue;
+    }
+
     for (const cluster of doubleVowels) {
       if (word.substring(i, i + 2) === cluster) {
         detectedPhonemes.push(cluster);
@@ -56,6 +69,12 @@ export function analyzeWord(word: string): string {
       }
     }
     if (found) continue;
+
+    if (word.substring(i, i + 2) === 'ee') {
+      detectedPhonemes.push('ee');
+      i += 2;
+      continue;
+    }
 
     for (const lvowel of longVowels) {
       if (word.substring(i, i + 2) === lvowel) {
@@ -82,6 +101,13 @@ export function analyzeWord(word: string): string {
       }
     }
     if (found) continue;
+
+    if (word.substring(i, i + 2) === 'ng') {
+      detectedPhonemes.push('n');
+      detectedPhonemes.push('g');
+      i += 2;
+      continue;
+    }
 
     for (const cc of consonantClusters) {
       if (word.substring(i, i + cc.length) === cc) {
