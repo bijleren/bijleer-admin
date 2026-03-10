@@ -54,6 +54,12 @@ export function analyzeWord(word: string): string {
     }
     if (found) continue;
 
+    if (word.substring(i, i + 2) === 'ee') {
+      detectedPhonemes.push('ee');
+      i += 2;
+      continue;
+    }
+
     if (word.substring(i, i + 2) === 'ai') {
       detectedPhonemes.push('aialsij');
       i += 2;
@@ -69,12 +75,6 @@ export function analyzeWord(word: string): string {
       }
     }
     if (found) continue;
-
-    if (word.substring(i, i + 2) === 'ee') {
-      detectedPhonemes.push('ee');
-      i += 2;
-      continue;
-    }
 
     for (const lvowel of longVowels) {
       if (word.substring(i, i + 2) === lvowel) {
