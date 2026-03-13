@@ -1,26 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  LayoutDashboard,
-  Users,
-  School,
-  Database,
-  LogOut,
-  Menu,
-  X,
-  GraduationCap,
-  ChevronDown,
-  BookOpen,
-  BookText,
-  Grid,
-  ChevronLeft,
-  ChevronRight,
-  Baby,
-  Monitor,
-  Key,
-  Mail,
-} from 'lucide-react';
+import { LayoutDashboard, Users, School, Database, LogOut, Menu, X, GraduationCap, ChevronDown, BookOpen, BookText, Grid2x2 as Grid, ChevronLeft, ChevronRight, Baby, Monitor, Key, Mail } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
