@@ -47,6 +47,7 @@ const navigation = [
       { name: 'Lidwoorden', href: '/woordenschat/lidwoorden' },
       { name: 'Check Klankteken', href: '/woordenschat/check-klankteken' },
       { name: 'Check Betekenis', href: '/woordenschat/check-betekenis' },
+      { name: 'Klankgroepen', href: '/woordenschat/klankgroepen' },
       { name: 'Statistiek', href: '/woordenschat/statistiek' },
       { name: 'Analyse', href: '/woordenschat/analyse' },
       { name: 'Foneem Frequentie', href: '/woordenschat/foneem-frequentie' },

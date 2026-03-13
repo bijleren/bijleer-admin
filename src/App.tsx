@@ -40,6 +40,7 @@ import ManualGrants from './pages/ManualGrants';
 import LicenseReports from './pages/LicenseReports';
 import ProductManagement from './pages/ProductManagement';
 import ContactMessages from './pages/ContactMessages';
+import Klankgroepen from './pages/Klankgroepen';
 
 function App() {
   return (
@@ -79,6 +80,7 @@ function App() {
             <Route path="woordenschat/analyse" element={<Analysis />} />
             <Route path="woordenschat/foneem-frequentie" element={<PhonemeFrequency />} />
             <Route path="woordenschat/missing-images" element={<MissingImages />} />
+            <Route path="woordenschat/klankgroepen" element={<Klankgroepen />} />
             <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
             <Route path="kleuterdidactiek/doe" element={<PhysicalTasks />} />
