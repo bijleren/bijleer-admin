@@ -56,17 +56,17 @@ export default function Klankgroepen() {
   const fetchWords = async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('wordfrequency')
-        .select('id, word, klankteken, klankgroepenklanken')
-        .eq('klankgroup_checked', 0);
+      let data;
+      let error;
 
-      if (sortOption === 'most_recent') {
-        query = query.order('id', { ascending: false });
-      } else if (sortOption === 'shortest') {
-        query = query.order('word', { ascending: true });
-      } else if (sortOption === 'longest') {
-        query = query.order('word', { ascending: false });
+      if (sortOption === 'shortest' || sortOption === 'longest') {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_klankgroepen_words_by_length', {
+          p_sort_ascending: sortOption === 'shortest',
+          p_offset: currentPage * BATCH_SIZE,
+          p_limit: BATCH_SIZE
+        });
+        data = rpcData;
+        error = rpcError;
       } else if (sortOption === 'random') {
         const { count } = await supabase
           .from('wordfrequency')
@@ -75,30 +75,29 @@ export default function Klankgroepen() {
 
         if (count && count > 0) {
           const randomOffset = Math.floor(Math.random() * Math.max(0, count - BATCH_SIZE));
-          query = query.range(randomOffset, randomOffset + BATCH_SIZE - 1);
+          const { data: randomData, error: randomError } = await supabase
+            .from('wordfrequency')
+            .select('id, word, klankteken, klankgroepenklanken')
+            .eq('klankgroup_checked', 0)
+            .range(randomOffset, randomOffset + BATCH_SIZE - 1);
 
-          const { data, error } = await query;
-          if (error) throw error;
-          setWords(data || []);
-          setLoading(false);
-          return;
+          data = randomData;
+          error = randomError;
         }
+      } else {
+        const { data: recentData, error: recentError } = await supabase
+          .from('wordfrequency')
+          .select('id, word, klankteken, klankgroepenklanken')
+          .eq('klankgroup_checked', 0)
+          .order('id', { ascending: false })
+          .range(currentPage * BATCH_SIZE, (currentPage + 1) * BATCH_SIZE - 1);
+
+        data = recentData;
+        error = recentError;
       }
 
-      query = query.range(currentPage * BATCH_SIZE, (currentPage + 1) * BATCH_SIZE - 1);
-
-      const { data, error } = await query;
       if (error) throw error;
-
-      let processedData = data || [];
-
-      if (sortOption === 'shortest') {
-        processedData = processedData.sort((a, b) => a.word.length - b.word.length);
-      } else if (sortOption === 'longest') {
-        processedData = processedData.sort((a, b) => b.word.length - a.word.length);
-      }
-
-      setWords(processedData);
+      setWords(data || []);
     } catch (error) {
       console.error('Error fetching words:', error);
       showNotification('error', 'Fout bij ophalen woorden');
