@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Copy, Check, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Copy, Check, RefreshCw, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 
 interface Word {
   id: number;
@@ -14,6 +14,8 @@ interface Notification {
   message: string;
 }
 
+type SortOption = 'most_recent' | 'shortest' | 'longest' | 'random';
+
 const BATCH_SIZE = 100;
 
 export default function Klankgroepen() {
@@ -24,6 +26,7 @@ export default function Klankgroepen() {
   const [editingCell, setEditingCell] = useState<{ id: number; field: 'klankteken' | 'klankgroepenklanken' } | null>(null);
   const [savingCells, setSavingCells] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(0);
+  const [sortOption, setSortOption] = useState<SortOption>('most_recent');
 
   const fetchStats = async () => {
     try {
@@ -54,16 +57,49 @@ export default function Klankgroepen() {
   const fetchWords = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('wordfrequency')
         .select('id, word, klankteken, klankgroepenklanken')
-        .eq('klankgroup_checked', 0)
-        .order('id', { ascending: true })
-        .range(currentPage * BATCH_SIZE, (currentPage + 1) * BATCH_SIZE - 1);
+        .eq('klankgroup_checked', 0);
 
+      if (sortOption === 'most_recent') {
+        query = query.order('id', { ascending: false });
+      } else if (sortOption === 'shortest') {
+        query = query.order('word', { ascending: true });
+      } else if (sortOption === 'longest') {
+        query = query.order('word', { ascending: false });
+      } else if (sortOption === 'random') {
+        const { count } = await supabase
+          .from('wordfrequency')
+          .select('*', { count: 'exact', head: true })
+          .eq('klankgroup_checked', 0);
+
+        if (count && count > 0) {
+          const randomOffset = Math.floor(Math.random() * Math.max(0, count - BATCH_SIZE));
+          query = query.range(randomOffset, randomOffset + BATCH_SIZE - 1);
+
+          const { data, error } = await query;
+          if (error) throw error;
+          setWords(data || []);
+          setLoading(false);
+          return;
+        }
+      }
+
+      query = query.range(currentPage * BATCH_SIZE, (currentPage + 1) * BATCH_SIZE - 1);
+
+      const { data, error } = await query;
       if (error) throw error;
 
-      setWords(data || []);
+      let processedData = data || [];
+
+      if (sortOption === 'shortest') {
+        processedData = processedData.sort((a, b) => a.word.length - b.word.length);
+      } else if (sortOption === 'longest') {
+        processedData = processedData.sort((a, b) => b.word.length - a.word.length);
+      }
+
+      setWords(processedData);
     } catch (error) {
       console.error('Error fetching words:', error);
       showNotification('error', 'Fout bij ophalen woorden');
@@ -254,7 +290,12 @@ export default function Klankgroepen() {
   useEffect(() => {
     fetchStats();
     fetchWords();
-  }, [currentPage]);
+  }, [currentPage, sortOption]);
+
+  const handleSortChange = (newSort: SortOption) => {
+    setSortOption(newSort);
+    setCurrentPage(0);
+  };
 
   const canGoNext = words.length === BATCH_SIZE;
   const canGoPrev = currentPage > 0;
@@ -275,14 +316,29 @@ export default function Klankgroepen() {
 
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Klankgroepen</h1>
-        <button
-          onClick={fetchWords}
-          disabled={loading}
-          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-          title="Ververs"
-        >
-          <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-gray-600" />
+            <select
+              value={sortOption}
+              onChange={(e) => handleSortChange(e.target.value as SortOption)}
+              className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="most_recent">Meest recent</option>
+              <option value="shortest">Kortste woorden</option>
+              <option value="longest">Langste woorden</option>
+              <option value="random">Willekeurige woorden</option>
+            </select>
+          </div>
+          <button
+            onClick={fetchWords}
+            disabled={loading}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            title="Ververs"
+          >
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -459,11 +515,14 @@ export default function Klankgroepen() {
         <div className="prose prose-sm max-w-none text-gray-700 space-y-2">
           <p>Deze pagina helpt je om klankgroepenklanken te beheren voor woorden.</p>
           <ul className="list-disc list-inside space-y-1">
+            <li>Selecteer een sorteeroptie om woorden te filteren: meest recent, kortste, langste of willekeurig</li>
             <li>Klik op een cel om deze te bewerken</li>
             <li>Druk op Enter of klik buiten de cel om automatisch op te slaan</li>
             <li>Druk op Escape om de bewerking te annuleren</li>
             <li>Gebruik het dupliceer icoon om klankteken naar klankgroepenklanken te kopiëren</li>
+            <li>Gebruik "Dupliceer alle klanktekens" om alle woorden op deze pagina te kopiëren</li>
             <li>Markeer woorden als gecontroleerd wanneer klaar</li>
+            <li>Gebruik "Markeer alle als gecontroleerd" om alle woorden op deze pagina te markeren</li>
             <li>De pagina toont 100 woorden tegelijk</li>
           </ul>
         </div>
