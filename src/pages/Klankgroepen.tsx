@@ -130,7 +130,7 @@ export default function Klankgroepen() {
       result = result.replace(pattern, `+${dc}`);
     }
 
-    const letterCombinations = ['t-v', 'n-w', 't-g', 'g-k', 't-b', 'n-z', 'm-b', 's-l', 's-b', 'n-l', 'p-f', 'n-p'];
+    const letterCombinations = ['t-v', 'n-w', 't-g', 'g-k', 't-b', 'n-z', 'm-b', 's-b', 'n-l', 'p-f', 'n-p', 's-h'];
     for (const combo of letterCombinations) {
       result = result.replace(new RegExp(combo, 'g'), combo.replace('-', '+'));
     }
