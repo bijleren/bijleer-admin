@@ -111,27 +111,27 @@ export default function Klankgroepen() {
     if (!klankteken) return klankteken;
 
     let result = klankteken;
-    const parts = klankteken.split('-');
 
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      const nextPart = i < parts.length - 1 ? parts[i + 1] : null;
+    const startingPatterns = [
+      'b-doffe', 'g-doffe', 'd-doffe', 'v-doffe-r', 'p-doffe',
+      'a-f', 'i-n', 'o-p', 'aa-n', 'e-n', 'u-i'
+    ];
 
-      if (part === 'g-doffe' || part === 'v-doffe-r' || part === 'b-doffe' || part === 'aa-n') {
-        const pattern = new RegExp(`${part.replace(/[-]/g, '\\-')}\\-`, 'g');
-        result = result.replace(pattern, `${part}+`);
-      }
-
-      if (nextPart && /^(mm|nn|ll|pp|tt|dd|kk|bb|ff|ss|gg|vv|zz|rr|cc|jj|ww|hh)/.test(nextPart)) {
-        const beforeDouble = result.lastIndexOf('-' + nextPart);
-        if (beforeDouble !== -1) {
-          result = result.substring(0, beforeDouble) + '+' + result.substring(beforeDouble + 1);
-        }
+    for (const pattern of startingPatterns) {
+      if (result.startsWith(pattern + '-')) {
+        result = pattern + '+' + result.substring(pattern.length + 1);
+        break;
       }
     }
 
-    if (result.endsWith('-doffe-n')) {
-      const endPattern = /(.+?)\-([^-]+)\-doffe\-n$/;
+    const doubleConsonants = ['mm', 'nn', 'll', 'pp', 'tt', 'dd', 'kk', 'bb', 'ff', 'ss', 'gg', 'vv', 'zz', 'rr', 'cc', 'jj', 'ww', 'hh'];
+    for (const dc of doubleConsonants) {
+      const pattern = new RegExp(`-${dc}`, 'g');
+      result = result.replace(pattern, `+${dc}`);
+    }
+
+    if (result.includes('-doffe-n')) {
+      const endPattern = /(.+?)-([^-]+)-doffe-n$/;
       const match = result.match(endPattern);
       if (match) {
         const beforeLast = match[1];
