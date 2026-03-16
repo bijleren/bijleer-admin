@@ -107,12 +107,49 @@ export default function Klankgroepen() {
     }
   };
 
+  const applyKlankgroepenRules = (klankteken: string): string => {
+    if (!klankteken) return klankteken;
+
+    let result = klankteken;
+    const parts = klankteken.split('-');
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      const nextPart = i < parts.length - 1 ? parts[i + 1] : null;
+
+      if (part === 'g-doffe' || part === 'v-doffe-r' || part === 'b-doffe' || part === 'aa-n') {
+        const pattern = new RegExp(`${part.replace(/[-]/g, '\\-')}\\-`, 'g');
+        result = result.replace(pattern, `${part}+`);
+      }
+
+      if (nextPart && /^(mm|nn|ll|pp|tt|dd|kk|bb|ff|ss|gg|vv|zz|rr|cc|jj|ww|hh)/.test(nextPart)) {
+        const beforeDouble = result.lastIndexOf('-' + nextPart);
+        if (beforeDouble !== -1) {
+          result = result.substring(0, beforeDouble) + '+' + result.substring(beforeDouble + 1);
+        }
+      }
+    }
+
+    if (result.endsWith('-doffe-n')) {
+      const endPattern = /(.+?)\-([^-]+)\-doffe\-n$/;
+      const match = result.match(endPattern);
+      if (match) {
+        const beforeLast = match[1];
+        const lastPhoneme = match[2];
+        result = result.replace(endPattern, `${beforeLast}+${lastPhoneme}-doffe-n`);
+      }
+    }
+
+    return result;
+  };
+
   const duplicateToKlankgroepen = async (wordId: number, klankteken: string | null) => {
     if (!klankteken) {
       showNotification('error', 'Geen klankteken om te dupliceren');
       return;
     }
 
+    const klankgroepenklanken = applyKlankgroepenRules(klankteken);
     const cellKey = `${wordId}-klankgroepenklanken`;
     setSavingCells(prev => new Set(prev).add(cellKey));
 
@@ -120,7 +157,7 @@ export default function Klankgroepen() {
       const { error } = await supabase
         .from('wordfrequency')
         .update({
-          klankgroepenklanken: klankteken,
+          klankgroepenklanken,
           updated_at: new Date().toISOString(),
         })
         .eq('id', wordId);
@@ -129,7 +166,7 @@ export default function Klankgroepen() {
 
       setWords(prev =>
         prev.map(w =>
-          w.id === wordId ? { ...w, klankgroepenklanken: klankteken } : w
+          w.id === wordId ? { ...w, klankgroepenklanken } : w
         )
       );
       showNotification('success', 'Gedupliceerd naar klankgroepenklanken');
