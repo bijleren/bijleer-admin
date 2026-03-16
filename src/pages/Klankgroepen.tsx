@@ -31,16 +31,19 @@ export default function Klankgroepen() {
     try {
       const { count: totalCount } = await supabase
         .from('wordfrequency')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('klankteken_checked', 1);
 
       const { count: checkedCount } = await supabase
         .from('wordfrequency')
         .select('*', { count: 'exact', head: true })
+        .eq('klankteken_checked', 1)
         .eq('klankgroup_checked', 1);
 
       const { count: uncheckedCount } = await supabase
         .from('wordfrequency')
         .select('*', { count: 'exact', head: true })
+        .eq('klankteken_checked', 1)
         .eq('klankgroup_checked', 0);
 
       setStats({
@@ -71,6 +74,7 @@ export default function Klankgroepen() {
         const { count } = await supabase
           .from('wordfrequency')
           .select('*', { count: 'exact', head: true })
+          .eq('klankteken_checked', 1)
           .eq('klankgroup_checked', 0);
 
         if (count && count > 0) {
@@ -78,6 +82,7 @@ export default function Klankgroepen() {
           const { data: randomData, error: randomError } = await supabase
             .from('wordfrequency')
             .select('id, word, klankteken, klankgroepenklanken')
+            .eq('klankteken_checked', 1)
             .eq('klankgroup_checked', 0)
             .range(randomOffset, randomOffset + BATCH_SIZE - 1);
 
@@ -88,6 +93,7 @@ export default function Klankgroepen() {
         const { data: recentData, error: recentError } = await supabase
           .from('wordfrequency')
           .select('id, word, klankteken, klankgroepenklanken')
+          .eq('klankteken_checked', 1)
           .eq('klankgroup_checked', 0)
           .order('id', { ascending: false })
           .range(currentPage * BATCH_SIZE, (currentPage + 1) * BATCH_SIZE - 1);
