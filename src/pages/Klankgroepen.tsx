@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Copy, Check, RefreshCw, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { Copy, Check, RefreshCw, ChevronLeft, ChevronRight, Filter, X } from 'lucide-react';
 
 interface Word {
   id: number;
@@ -296,6 +296,11 @@ export default function Klankgroepen() {
     }
   };
 
+  const skipWord = (wordId: number) => {
+    setWords(prev => prev.filter(w => w.id !== wordId));
+    showNotification('success', 'Woord overgeslagen');
+  };
+
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3000);
@@ -426,7 +431,7 @@ export default function Klankgroepen() {
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
                       Klankgroepenklanken
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 w-32">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 w-40">
                       Acties
                     </th>
                   </tr>
@@ -490,6 +495,13 @@ export default function Klankgroepen() {
                           >
                             <Check className="w-4 h-4" />
                           </button>
+                          <button
+                            onClick={() => skipWord(word.id)}
+                            className="p-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                            title="Sla over"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -535,7 +547,8 @@ export default function Klankgroepen() {
             <li>Wijzigingen worden automatisch opgeslagen bij het verlaten van een veld</li>
             <li>Gebruik het dupliceer icoon om klankteken naar klankgroepenklanken te kopiëren</li>
             <li>Gebruik "Dupliceer alle klanktekens" om alle woorden op deze pagina te kopiëren</li>
-            <li>Markeer woorden als gecontroleerd wanneer klaar</li>
+            <li>Markeer woorden als gecontroleerd wanneer klaar (vinkje icoon)</li>
+            <li>Gebruik het X icoon om een woord over te slaan zonder het uit de database te verwijderen</li>
             <li>Gebruik "Markeer alle als gecontroleerd" om alle woorden op deze pagina te markeren</li>
             <li>De pagina toont 100 woorden tegelijk</li>
           </ul>
