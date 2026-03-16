@@ -23,7 +23,6 @@ export default function Klankgroepen() {
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<Notification | null>(null);
   const [stats, setStats] = useState({ total: 0, checked: 0, unchecked: 0 });
-  const [editingCell, setEditingCell] = useState<{ id: number; field: 'klankteken' | 'klankgroepenklanken' } | null>(null);
   const [savingCells, setSavingCells] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(0);
   const [sortOption, setSortOption] = useState<SortOption>('most_recent');
@@ -258,32 +257,14 @@ export default function Klankgroepen() {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleCellBlur = (
+  const handleInputChange = (
     wordId: number,
     field: 'klankteken' | 'klankgroepenklanken',
     currentValue: string | null,
     newValue: string
   ) => {
-    setEditingCell(null);
     if (currentValue !== newValue) {
       updateField(wordId, field, newValue);
-    }
-  };
-
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    wordId: number,
-    field: 'klankteken' | 'klankgroepenklanken',
-    currentValue: string | null
-  ) => {
-    if (e.key === 'Enter') {
-      const newValue = e.currentTarget.value;
-      setEditingCell(null);
-      if (currentValue !== newValue) {
-        updateField(wordId, field, newValue);
-      }
-    } else if (e.key === 'Escape') {
-      setEditingCell(null);
     }
   };
 
@@ -413,50 +394,40 @@ export default function Klankgroepen() {
                         {word.word}
                       </td>
                       <td className="px-4 py-3">
-                        {editingCell?.id === word.id && editingCell?.field === 'klankteken' ? (
-                          <input
-                            type="text"
-                            defaultValue={word.klankteken || ''}
-                            autoFocus
-                            onBlur={(e) => handleCellBlur(word.id, 'klankteken', word.klankteken, e.target.value)}
-                            onKeyDown={(e) => handleKeyDown(e, word.id, 'klankteken', word.klankteken)}
-                            className="w-full px-2 py-1 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        ) : (
-                          <div
-                            onClick={() => setEditingCell({ id: word.id, field: 'klankteken' })}
-                            className={`cursor-text px-2 py-1 rounded hover:bg-gray-100 ${
-                              savingCells.has(`${word.id}-klankteken`) ? 'opacity-50' : ''
-                            }`}
-                          >
-                            <span className="text-sm text-gray-700">
-                              {word.klankteken || <span className="text-gray-400 italic">Klik om te bewerken</span>}
-                            </span>
-                          </div>
-                        )}
+                        <input
+                          type="text"
+                          value={word.klankteken || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setWords(prev =>
+                              prev.map(w =>
+                                w.id === word.id ? { ...w, klankteken: newValue } : w
+                              )
+                            );
+                          }}
+                          onBlur={(e) => handleInputChange(word.id, 'klankteken', word.klankteken, e.target.value)}
+                          disabled={savingCells.has(`${word.id}-klankteken`)}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50"
+                          placeholder="Klankteken"
+                        />
                       </td>
                       <td className="px-4 py-3">
-                        {editingCell?.id === word.id && editingCell?.field === 'klankgroepenklanken' ? (
-                          <input
-                            type="text"
-                            defaultValue={word.klankgroepenklanken || ''}
-                            autoFocus
-                            onBlur={(e) => handleCellBlur(word.id, 'klankgroepenklanken', word.klankgroepenklanken, e.target.value)}
-                            onKeyDown={(e) => handleKeyDown(e, word.id, 'klankgroepenklanken', word.klankgroepenklanken)}
-                            className="w-full px-2 py-1 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        ) : (
-                          <div
-                            onClick={() => setEditingCell({ id: word.id, field: 'klankgroepenklanken' })}
-                            className={`cursor-text px-2 py-1 rounded hover:bg-gray-100 ${
-                              savingCells.has(`${word.id}-klankgroepenklanken`) ? 'opacity-50' : ''
-                            }`}
-                          >
-                            <span className="text-sm text-gray-700">
-                              {word.klankgroepenklanken || <span className="text-gray-400 italic">Klik om te bewerken</span>}
-                            </span>
-                          </div>
-                        )}
+                        <input
+                          type="text"
+                          value={word.klankgroepenklanken || ''}
+                          onChange={(e) => {
+                            const newValue = e.target.value;
+                            setWords(prev =>
+                              prev.map(w =>
+                                w.id === word.id ? { ...w, klankgroepenklanken: newValue } : w
+                              )
+                            );
+                          }}
+                          onBlur={(e) => handleInputChange(word.id, 'klankgroepenklanken', word.klankgroepenklanken, e.target.value)}
+                          disabled={savingCells.has(`${word.id}-klankgroepenklanken`)}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50"
+                          placeholder="Klankgroepenklanken"
+                        />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
@@ -516,9 +487,8 @@ export default function Klankgroepen() {
           <p>Deze pagina helpt je om klankgroepenklanken te beheren voor woorden.</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Selecteer een sorteeroptie om woorden te filteren: meest recent, kortste, langste of willekeurig</li>
-            <li>Klik op een cel om deze te bewerken</li>
-            <li>Druk op Enter of klik buiten de cel om automatisch op te slaan</li>
-            <li>Druk op Escape om de bewerking te annuleren</li>
+            <li>Alle velden zijn direct bewerkbaar - klik en typ direct</li>
+            <li>Wijzigingen worden automatisch opgeslagen bij het verlaten van een veld</li>
             <li>Gebruik het dupliceer icoon om klankteken naar klankgroepenklanken te kopiëren</li>
             <li>Gebruik "Dupliceer alle klanktekens" om alle woorden op deze pagina te kopiëren</li>
             <li>Markeer woorden als gecontroleerd wanneer klaar</li>
