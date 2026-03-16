@@ -130,13 +130,21 @@ export default function Klankgroepen() {
       result = result.replace(pattern, `+${dc}`);
     }
 
-    if (result.includes('-doffe-n')) {
-      const endPattern = /(.+?)-([^-]+)-doffe-n$/;
-      const match = result.match(endPattern);
-      if (match) {
-        const beforeLast = match[1];
-        const lastPhoneme = match[2];
-        result = result.replace(endPattern, `${beforeLast}+${lastPhoneme}-doffe-n`);
+    const letterCombinations = ['t-v', 'n-w', 't-g', 'g-k', 't-b', 'n-z', 'm-b', 's-l', 's-b', 'n-l', 'p-f', 'n-p'];
+    for (const combo of letterCombinations) {
+      result = result.replace(new RegExp(combo, 'g'), combo.replace('-', '+'));
+    }
+
+    const endingPatterns = ['-doffe-n', '-doffe', '-t-doffe'];
+    for (const ending of endingPatterns) {
+      if (result.includes(ending)) {
+        const endPattern = new RegExp(`(.+?)-([^-]+)${ending.replace(/-/g, '\\-')}$`);
+        const match = result.match(endPattern);
+        if (match) {
+          const beforeLast = match[1];
+          const lastPhoneme = match[2];
+          result = result.replace(endPattern, `${beforeLast}+${lastPhoneme}${ending}`);
+        }
       }
     }
 
