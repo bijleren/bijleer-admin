@@ -45,18 +45,26 @@ export default function QuickReview() {
   const loadWords = async () => {
     setLoading(true);
     setReviewComplete(false);
+
+    // Fetch words and sort by length (shortest first)
     const { data, error } = await supabase
       .from('new_words')
       .select('*')
       .eq('status', 'pending')
-      .order('created_at', { ascending: true })
       .limit(100);
 
     if (error) {
       console.error('Error loading words:', error);
     } else {
-      setWords(data || []);
-      setOriginalWordIds((data || []).map(w => w.id));
+      // Sort by word length (shortest first), then alphabetically
+      const sortedData = (data || []).sort((a, b) => {
+        const lengthDiff = a.word.length - b.word.length;
+        if (lengthDiff !== 0) return lengthDiff;
+        return a.word.localeCompare(b.word);
+      });
+
+      setWords(sortedData);
+      setOriginalWordIds(sortedData.map(w => w.id));
       setRejectedWordIds([]);
       setStats({ rejected: 0 });
       setCurrentIndex(0);
