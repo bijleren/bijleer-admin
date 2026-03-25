@@ -46,25 +46,15 @@ export default function QuickReview() {
     setLoading(true);
     setReviewComplete(false);
 
-    // Fetch words and sort by length (shortest first)
+    // Fetch the 100 shortest words from the entire database
     const { data, error } = await supabase
-      .from('new_words')
-      .select('*')
-      .eq('status', 'pending')
-      .limit(100);
+      .rpc('get_shortest_pending_words', { limit_count: 100 });
 
     if (error) {
       console.error('Error loading words:', error);
     } else {
-      // Sort by word length (shortest first), then alphabetically
-      const sortedData = (data || []).sort((a, b) => {
-        const lengthDiff = a.word.length - b.word.length;
-        if (lengthDiff !== 0) return lengthDiff;
-        return a.word.localeCompare(b.word);
-      });
-
-      setWords(sortedData);
-      setOriginalWordIds(sortedData.map(w => w.id));
+      setWords(data || []);
+      setOriginalWordIds((data || []).map(w => w.id));
       setRejectedWordIds([]);
       setStats({ rejected: 0 });
       setCurrentIndex(0);
