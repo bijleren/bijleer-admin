@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Users, School, TrendingUp, Loader2, AlertCircle } from 'lucide-react';
+import { Users, School, TrendingUp, Loader2, AlertCircle, GraduationCap } from 'lucide-react';
 
 interface Stats {
   totalUsers: number;
   totalSchools: number;
+  totalStudents: number;
   userGrowth: number;
   schoolGrowth: number;
+  studentGrowth: number;
   schoolsNeedingOnboarding: number;
 }
 
@@ -22,8 +24,10 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     totalSchools: 0,
+    totalStudents: 0,
     userGrowth: 0,
     schoolGrowth: 0,
+    studentGrowth: 0,
     schoolsNeedingOnboarding: 0,
   });
   const [growthData, setGrowthData] = useState<GrowthData[]>([]);
@@ -44,6 +48,10 @@ export default function Dashboard() {
         .from('schools')
         .select('*', { count: 'exact', head: true });
 
+      const { count: studentCount } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true });
+
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -57,6 +65,11 @@ export default function Dashboard() {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', thirtyDaysAgo.toISOString());
 
+      const { count: recentStudents } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', thirtyDaysAgo.toISOString());
+
       const { count: schoolsNeedingOnboarding } = await supabase
         .from('schools')
         .select('*', { count: 'exact', head: true })
@@ -64,12 +77,15 @@ export default function Dashboard() {
 
       const userGrowth = userCount ? ((recentUsers || 0) / userCount) * 100 : 0;
       const schoolGrowth = schoolCount ? ((recentSchools || 0) / schoolCount) * 100 : 0;
+      const studentGrowth = studentCount ? ((recentStudents || 0) / studentCount) * 100 : 0;
 
       setStats({
         totalUsers: userCount || 0,
         totalSchools: schoolCount || 0,
+        totalStudents: studentCount || 0,
         userGrowth: Math.round(userGrowth * 10) / 10,
         schoolGrowth: Math.round(schoolGrowth * 10) / 10,
+        studentGrowth: Math.round(studentGrowth * 10) / 10,
         schoolsNeedingOnboarding: schoolsNeedingOnboarding || 0,
       });
     } catch (error) {
@@ -148,7 +164,7 @@ export default function Dashboard() {
         <p className="text-gray-600 mt-1">Overview of your platform statistics</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -185,6 +201,26 @@ export default function Dashboard() {
             </div>
             <div className="bg-green-100 p-4 rounded-full">
               <School className="w-8 h-8 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Students</p>
+              <p className="text-3xl font-bold text-gray-900 mt-2">
+                {stats.totalStudents.toLocaleString()}
+              </p>
+              <div className="flex items-center gap-2 mt-2">
+                <TrendingUp className="w-4 h-4 text-teal-600" />
+                <span className="text-sm text-teal-600 font-medium">
+                  +{stats.studentGrowth}% this month
+                </span>
+              </div>
+            </div>
+            <div className="bg-teal-100 p-4 rounded-full">
+              <GraduationCap className="w-8 h-8 text-teal-600" />
             </div>
           </div>
         </div>
