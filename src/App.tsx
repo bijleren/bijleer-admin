@@ -42,6 +42,7 @@ import ProductManagement from './pages/ProductManagement';
 import ContactMessages from './pages/ContactMessages';
 import Klankgroepen from './pages/Klankgroepen';
 import ExecutiveFunctions from './pages/ExecutiveFunctions';
+import BehaviorCards from './pages/BehaviorCards';
 
 function App() {
   return (
@@ -71,6 +72,7 @@ function App() {
             <Route path="apps/digitools" element={<DigiTools />} />
             <Route path="apps/activi-tijd" element={<ActivityTime />} />
             <Route path="apps/executieve-functies" element={<ExecutiveFunctions />} />
+            <Route path="apps/gedragskaarten" element={<BehaviorCards />} />
             <Route path="woordenschat/klankteken" element={<Klankteken />} />
             <Route path="woordenschat/woorden" element={<Vocabulary />} />
             <Route path="woordenschat/nieuwe-woorden" element={<NewWords />} />
