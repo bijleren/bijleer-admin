@@ -40,7 +40,8 @@ const navigation = [
     icon: Grid,
     submenu: [
       { name: 'DigiTools', href: '/apps/digitools' },
-      { name: 'Activi-tijd', href: '/apps/activi-tijd' }
+      { name: 'Activi-tijd', href: '/apps/activi-tijd' },
+      { name: 'Executieve Functies', href: '/apps/executieve-functies' }
     ]
   },
   {
