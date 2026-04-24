@@ -11,7 +11,7 @@ type ImageStyle = "icon" | "illustration" | "photo";
 function buildPrompt(word: string, style: ImageStyle): string {
   switch (style) {
     case "icon":
-      return `A single clean icon representing the Dutch word "${word}". Minimal flat vector icon, one simple shape or object, solid colors, white background, perfectly centered. Absolutely no text of any kind, no words, no letters, no numbers, no labels, no captions, no watermarks, no drawing hands, no pencils, no sketching elements, no decorative borders. The icon should be immediately recognizable as the concept "${word}".`;
+      return `Maak een simpel 2D vectoricoon die de betekenis toont van het Nederlandse woord "${word}", in dezelfde stijl als een moderne kinderapp of pictogrammenset. Gebruik dikke afgeronde vormen, zachte hoeken, felle verzadigde kleuren, minimale details, geen tekst, geen achtergrond, gecentreerd object. Voeg subtiele interne schaduwen en kleine highlights toe voor diepte, maar houd het plat en clean. Gebruik een licht speelse cartoonstijl, duidelijke silhouetten, hoge leesbaarheid op klein formaat. Transparante achtergrond. Absoluut geen tekst, woorden, letters, cijfers, labels of watermerken.`;
 
     case "illustration":
       return `A clear flat illustration showing the meaning of the Dutch word "${word}". Realistic everyday scene or object, flat design style, soft colors, white background. Absolutely no text of any kind, no words, no letters, no numbers, no labels, no captions, no watermarks, no drawing hands, no pencils, no sketching elements, no cartoonish features. The scene should unambiguously represent the concept "${word}".`;
