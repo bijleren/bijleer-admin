@@ -29,7 +29,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const prompt = `A simple, clear illustration representing the Dutch word "${word}". Minimalist flat style, white background, no text, no letters, no numbers. Clean and child-friendly image.`;
+    const prompt = `A simple, clear illustration that explains the meaning of the Dutch word "${word}" (${word} is a Dutch word). Draw what the word means — like a picture dictionary illustration. Minimalist flat style, white background, no text, no letters, no numbers. Clean, child-friendly, and immediately recognizable.`;
 
     const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
