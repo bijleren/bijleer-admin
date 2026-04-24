@@ -30,6 +30,7 @@ import NewWords from './pages/NewWords';
 import QuickReview from './pages/QuickReview';
 import PhonemeFrequency from './pages/PhonemeFrequency';
 import MissingImages from './pages/MissingImages';
+import GenerateImages from './pages/GenerateImages';
 import DemoManagement from './pages/DemoManagement';
 import PublicDemos from './pages/PublicDemos';
 import DemoRegistrations from './pages/DemoRegistrations';
@@ -84,6 +85,7 @@ function App() {
             <Route path="woordenschat/analyse" element={<Analysis />} />
             <Route path="woordenschat/foneem-frequentie" element={<PhonemeFrequency />} />
             <Route path="woordenschat/missing-images" element={<MissingImages />} />
+            <Route path="woordenschat/genereer-afbeeldingen" element={<GenerateImages />} />
             <Route path="woordenschat/klankgroepen" element={<Klankgroepen />} />
             <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
