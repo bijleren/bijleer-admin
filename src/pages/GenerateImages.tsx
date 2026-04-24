@@ -8,12 +8,14 @@ interface Word {
   frequency: number | null;
 }
 
+type ImageStyle = 'icon' | 'illustration' | 'photo';
 type GenerationState = 'idle' | 'loading' | 'preview' | 'error' | 'approved';
 
 interface WordState {
   status: GenerationState;
   imageUrl?: string;
   errorMessage?: string;
+  style?: ImageStyle;
 }
 
 interface Notification {
@@ -25,6 +27,12 @@ const PAGE_SIZE = 50;
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+const STYLE_BUTTONS: { style: ImageStyle; label: string; color: string }[] = [
+  { style: 'icon', label: 'Icoon', color: 'bg-amber-500 hover:bg-amber-600' },
+  { style: 'illustration', label: 'Illustratie', color: 'bg-blue-600 hover:bg-blue-700' },
+  { style: 'photo', label: 'Foto', color: 'bg-teal-600 hover:bg-teal-700' },
+];
 
 export default function GenerateImages() {
   const [words, setWords] = useState<Word[]>([]);
@@ -84,8 +92,8 @@ export default function GenerateImages() {
     setWordStates((prev) => ({ ...prev, [id]: { ...prev[id], ...state } }));
   };
 
-  const handleGenerate = async (word: Word) => {
-    setWordState(word.id, { status: 'loading', imageUrl: undefined, errorMessage: undefined });
+  const handleGenerate = async (word: Word, style: ImageStyle) => {
+    setWordState(word.id, { status: 'loading', imageUrl: undefined, errorMessage: undefined, style });
 
     try {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-word-image`, {
@@ -94,7 +102,7 @@ export default function GenerateImages() {
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ word: word.word }),
+        body: JSON.stringify({ word: word.word, style }),
       });
 
       const data = await response.json();
@@ -103,10 +111,10 @@ export default function GenerateImages() {
         throw new Error(data.error || 'Generatie mislukt');
       }
 
-      setWordState(word.id, { status: 'preview', imageUrl: data.url });
+      setWordState(word.id, { status: 'preview', imageUrl: data.url, style });
     } catch (err: any) {
       console.error('Error generating image:', err);
-      setWordState(word.id, { status: 'error', errorMessage: err.message || 'Onbekende fout' });
+      setWordState(word.id, { status: 'error', errorMessage: err.message || 'Onbekende fout', style });
     }
   };
 
@@ -175,7 +183,7 @@ export default function GenerateImages() {
   };
 
   const handleReject = (word: Word) => {
-    setWordState(word.id, { status: 'idle', imageUrl: undefined, errorMessage: undefined });
+    setWordState(word.id, { status: 'idle', imageUrl: undefined, errorMessage: undefined, style: undefined });
   };
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
@@ -311,21 +319,31 @@ export default function GenerateImages() {
                         </button>
                       </>
                     ) : state.status === 'error' ? (
-                      <button
-                        onClick={() => handleGenerate(word)}
-                        className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        Opnieuw
-                      </button>
+                      <div className="flex flex-col gap-1.5">
+                        {STYLE_BUTTONS.map(({ style, label, color }) => (
+                          <button
+                            key={style}
+                            onClick={() => handleGenerate(word, style)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 ${color} text-white text-xs font-medium rounded-lg transition-colors`}
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     ) : state.status === 'loading' || state.status === 'approved' ? null : (
-                      <button
-                        onClick={() => handleGenerate(word)}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        Genereer
-                      </button>
+                      <div className="flex flex-col gap-1.5">
+                        {STYLE_BUTTONS.map(({ style, label, color }) => (
+                          <button
+                            key={style}
+                            onClick={() => handleGenerate(word, style)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 ${color} text-white text-xs font-medium rounded-lg transition-colors`}
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
