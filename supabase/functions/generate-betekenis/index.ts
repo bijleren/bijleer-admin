@@ -26,7 +26,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const openAiKey = Deno.env.get("OPENAI_API_KEY");
+    const openAiKey = Deno.env.get("OPENAI");
     if (!openAiKey) {
       return new Response(
         JSON.stringify({ error: "OpenAI API key not configured" }),
@@ -39,13 +39,14 @@ Deno.serve(async (req: Request) => {
     const prompt = `Here is a list of Flemish Dutch words (id<TAB>word). For each word, write a short child-friendly definition suitable for children younger than 12.
 
 Rules:
-- Write the definition WITHOUT starting with the word itself or restating it (e.g. NOT "toegejuicht betekent..." or "toegejuicht is...")
-- Start directly with the meaning, as if completing the sentence "Dit woord betekent: ..."
+- NEVER start with the word itself, "Dit woord betekent:", "Dit betekent:", or any similar prefix
+- Write ONLY the bare definition — just the meaning, nothing else before it
+- Good example for "ondervraagde": "iemand die vragen krijgt om iets te vertellen"
 - Use simple, everyday Dutch words — no difficult vocabulary
 - Keep it short: 1 sentence maximum
 - Do NOT repeat or reuse the word in the definition
 
-Return ONLY a tab-separated list with the same id followed by the definition, one per line. No extra text, no headers.
+Return ONLY a tab-separated list with the same id followed by the bare definition, one per line. No extra text, no headers, no prefixes.
 
 Words:
 ${wordList}`;
@@ -78,7 +79,7 @@ ${wordList}`;
         const id = parseInt(parts[0].trim(), 10);
         const definition = parts.slice(1).join("\t").trim();
         if (!isNaN(id) && definition) {
-          results[id] = definition;
+          results[id] = definition.replace(/^dit woord betekent:\s*/i, "").replace(/^dit betekent:\s*/i, "");
         }
       }
     }
