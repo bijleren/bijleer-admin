@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { RefreshCw, Check, SkipForward, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { RefreshCw, Check, SkipForward, ChevronLeft, ChevronRight, Filter, Pencil, X } from 'lucide-react';
 
 interface WordRow {
   id: number;
@@ -107,6 +107,7 @@ export default function CheckKlankgroepen() {
   const [sortOption, setSortOption] = useState<SortOption>('shortest');
   const [lookupMap, setLookupMap] = useState<Map<string, string>>(new Map());
   const [lookupLoaded, setLookupLoaded] = useState(false);
+  const [editingIds, setEditingIds] = useState<Set<number>>(new Set());
 
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
@@ -315,6 +316,36 @@ export default function CheckKlankgroepen() {
     }
   };
 
+  const toggleEditMode = (wordId: number) => {
+    setEditingIds(prev => {
+      const next = new Set(prev);
+      if (next.has(wordId)) next.delete(wordId);
+      else next.add(wordId);
+      return next;
+    });
+  };
+
+  const updateWordKlankgroepenklanken = (wordId: number, newValue: string) => {
+    setWords(prev =>
+      prev.map(w => {
+        if (w.id !== wordId) return w;
+        const { klankgroepen, aantal } = deriveKlankgroepen(newValue, lookupMap);
+        return {
+          ...w,
+          workingKlankgroepenklanken: newValue,
+          derivedKlankgroepen: klankgroepen,
+          derivedAantal: aantal,
+        };
+      })
+    );
+  };
+
+  const updateWordKlankgroepen = (wordId: number, newValue: string) => {
+    setWords(prev =>
+      prev.map(w => w.id !== wordId ? w : { ...w, derivedKlankgroepen: newValue })
+    );
+  };
+
   const handleSortChange = (newSort: SortOption) => {
     setSortOption(newSort);
     setCurrentPage(0);
@@ -408,7 +439,7 @@ export default function CheckKlankgroepen() {
       ) : (
         <>
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-            <div className="bg-gray-50 border-b border-gray-200 px-5 py-3 grid grid-cols-[200px_1fr_1fr_80px_120px] gap-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <div className="bg-gray-50 border-b border-gray-200 px-5 py-3 grid grid-cols-[200px_1fr_1fr_80px_140px] gap-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">
               <div>Woord</div>
               <div>Klankgroepenklanken</div>
               <div>Klankgroepen</div>
@@ -422,9 +453,13 @@ export default function CheckKlankgroepen() {
                   key={word.id}
                   word={word}
                   isSaving={saving.has(word.id)}
+                  isEditing={editingIds.has(word.id)}
                   onToggleSep={toggleSeparator}
                   onSave={saveWord}
                   onSkip={skipWord}
+                  onToggleEdit={toggleEditMode}
+                  onChangeKlankgroepenklanken={updateWordKlankgroepenklanken}
+                  onChangeKlankgroepen={updateWordKlankgroepen}
                 />
               ))}
             </div>
@@ -462,17 +497,31 @@ export default function CheckKlankgroepen() {
 interface WordRowItemProps {
   word: WorkingWord;
   isSaving: boolean;
+  isEditing: boolean;
   onToggleSep: (wordId: number, sepIndex: number) => void;
   onSave: (word: WorkingWord) => void;
   onSkip: (wordId: number) => void;
+  onToggleEdit: (wordId: number) => void;
+  onChangeKlankgroepenklanken: (wordId: number, value: string) => void;
+  onChangeKlankgroepen: (wordId: number, value: string) => void;
 }
 
-function WordRowItem({ word, isSaving, onToggleSep, onSave, onSkip }: WordRowItemProps) {
+function WordRowItem({
+  word,
+  isSaving,
+  isEditing,
+  onToggleSep,
+  onSave,
+  onSkip,
+  onToggleEdit,
+  onChangeKlankgroepenklanken,
+  onChangeKlankgroepen,
+}: WordRowItemProps) {
   const tokens = parseTokens(word.workingKlankgroepenklanken);
   let sepIndex = 0;
 
   return (
-    <div className="px-5 py-4 grid grid-cols-[200px_1fr_1fr_80px_120px] gap-4 items-center hover:bg-gray-50 transition-colors">
+    <div className="px-5 py-4 grid grid-cols-[200px_1fr_1fr_80px_140px] gap-4 items-center hover:bg-gray-50 transition-colors">
       <div>
         <p className="font-semibold text-gray-900 text-sm">{word.word}</p>
         {word.klankteken && (
@@ -480,41 +529,61 @@ function WordRowItem({ word, isSaving, onToggleSep, onSave, onSkip }: WordRowIte
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-0.5">
-        {tokens.map((token, i) => {
-          if (token.type === 'segment') {
+      {isEditing ? (
+        <input
+          type="text"
+          value={word.workingKlankgroepenklanken}
+          onChange={e => onChangeKlankgroepenklanken(word.id, e.target.value)}
+          disabled={isSaving}
+          className="w-full px-2 py-1.5 text-sm font-mono border border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          placeholder="klankgroepenklanken"
+          autoFocus
+        />
+      ) : (
+        <div className="flex flex-wrap items-center gap-0.5">
+          {tokens.map((token, i) => {
+            if (token.type === 'segment') {
+              return (
+                <span key={i} className="text-sm font-mono text-gray-800 px-0.5">
+                  {token.value}
+                </span>
+              );
+            }
+            const currentSepIndex = sepIndex++;
+            const isPlus = token.value === '+';
             return (
-              <span
+              <button
                 key={i}
-                className="text-sm font-mono text-gray-800 px-0.5"
+                onClick={() => onToggleSep(word.id, currentSepIndex)}
+                disabled={isSaving}
+                className={`w-6 h-6 rounded flex items-center justify-center text-sm font-bold transition-all select-none ${
+                  isPlus
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-300'
+                }`}
+                title={isPlus ? 'Klik om - te maken' : 'Klik om + te maken'}
               >
                 {token.value}
-              </span>
+              </button>
             );
-          }
-          const currentSepIndex = sepIndex++;
-          const isPlus = token.value === '+';
-          return (
-            <button
-              key={i}
-              onClick={() => onToggleSep(word.id, currentSepIndex)}
-              disabled={isSaving}
-              className={`w-6 h-6 rounded flex items-center justify-center text-sm font-bold transition-all select-none ${
-                isPlus
-                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-300'
-              }`}
-              title={isPlus ? 'Klik om - te maken' : 'Klik om + te maken'}
-            >
-              {token.value}
-            </button>
-          );
-        })}
-      </div>
+          })}
+        </div>
+      )}
 
-      <div className="text-sm font-mono text-emerald-700 font-medium">
-        {word.derivedKlankgroepen || <span className="text-gray-300 italic text-xs">—</span>}
-      </div>
+      {isEditing ? (
+        <input
+          type="text"
+          value={word.derivedKlankgroepen}
+          onChange={e => onChangeKlankgroepen(word.id, e.target.value)}
+          disabled={isSaving}
+          className="w-full px-2 py-1.5 text-sm font-mono border border-blue-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          placeholder="klankgroepen"
+        />
+      ) : (
+        <div className="text-sm font-mono text-emerald-700 font-medium">
+          {word.derivedKlankgroepen || <span className="text-gray-300 italic text-xs">—</span>}
+        </div>
+      )}
 
       <div className="text-center">
         <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-700 text-sm font-bold border border-blue-200">
@@ -522,7 +591,7 @@ function WordRowItem({ word, isSaving, onToggleSep, onSave, onSkip }: WordRowIte
         </span>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <button
           onClick={() => onSave(word)}
           disabled={isSaving}
@@ -530,6 +599,18 @@ function WordRowItem({ word, isSaving, onToggleSep, onSave, onSkip }: WordRowIte
           title="Opslaan"
         >
           <Check className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => onToggleEdit(word.id)}
+          disabled={isSaving}
+          className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${
+            isEditing
+              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              : 'text-gray-500 hover:bg-gray-100'
+          }`}
+          title={isEditing ? 'Terug naar tokenweergave' : 'Handmatig bewerken'}
+        >
+          {isEditing ? <X className="w-4 h-4" /> : <Pencil className="w-4 h-4" />}
         </button>
         <button
           onClick={() => onSkip(word.id)}
