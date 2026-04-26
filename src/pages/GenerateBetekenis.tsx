@@ -470,6 +470,3 @@ export default function GenerateBetekenis() {
     </div>
   );
 }
-
-
-export default GenerateBetekenis
