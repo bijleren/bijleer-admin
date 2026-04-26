@@ -30,6 +30,7 @@ const navigation = [
       { name: 'Check Betekenis', href: '/woordenschat/check-betekenis' },
       { name: 'Klankgroepen', href: '/woordenschat/klankgroepen' },
       { name: 'Check Klankgroepen', href: '/woordenschat/check-klankgroepen' },
+      { name: 'Analyse Klankgroepen', href: '/woordenschat/analyse-klankgroepen' },
       { name: 'Statistiek', href: '/woordenschat/statistiek' },
       { name: 'Analyse', href: '/woordenschat/analyse' },
       { name: 'Foneem Frequentie', href: '/woordenschat/foneem-frequentie' },
