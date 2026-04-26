@@ -33,7 +33,8 @@ const navigation = [
       { name: 'Analyse', href: '/woordenschat/analyse' },
       { name: 'Foneem Frequentie', href: '/woordenschat/foneem-frequentie' },
       { name: 'Missing Images', href: '/woordenschat/missing-images' },
-      { name: 'Genereer Afbeeldingen', href: '/woordenschat/genereer-afbeeldingen' }
+      { name: 'Genereer Afbeeldingen', href: '/woordenschat/genereer-afbeeldingen' },
+      { name: 'Betekenis Genereren', href: '/woordenschat/betekenis-genereren' }
     ]
   },
   {
