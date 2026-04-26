@@ -1,23 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import {
-  Gamepad2,
-  Plus,
-  Edit2,
-  Trash2,
-  Search,
-  X,
-  Save,
-  TrendingUp,
-  Play,
-  Trophy,
-  Filter,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  BarChart3,
-  Target,
-} from 'lucide-react';
+import { Gamepad2, Plus, CreditCard as Edit2, Trash2, Search, X, Save, TrendingUp, Play, Trophy, Filter, ArrowUpDown, ArrowUp, ArrowDown, BarChart3, Target } from 'lucide-react';
 
 interface LearningGame {
   id?: string;
@@ -136,6 +119,25 @@ export default function LearningGames() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [goalCodesInput, setGoalCodesInput] = useState('');
+  const [questionSearch, setQuestionSearch] = useState('');
+  const [questionGameFilter, setQuestionGameFilter] = useState<string>('all');
+  const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [savingQuestion, setSavingQuestion] = useState(false);
+  const [questionOptionsInput, setQuestionOptionsInput] = useState('');
+  const [questionForm, setQuestionForm] = useState<Omit<GameQuestion, 'id' | 'created_at'>>({
+    game_id: '',
+    question: '',
+    visual: '',
+    answer: '',
+    options: [],
+    sort_order: 0,
+  });
+  const [deleteQuestionConfirm, setDeleteQuestionConfirm] = useState<{ show: boolean; id: string | null; question: string }>({
+    show: false,
+    id: null,
+    question: '',
+  });
 
   const [gameForm, setGameForm] = useState<LearningGame>({
     name: '',
@@ -370,6 +372,104 @@ export default function LearningGames() {
       setSortOrder('asc');
     }
   };
+
+  const handleCreateQuestion = () => {
+    setEditingQuestionId(null);
+    const defaultGameId = games[0]?.id || '';
+    setQuestionForm({
+      game_id: questionGameFilter !== 'all' ? questionGameFilter : defaultGameId,
+      question: '',
+      visual: '',
+      answer: '',
+      options: [],
+      sort_order: questions.length,
+    });
+    setQuestionOptionsInput('');
+    setShowQuestionModal(true);
+  };
+
+  const handleEditQuestion = (q: GameQuestion) => {
+    setEditingQuestionId(q.id || null);
+    setQuestionForm({
+      game_id: q.game_id,
+      question: q.question,
+      visual: q.visual,
+      answer: q.answer,
+      options: q.options,
+      sort_order: q.sort_order,
+    });
+    setQuestionOptionsInput(q.options.join(', '));
+    setShowQuestionModal(true);
+  };
+
+  const handleSaveQuestion = async () => {
+    if (!questionForm.question.trim() || !questionForm.answer.trim() || !questionForm.game_id) {
+      showNotification('error', 'Spel, vraag en antwoord zijn verplicht');
+      return;
+    }
+
+    setSavingQuestion(true);
+    try {
+      const opts = questionOptionsInput
+        .split(',')
+        .map((o) => o.trim())
+        .filter((o) => o);
+
+      const payload = {
+        game_id: questionForm.game_id,
+        question: questionForm.question.trim(),
+        visual: questionForm.visual.trim(),
+        answer: questionForm.answer.trim(),
+        options: opts,
+        sort_order: questionForm.sort_order,
+      };
+
+      if (editingQuestionId) {
+        const { error } = await supabase.from('game_questions').update(payload).eq('id', editingQuestionId);
+        if (error) throw error;
+        showNotification('success', 'Vraag bijgewerkt');
+      } else {
+        const { error } = await supabase.from('game_questions').insert([payload]);
+        if (error) throw error;
+        showNotification('success', 'Vraag aangemaakt');
+      }
+
+      await fetchAllData();
+      setShowQuestionModal(false);
+    } catch (error) {
+      console.error('Error saving question:', error);
+      showNotification('error', 'Fout bij opslaan vraag');
+    } finally {
+      setSavingQuestion(false);
+    }
+  };
+
+  const handleDeleteQuestionClick = (q: GameQuestion) => {
+    setDeleteQuestionConfirm({ show: true, id: q.id || null, question: q.question });
+  };
+
+  const confirmDeleteQuestion = async () => {
+    if (!deleteQuestionConfirm.id) return;
+    try {
+      const { error } = await supabase.from('game_questions').delete().eq('id', deleteQuestionConfirm.id);
+      if (error) throw error;
+      showNotification('success', 'Vraag verwijderd');
+      await fetchAllData();
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      showNotification('error', 'Fout bij verwijderen vraag');
+    } finally {
+      setDeleteQuestionConfirm({ show: false, id: null, question: '' });
+    }
+  };
+
+  const filteredQuestions = questions.filter((q: any) => {
+    const matchesSearch =
+      q.question.toLowerCase().includes(questionSearch.toLowerCase()) ||
+      q.answer.toLowerCase().includes(questionSearch.toLowerCase());
+    const matchesGame = questionGameFilter === 'all' || q.game_id === questionGameFilter;
+    return matchesSearch && matchesGame;
+  });
 
   const getGameTypeInfo = (gameType: string) => {
     return GAME_TYPES.find((t) => t.value === gameType) || { label: gameType, emoji: '🎮', category: 'overig' };
@@ -751,44 +851,102 @@ export default function LearningGames() {
           )}
 
           {activeTab === 'questions' && (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Spel
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Vraag
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Antwoord
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                      Opties
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {questions.length === 0 ? (
+            <>
+              <div className="mb-4 flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Zoek vragen..."
+                    value={questionSearch}
+                    onChange={(e) => setQuestionSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <select
+                    value={questionGameFilter}
+                    onChange={(e) => setQuestionGameFilter(e.target.value)}
+                    className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+                  >
+                    <option value="all">Alle Spellen</option>
+                    {games.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.emoji} {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  onClick={handleCreateQuestion}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nieuwe Vraag
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                        Geen vragen gevonden
-                      </td>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Spel
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Vraag
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Antwoord
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Opties
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
+                        Acties
+                      </th>
                     </tr>
-                  ) : (
-                    questions.slice(0, 50).map((question: any) => (
-                      <tr key={question.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm text-gray-900">{question.learning_games?.name || 'Onbekend'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{question.question}</td>
-                        <td className="px-6 py-4 text-sm font-medium text-green-600">{question.answer}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500">{question.options.slice(0, 3).join(', ')}</td>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredQuestions.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                          Geen vragen gevonden
+                        </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ) : (
+                      filteredQuestions.map((question: any) => (
+                        <tr key={question.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 text-sm text-gray-900">{question.learning_games?.name || 'Onbekend'}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">{question.question}</td>
+                          <td className="px-6 py-4 text-sm font-medium text-green-600">{question.answer}</td>
+                          <td className="px-6 py-4 text-sm text-gray-500">{question.options.join(', ')}</td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleEditQuestion(question)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Bewerken"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteQuestionClick(question)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Verwijderen"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
 
           {activeTab === 'sessions' && (
@@ -852,6 +1010,161 @@ export default function LearningGames() {
           )}
         </div>
       </div>
+
+      {showQuestionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">
+                  {editingQuestionId ? 'Vraag Bewerken' : 'Nieuwe Vraag'}
+                </h2>
+                <button
+                  onClick={() => setShowQuestionModal(false)}
+                  disabled={savingQuestion}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Spel *</label>
+                <select
+                  value={questionForm.game_id}
+                  onChange={(e) => setQuestionForm({ ...questionForm, game_id: e.target.value })}
+                  disabled={savingQuestion}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                >
+                  <option value="">Selecteer een spel...</option>
+                  {games.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.emoji} {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Vraag *</label>
+                <input
+                  type="text"
+                  value={questionForm.question}
+                  onChange={(e) => setQuestionForm({ ...questionForm, question: e.target.value })}
+                  disabled={savingQuestion}
+                  placeholder="bijv. Wat rijmt op 'kat'?"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Visueel (HTML/emoji)</label>
+                <textarea
+                  value={questionForm.visual}
+                  onChange={(e) => setQuestionForm({ ...questionForm, visual: e.target.value })}
+                  disabled={savingQuestion}
+                  rows={2}
+                  placeholder='bijv. een emoji of HTML zoals <div style="..."></div>'
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 font-mono text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Antwoord *</label>
+                  <input
+                    type="text"
+                    value={questionForm.answer}
+                    onChange={(e) => setQuestionForm({ ...questionForm, answer: e.target.value })}
+                    disabled={savingQuestion}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Volgorde</label>
+                  <input
+                    type="number"
+                    value={questionForm.sort_order}
+                    onChange={(e) => setQuestionForm({ ...questionForm, sort_order: parseInt(e.target.value) || 0 })}
+                    disabled={savingQuestion}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Opties (gescheiden door komma's)
+                </label>
+                <input
+                  type="text"
+                  value={questionOptionsInput}
+                  onChange={(e) => setQuestionOptionsInput(e.target.value)}
+                  disabled={savingQuestion}
+                  placeholder="optie1, optie2, optie3"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Het correcte antwoord moet ook als optie voorkomen
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowQuestionModal(false)}
+                disabled={savingQuestion}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Annuleren
+              </button>
+              <button
+                onClick={handleSaveQuestion}
+                disabled={savingQuestion}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                {savingQuestion ? 'Opslaan...' : 'Opslaan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteQuestionConfirm.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-start gap-4">
+              <div className="bg-red-100 p-3 rounded-full flex-shrink-0">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Vraag verwijderen?</h3>
+                <p className="text-gray-600 text-sm mb-2">Deze actie kan niet ongedaan worden gemaakt.</p>
+                <p className="text-gray-900 font-medium text-sm bg-gray-50 p-3 rounded-lg border border-gray-200 line-clamp-2">
+                  {deleteQuestionConfirm.question}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 justify-end">
+              <button
+                onClick={() => setDeleteQuestionConfirm({ show: false, id: null, question: '' })}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                Annuleren
+              </button>
+              <button
+                onClick={confirmDeleteQuestion}
+                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                Verwijderen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
