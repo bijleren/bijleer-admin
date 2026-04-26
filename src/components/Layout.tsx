@@ -35,7 +35,8 @@ const navigation = [
       { name: 'Foneem Frequentie', href: '/woordenschat/foneem-frequentie' },
       { name: 'Missing Images', href: '/woordenschat/missing-images' },
       { name: 'Genereer Afbeeldingen', href: '/woordenschat/genereer-afbeeldingen' },
-      { name: 'Betekenis Genereren', href: '/woordenschat/betekenis-genereren' }
+      { name: 'Betekenis Genereren', href: '/woordenschat/betekenis-genereren' },
+      { name: 'Woordstructuur', href: '/woordenschat/woordstructuur' }
     ]
   },
   {
