@@ -29,13 +29,10 @@ const navigation = [
       { name: 'Check Klankteken', href: '/woordenschat/check-klankteken' },
       { name: 'Check Betekenis', href: '/woordenschat/check-betekenis' },
       { name: 'Klankgroepen', href: '/woordenschat/klankgroepen' },
-      { name: 'Check Klankgroepen', href: '/woordenschat/check-klankgroepen' },
       { name: 'Statistiek', href: '/woordenschat/statistiek' },
       { name: 'Analyse', href: '/woordenschat/analyse' },
       { name: 'Foneem Frequentie', href: '/woordenschat/foneem-frequentie' },
-      { name: 'Missing Images', href: '/woordenschat/missing-images' },
-      { name: 'Genereer Afbeeldingen', href: '/woordenschat/genereer-afbeeldingen' },
-      { name: 'Betekenis Genereren', href: '/woordenschat/betekenis-genereren' }
+      { name: 'Missing Images', href: '/woordenschat/missing-images' }
     ]
   },
   {
@@ -43,9 +40,7 @@ const navigation = [
     icon: Grid,
     submenu: [
       { name: 'DigiTools', href: '/apps/digitools' },
-      { name: 'Activi-tijd', href: '/apps/activi-tijd' },
-      { name: 'Executieve Functies', href: '/apps/executieve-functies' },
-      { name: 'Gedragskaarten', href: '/apps/gedragskaarten' }
+      { name: 'Activi-tijd', href: '/apps/activi-tijd' }
     ]
   },
   {
