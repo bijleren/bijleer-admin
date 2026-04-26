@@ -19,79 +19,96 @@ Deno.serve(async (req: Request) => {
   try {
     const { words }: { words: WordInput[] } = await req.json();
 
-    if (!words || words.length === 0) {
+    if (!Array.isArray(words) || words.length === 0) {
       return new Response(
-        JSON.stringify({ error: "No words provided" }),
+        JSON.stringify({ error: "Words array is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const openAiKey = Deno.env.get("OPENAI");
-    if (!openAiKey) {
+    const openaiKey = Deno.env.get("OPENAI");
+    if (!openaiKey) {
       return new Response(
         JSON.stringify({ error: "OpenAI API key not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const wordList = words.map((w) => `${w.id}\t${w.word}`).join("\n");
+    const wordList = words.map((w) => w.word).join("\n");
 
-    const prompt = `Here is a list of Flemish Dutch words (id<TAB>word). For each word, write a short child-friendly definition suitable for children younger than 12.
+    const systemPrompt = `Je bent een taalkundige die definities schrijft voor Vlaamse kinderen jonger dan 12 jaar. Schrijf eenvoudige, begrijpelijke definities. Gebruik geen moeilijke woorden. Geef voor elk woord precies één definitie op één regel. Antwoord altijd in het formaat: woord: definitie`;
 
-Rules:
-- NEVER start with the word itself, "Dit woord betekent:", "Dit betekent:", or any similar prefix
-- Write ONLY the bare definition — just the meaning, nothing else before it
-- Good example for "ondervraagde": "iemand die vragen krijgt om iets te vertellen"
-- Use simple, everyday Dutch words — no difficult vocabulary
-- Keep it short: 1 sentence maximum
-- Do NOT repeat or reuse the word in the definition
-
-Return ONLY a tab-separated list with the same id followed by the bare definition, one per line. No extra text, no headers, no prefixes.
-
-Words:
-${wordList}`;
+    const userPrompt = `Geef een eenvoudige definitie voor elk van deze Vlaamse woorden, geschikt voor kinderen jonger dan 12 jaar. Gebruik geen moeilijke woorden. Antwoord precies in het formaat "woord: definitie", één per regel, in dezelfde volgorde als de lijst:\n\n${wordList}`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${openAiKey}`,
+        "Authorization": `Bearer ${openaiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
         temperature: 0.3,
       }),
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`OpenAI error: ${err}`);
+      const errorData = await response.json();
+      return new Response(
+        JSON.stringify({ error: errorData.error?.message || "OpenAI API error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const data = await response.json();
-    const text: string = data.choices?.[0]?.message?.content || "";
+    const content: string = data.choices?.[0]?.message?.content || "";
 
+    // Parse "woord: definitie" lines into a map
     const results: Record<number, string> = {};
-    for (const line of text.split("\n")) {
-      const parts = line.split("\t");
-      if (parts.length >= 2) {
-        const id = parseInt(parts[0].trim(), 10);
-        const definition = parts.slice(1).join("\t").trim();
-        if (!isNaN(id) && definition) {
-          results[id] = definition.replace(/^dit woord betekent:\s*/i, "").replace(/^dit betekent:\s*/i, "");
-        }
+    const lines = content.split("\n").filter((l: string) => l.trim());
+
+    for (const line of lines) {
+      const colonIdx = line.indexOf(":");
+      if (colonIdx === -1) continue;
+      const parsedWord = line.slice(0, colonIdx).trim().toLowerCase();
+      const definitie = line.slice(colonIdx + 1).trim()
+        .replace(/^dit woord betekent:\s*/i, "")
+        .replace(/^dit betekent:\s*/i, "");
+
+      const match = words.find(
+        (w) => w.word.toLowerCase() === parsedWord
+      );
+      if (match && definitie) {
+        results[match.id] = definitie;
       }
+    }
+
+    // Fallback: if some words couldn't be matched by name, try positional matching
+    if (Object.keys(results).length < words.length) {
+      const parsedLines = lines.filter((l: string) => l.includes(":"));
+      words.forEach((w, idx) => {
+        if (results[w.id] === undefined && parsedLines[idx]) {
+          const colonIdx = parsedLines[idx].indexOf(":");
+          const definitie = parsedLines[idx].slice(colonIdx + 1).trim()
+            .replace(/^dit woord betekent:\s*/i, "")
+            .replace(/^dit betekent:\s*/i, "");
+          if (definitie) results[w.id] = definitie;
+        }
+      });
     }
 
     return new Response(
       JSON.stringify({ results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (err: any) {
-    console.error("generate-betekenis error:", err);
+  } catch (error) {
+    console.error("Error generating betekenis:", error);
     return new Response(
-      JSON.stringify({ error: err.message || "Internal server error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
