@@ -36,9 +36,9 @@ Deno.serve(async (req: Request) => {
 
     const wordList = words.map((w) => w.word).join("\n");
 
-    const systemPrompt = `Je bent een taalkundige die definities schrijft voor Vlaamse kinderen jonger dan 12 jaar. Schrijf eenvoudige, begrijpelijke definities. Gebruik geen moeilijke woorden. Geef voor elk woord precies één definitie op één regel. Antwoord altijd in het formaat: woord: definitie`;
+    const systemPrompt = `Je bent een taalkundige die definities schrijft voor Vlaamse kinderen jonger dan 12 jaar. Schrijf eenvoudige, begrijpelijke definities. Gebruik geen moeilijke woorden. Geef voor elk woord precies één definitie op één regel. Begin de definitie NOOIT met het woord zelf (dus niet "kat is ..." of "kat: een dier ..."). Beschrijf het woord zonder het te herhalen aan het begin. Antwoord altijd in het formaat: woord: definitie`;
 
-    const userPrompt = `Geef een eenvoudige definitie voor elk van deze Vlaamse woorden, geschikt voor kinderen jonger dan 12 jaar. Gebruik geen moeilijke woorden. Antwoord precies in het formaat "woord: definitie", één per regel, in dezelfde volgorde als de lijst:\n\n${wordList}`;
+    const userPrompt = `Geef een eenvoudige definitie voor elk van deze Vlaamse woorden, geschikt voor kinderen jonger dan 12 jaar. Gebruik geen moeilijke woorden. Begin de definitie NOOIT met het woord zelf. Antwoord precies in het formaat "woord: definitie", één per regel, in dezelfde volgorde als de lijst:\n\n${wordList}`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
