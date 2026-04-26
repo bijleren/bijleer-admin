@@ -124,6 +124,111 @@ function categoryColor(cat: string | null) {
 
 type FormData = Omit<ExerciseType, 'id' | 'created_at' | 'updated_at'>;
 
+function BoolToggle({
+  field,
+  label,
+  form,
+  set,
+}: {
+  field: keyof FormData;
+  label: string;
+  form: FormData;
+  set: (field: keyof FormData, value: unknown) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 cursor-pointer select-none">
+      <button
+        type="button"
+        onClick={() => set(field, !form[field])}
+        className={`w-9 h-5 rounded-full transition-colors flex-shrink-0 ${form[field] ? 'bg-blue-600' : 'bg-gray-200'}`}
+      >
+        <span
+          className={`block w-4 h-4 bg-white rounded-full shadow transition-transform mx-0.5 ${form[field] ? 'translate-x-4' : 'translate-x-0'}`}
+        />
+      </button>
+      <span className="text-sm text-gray-700">{label}</span>
+    </label>
+  );
+}
+
+function SmallInt({
+  field,
+  label,
+  form,
+  set,
+}: {
+  field: keyof FormData;
+  label: string;
+  form: FormData;
+  set: (field: keyof FormData, value: unknown) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <input
+        type="number"
+        min={0}
+        value={(form[field] as number) ?? 0}
+        onChange={(e) => set(field, parseInt(e.target.value) || 0)}
+        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      />
+    </div>
+  );
+}
+
+function TextInput({
+  field,
+  label,
+  placeholder,
+  form,
+  set,
+}: {
+  field: keyof FormData;
+  label: string;
+  placeholder?: string;
+  form: FormData;
+  set: (field: keyof FormData, value: unknown) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <input
+        type="text"
+        value={(form[field] as string) || ''}
+        onChange={(e) => set(field, e.target.value || null)}
+        placeholder={placeholder}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      />
+    </div>
+  );
+}
+
+function TextArea({
+  field,
+  label,
+  rows = 3,
+  form,
+  set,
+}: {
+  field: keyof FormData;
+  label: string;
+  rows?: number;
+  form: FormData;
+  set: (field: keyof FormData, value: unknown) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <textarea
+        value={(form[field] as string) || ''}
+        onChange={(e) => set(field, e.target.value || null)}
+        rows={rows}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+      />
+    </div>
+  );
+}
+
 function Modal({
   item,
   onClose,
@@ -208,75 +313,6 @@ function Modal({
     }
   };
 
-  const BoolToggle = ({ field, label }: { field: keyof FormData; label: string }) => (
-    <label className="flex items-center gap-2 cursor-pointer select-none">
-      <button
-        type="button"
-        onClick={() => set(field, !form[field])}
-        className={`w-9 h-5 rounded-full transition-colors flex-shrink-0 ${form[field] ? 'bg-blue-600' : 'bg-gray-200'}`}
-      >
-        <span
-          className={`block w-4 h-4 bg-white rounded-full shadow transition-transform mx-0.5 ${form[field] ? 'translate-x-4' : 'translate-x-0'}`}
-        />
-      </button>
-      <span className="text-sm text-gray-700">{label}</span>
-    </label>
-  );
-
-  const SmallInt = ({ field, label }: { field: keyof FormData; label: string }) => (
-    <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-      <input
-        type="number"
-        min={0}
-        value={(form[field] as number) ?? 0}
-        onChange={(e) => set(field, parseInt(e.target.value) || 0)}
-        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      />
-    </div>
-  );
-
-  const TextInput = ({
-    field,
-    label,
-    placeholder,
-  }: {
-    field: keyof FormData;
-    label: string;
-    placeholder?: string;
-  }) => (
-    <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-      <input
-        type="text"
-        value={(form[field] as string) || ''}
-        onChange={(e) => set(field, e.target.value || null)}
-        placeholder={placeholder}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      />
-    </div>
-  );
-
-  const TextArea = ({
-    field,
-    label,
-    rows = 3,
-  }: {
-    field: keyof FormData;
-    label: string;
-    rows?: number;
-  }) => (
-    <div>
-      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
-      <textarea
-        value={(form[field] as string) || ''}
-        onChange={(e) => set(field, e.target.value || null)}
-        rows={rows}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-      />
-    </div>
-  );
-
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl my-6">
@@ -318,9 +354,9 @@ function Modal({
             </div>
           </div>
 
-          <TextArea field="short_description" label="Korte beschrijving" rows={2} />
-          <TextArea field="description" label="Beschrijving" rows={3} />
-          <TextArea field="explanation" label="Uitleg" rows={3} />
+          <TextArea field="short_description" label="Korte beschrijving" rows={2} form={form} set={set} />
+          <TextArea field="description" label="Beschrijving" rows={3} form={form} set={set} />
+          <TextArea field="explanation" label="Uitleg" rows={3} form={form} set={set} />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -361,13 +397,13 @@ function Modal({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TextInput field="target_page" label="Target page" />
-            <TextInput field="icon" label="Icon" />
+            <TextInput field="target_page" label="Target page" form={form} set={set} />
+            <TextInput field="icon" label="Icon" form={form} set={set} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TextInput field="example_screen" label="Voorbeeld scherm" />
-            <TextInput field="example_video" label="Voorbeeld video" />
+            <TextInput field="example_screen" label="Voorbeeld scherm" form={form} set={set} />
+            <TextInput field="example_video" label="Voorbeeld video" form={form} set={set} />
           </div>
 
           <div>
@@ -383,35 +419,35 @@ function Modal({
           <div className="border border-gray-200 rounded-xl p-4 space-y-3">
             <p className="text-sm font-semibold text-gray-700">Instellingen</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <BoolToggle field="is_active" label="Actief" />
-              <BoolToggle field="available_online" label="Online" />
-              <BoolToggle field="beta" label="Beta" />
-              <BoolToggle field="coach_needed" label="Coach nodig" />
+              <BoolToggle field="is_active" label="Actief" form={form} set={set} />
+              <BoolToggle field="available_online" label="Online" form={form} set={set} />
+              <BoolToggle field="beta" label="Beta" form={form} set={set} />
+              <BoolToggle field="coach_needed" label="Coach nodig" form={form} set={set} />
             </div>
           </div>
 
           <div className="border border-gray-200 rounded-xl p-4 space-y-3">
             <p className="text-sm font-semibold text-gray-700">Vaardigheden</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <BoolToggle field="speak" label="Spreken" />
-              <BoolToggle field="listen" label="Luisteren" />
-              <BoolToggle field="typing" label="Typen" />
-              <BoolToggle field="understand" label="Begrijpen" />
-              <BoolToggle field="reading" label="Lezen" />
-              <BoolToggle field="spelling" label="Spellen" />
-              <BoolToggle field="memory" label="Geheugen" />
+              <BoolToggle field="speak" label="Spreken" form={form} set={set} />
+              <BoolToggle field="listen" label="Luisteren" form={form} set={set} />
+              <BoolToggle field="typing" label="Typen" form={form} set={set} />
+              <BoolToggle field="understand" label="Begrijpen" form={form} set={set} />
+              <BoolToggle field="reading" label="Lezen" form={form} set={set} />
+              <BoolToggle field="spelling" label="Spellen" form={form} set={set} />
+              <BoolToggle field="memory" label="Geheugen" form={form} set={set} />
             </div>
           </div>
 
           <div className="border border-gray-200 rounded-xl p-4 space-y-3">
             <p className="text-sm font-semibold text-gray-700">Fonologische bewerkingen</p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <SmallInt field="isolation" label="Isolatie" />
-              <SmallInt field="blending" label="Samenvoegen" />
-              <SmallInt field="segmentation" label="Segmentatie" />
-              <SmallInt field="addition" label="Toevoegen" />
-              <SmallInt field="deletion" label="Verwijderen" />
-              <SmallInt field="substitution" label="Vervangen" />
+              <SmallInt field="isolation" label="Isolatie" form={form} set={set} />
+              <SmallInt field="blending" label="Samenvoegen" form={form} set={set} />
+              <SmallInt field="segmentation" label="Segmentatie" form={form} set={set} />
+              <SmallInt field="addition" label="Toevoegen" form={form} set={set} />
+              <SmallInt field="deletion" label="Verwijderen" form={form} set={set} />
+              <SmallInt field="substitution" label="Vervangen" form={form} set={set} />
             </div>
           </div>
         </div>
