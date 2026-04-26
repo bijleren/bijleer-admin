@@ -43,6 +43,7 @@ import LicenseReports from './pages/LicenseReports';
 import ProductManagement from './pages/ProductManagement';
 import ContactMessages from './pages/ContactMessages';
 import Klankgroepen from './pages/Klankgroepen';
+import CheckKlankgroepen from './pages/CheckKlankgroepen';
 import ExecutiveFunctions from './pages/ExecutiveFunctions';
 import BehaviorCards from './pages/BehaviorCards';
 
@@ -89,6 +90,7 @@ function App() {
             <Route path="woordenschat/genereer-afbeeldingen" element={<GenerateImages />} />
             <Route path="woordenschat/betekenis-genereren" element={<GenerateBetekenis />} />
             <Route path="woordenschat/klankgroepen" element={<Klankgroepen />} />
+            <Route path="woordenschat/check-klankgroepen" element={<CheckKlankgroepen />} />
             <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
             <Route path="kleuterdidactiek/doe" element={<PhysicalTasks />} />
