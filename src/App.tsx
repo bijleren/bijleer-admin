@@ -45,6 +45,7 @@ import CheckKlankgroepen from './pages/CheckKlankgroepen';
 import GenerateImages from './pages/GenerateImages';
 import GenerateBetekenis from './pages/GenerateBetekenis';
 import Woordstructuur from './pages/Woordstructuur';
+import ExerciseTypes from './pages/ExerciseTypes';
 import ExecutiveFunctions from './pages/ExecutiveFunctions';
 import BehaviorCards from './pages/BehaviorCards';
 
@@ -93,6 +94,7 @@ function App() {
             <Route path="woordenschat/klankgroepen" element={<Klankgroepen />} />
             <Route path="woordenschat/check-klankgroepen" element={<CheckKlankgroepen />} />
             <Route path="woordenschat/woordstructuur" element={<Woordstructuur />} />
+            <Route path="woordenschat/oefentypes" element={<ExerciseTypes />} />
             <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
             <Route path="kleuterdidactiek/doe" element={<PhysicalTasks />} />

@@ -36,7 +36,8 @@ const navigation = [
       { name: 'Missing Images', href: '/woordenschat/missing-images' },
       { name: 'Genereer Afbeeldingen', href: '/woordenschat/genereer-afbeeldingen' },
       { name: 'Betekenis Genereren', href: '/woordenschat/betekenis-genereren' },
-      { name: 'Woordstructuur', href: '/woordenschat/woordstructuur' }
+      { name: 'Woordstructuur', href: '/woordenschat/woordstructuur' },
+      { name: 'Oefentypes', href: '/woordenschat/oefentypes' }
     ]
   },
   {
