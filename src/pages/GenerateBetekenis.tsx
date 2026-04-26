@@ -21,7 +21,7 @@ interface Notification {
 }
 
 const BATCH_SIZE = 200;
-const PAGE_SIZE = 200;
+const PAGE_SIZE = 500;
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
@@ -272,7 +272,7 @@ export default function GenerateBetekenis() {
           ) : (
             <>
               <Sparkles className="w-4 h-4" />
-              Genereer betekenissen ({Math.min(words.length, BATCH_SIZE * 10)})
+              Genereer betekenissen ({words.length})
             </>
           )}
         </button>
@@ -470,3 +470,6 @@ export default function GenerateBetekenis() {
     </div>
   );
 }
+
+
+export default GenerateBetekenis
