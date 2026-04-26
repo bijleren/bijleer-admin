@@ -1,14 +1,21 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Image, RefreshCw, Check, SkipForward, ChevronLeft, ChevronRight, Filter, ExternalLink } from 'lucide-react';
+import { Image as ImageIcon, Sparkles, Check, X, Search, Loader2, AlertCircle, Download, RefreshCw } from 'lucide-react';
 
 interface Word {
   id: number;
   word: string;
-  klankteken: string | null;
-  frequency: number;
-  image: string | null;
-  image_file: string | null;
+  frequency: number | null;
+}
+
+type ImageStyle = 'icon' | 'illustration' | 'photo';
+type GenerationState = 'idle' | 'loading' | 'preview' | 'error' | 'approved';
+
+interface WordState {
+  status: GenerationState;
+  imageUrl?: string;
+  errorMessage?: string;
+  style?: ImageStyle;
 }
 
 interface Notification {
@@ -16,384 +23,361 @@ interface Notification {
   message: string;
 }
 
-type SortOption = 'shortest' | 'longest' | 'frequency-high' | 'frequency-low';
+const PAGE_SIZE = 50;
 
-const BATCH_SIZE = 100;
-const BASE_IMG_URL = 'https://www.instructielezen.be/img';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+const STYLE_BUTTONS: { style: ImageStyle; label: string; color: string }[] = [
+  { style: 'icon', label: 'Icoon', color: 'bg-amber-500 hover:bg-amber-600' },
+  { style: 'illustration', label: 'Illustratie', color: 'bg-blue-600 hover:bg-blue-700' },
+  { style: 'photo', label: 'Foto', color: 'bg-teal-600 hover:bg-teal-700' },
+];
 
 export default function GenerateImages() {
   const [words, setWords] = useState<Word[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<Set<number>>(new Set());
+  const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [wordStates, setWordStates] = useState<Record<number, WordState>>({});
   const [notification, setNotification] = useState<Notification | null>(null);
-  const [stats, setStats] = useState({ total: 0, withImage: 0, withoutImage: 0 });
-  const [currentPage, setCurrentPage] = useState(0);
-  const [sortOption, setSortOption] = useState<SortOption>('shortest');
-  const [imageStatuses, setImageStatuses] = useState<Map<number, 'loading' | 'found' | 'missing'>>(new Map());
-
-  const showNotification = (type: 'success' | 'error', message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 3000);
-  };
-
-  const fetchStats = useCallback(async () => {
-    try {
-      const [{ count: total }, { count: withImage }] = await Promise.all([
-        supabase.from('wordfrequency').select('*', { count: 'exact', head: true }),
-        supabase
-          .from('wordfrequency')
-          .select('*', { count: 'exact', head: true })
-          .not('image_file', 'is', null)
-          .neq('image_file', ''),
-      ]);
-      setStats({
-        total: total || 0,
-        withImage: withImage || 0,
-        withoutImage: (total || 0) - (withImage || 0),
-      });
-    } catch (err) {
-      console.error('Error fetching stats:', err);
-    }
-  }, []);
-
-  const fetchWords = useCallback(async () => {
-    setLoading(true);
-    setImageStatuses(new Map());
-    try {
-      let query = supabase
-        .from('wordfrequency')
-        .select('id, word, klankteken, frequency, image, image_file')
-        .or('image_file.is.null,image_file.eq.');
-
-      if (sortOption === 'shortest' || sortOption === 'longest') {
-        query = query.order('word', { ascending: sortOption === 'shortest' });
-      } else {
-        query = query.order('frequency', { ascending: sortOption === 'frequency-low' });
-      }
-
-      const { data, error } = await query.range(
-        currentPage * BATCH_SIZE,
-        (currentPage + 1) * BATCH_SIZE - 1
-      );
-
-      if (error) throw error;
-
-      const sorted =
-        sortOption === 'shortest' || sortOption === 'longest'
-          ? (data || []).sort((a, b) =>
-              sortOption === 'shortest'
-                ? a.word.length - b.word.length
-                : b.word.length - a.word.length
-            )
-          : data || [];
-
-      setWords(sorted);
-      checkImagesBatch(sorted);
-    } catch (err) {
-      console.error('Error fetching words:', err);
-      showNotification('error', 'Fout bij ophalen woorden');
-    } finally {
-      setLoading(false);
-    }
-  }, [sortOption, currentPage]);
-
-  const checkImagesBatch = async (wordList: Word[]) => {
-    const initial = new Map<number, 'loading' | 'found' | 'missing'>();
-    wordList.forEach(w => initial.set(w.id, 'loading'));
-    setImageStatuses(new Map(initial));
-
-    await Promise.all(
-      wordList.map(async w => {
-        const found = await checkImageExists(w.word);
-        setImageStatuses(prev => new Map(prev).set(w.id, found ? 'found' : 'missing'));
-      })
-    );
-  };
-
-  const checkImageExists = async (word: string): Promise<string | null> => {
-    for (const ext of ['jpg', 'png']) {
-      try {
-        const url = `${BASE_IMG_URL}/${word}.${ext}`;
-        const res = await fetch(url, { method: 'HEAD' });
-        if (res.ok) return url;
-      } catch {
-        continue;
-      }
-    }
-    return null;
-  };
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     fetchWords();
-  }, [fetchWords]);
+  }, [currentPage, search]);
 
-  const confirmImage = async (word: Word) => {
-    setSaving(prev => new Set(prev).add(word.id));
+  const fetchWords = async () => {
+    setLoading(true);
     try {
+      let query = supabase
+        .from('wordfrequency')
+        .select('id, word, frequency', { count: 'exact' })
+        .or('image.is.null,image.eq.')
+        .or('image_file.is.null,image_file.eq.')
+        .order('frequency', { ascending: false, nullsFirst: false });
+
+      if (search.trim()) {
+        query = query.ilike('word', `%${search.trim()}%`);
+      }
+
+      const from = (currentPage - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+
+      const filtered = (data || []).filter(
+        (w: any) => (!w.image || w.image === '') && (!w.image_file || w.image_file === '')
+      );
+
+      setWords(filtered);
+      setTotalCount(count || 0);
+    } catch (err) {
+      console.error('Error fetching words:', err);
+      showNotification('error', 'Fout bij ophalen van woorden');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  const setWordState = (id: number, state: Partial<WordState>) => {
+    setWordStates((prev) => ({ ...prev, [id]: { ...prev[id], ...state } }));
+  };
+
+  const handleGenerate = async (word: Word, style: ImageStyle) => {
+    setWordState(word.id, { status: 'loading', imageUrl: undefined, errorMessage: undefined, style });
+
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-word-image`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ word: word.word, style }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || 'Generatie mislukt');
+      }
+
+      setWordState(word.id, { status: 'preview', imageUrl: data.url, style });
+    } catch (err: any) {
+      console.error('Error generating image:', err);
+      setWordState(word.id, { status: 'error', errorMessage: err.message || 'Onbekende fout', style });
+    }
+  };
+
+  const downloadAs100x100Png = (imageUrl: string, word: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return reject(new Error('Canvas not available'));
+        canvas.width = 100;
+        canvas.height = 100;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Canvas context not available'));
+        ctx.clearRect(0, 0, 100, 100);
+        ctx.drawImage(img, 0, 0, 100, 100);
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('Failed to create PNG blob'));
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${word}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          resolve();
+        }, 'image/png');
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = imageUrl;
+    });
+  };
+
+  const handleApprove = async (word: Word) => {
+    const state = wordStates[word.id];
+    if (!state?.imageUrl) return;
+
+    try {
+      await downloadAs100x100Png(state.imageUrl, word.word);
+
+      const filename = `${word.word}.png`;
       const { error } = await supabase
         .from('wordfrequency')
-        .update({ image: '2', image_file: `${word.word}.png`, updated_at: new Date().toISOString() })
+        .update({ image_file: filename, image: '2' })
         .eq('id', word.id);
 
       if (error) throw error;
 
-      setWords(prev => prev.filter(w => w.id !== word.id));
-      await fetchStats();
-      showNotification('success', `Afbeelding bevestigd voor "${word.word}"`);
-    } catch (err) {
-      console.error('Error confirming image:', err);
-      showNotification('error', 'Fout bij opslaan');
-    } finally {
-      setSaving(prev => { const n = new Set(prev); n.delete(word.id); return n; });
+      setWordState(word.id, { status: 'approved' });
+      showNotification('success', `"${word.word}.png" gedownload en goedgekeurd`);
+
+      setTimeout(() => {
+        setWords((prev) => prev.filter((w) => w.id !== word.id));
+        setTotalCount((prev) => prev - 1);
+        setWordStates((prev) => {
+          const next = { ...prev };
+          delete next[word.id];
+          return next;
+        });
+      }, 1200);
+    } catch (err: any) {
+      console.error('Error approving image:', err);
+      showNotification('error', `Fout bij goedkeuren: ${err.message}`);
     }
   };
 
-  const markNoImage = async (word: Word) => {
-    setSaving(prev => new Set(prev).add(word.id));
-    try {
-      const { error } = await supabase
-        .from('wordfrequency')
-        .update({ image: '1', updated_at: new Date().toISOString() })
-        .eq('id', word.id);
-
-      if (error) throw error;
-
-      setWords(prev => prev.filter(w => w.id !== word.id));
-      await fetchStats();
-      showNotification('success', `"${word.word}" gemarkeerd als geen afbeelding`);
-    } catch (err) {
-      console.error('Error marking no image:', err);
-      showNotification('error', 'Fout bij opslaan');
-    } finally {
-      setSaving(prev => { const n = new Set(prev); n.delete(word.id); return n; });
-    }
+  const handleReject = (word: Word) => {
+    setWordState(word.id, { status: 'idle', imageUrl: undefined, errorMessage: undefined, style: undefined });
   };
 
-  const skipWord = (wordId: number) => {
-    setWords(prev => prev.filter(w => w.id !== wordId));
-  };
-
-  const handleSortChange = (newSort: SortOption) => {
-    setSortOption(newSort);
-    setCurrentPage(0);
-  };
-
-  const canGoNext = words.length === BATCH_SIZE;
-  const canGoPrev = currentPage > 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
-    <div className="w-full h-full p-6 space-y-6">
+    <div className="p-6 space-y-6">
+      <canvas ref={canvasRef} className="hidden" />
+
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Genereer Afbeeldingen</h1>
+          <p className="text-gray-600 mt-1">
+            Genereer AI-afbeeldingen voor woorden zonder afbeelding via DALL-E
+          </p>
+        </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-3 text-center">
+          <p className="text-3xl font-bold text-blue-700">{totalCount.toLocaleString('nl-NL')}</p>
+          <p className="text-xs text-blue-600 mt-0.5">woorden zonder afbeelding</p>
+        </div>
+      </div>
+
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-lg shadow-lg text-sm font-medium ${
-            notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+          className={`flex items-center gap-3 p-4 rounded-lg text-sm font-medium ${
+            notification.type === 'success'
+              ? 'bg-green-50 text-green-800 border border-green-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
           }`}
         >
+          {notification.type === 'success' ? (
+            <Check className="w-4 h-4 flex-shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          )}
           {notification.message}
         </div>
       )}
 
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-3xl font-bold text-gray-900">Genereer Afbeeldingen</h1>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <select
-              value={sortOption}
-              onChange={e => handleSortChange(e.target.value as SortOption)}
-              className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="shortest">Kortste woorden</option>
-              <option value="longest">Langste woorden</option>
-              <option value="frequency-high">Hoogste frequentie</option>
-              <option value="frequency-low">Laagste frequentie</option>
-            </select>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-4 border-b border-gray-200">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Zoek op woord..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
-          <button
-            onClick={fetchWords}
-            disabled={loading}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-            title="Ververs"
-          >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
         </div>
-      </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">Totaal</p>
-          <p className="text-3xl font-bold text-blue-900">{stats.total.toLocaleString()}</p>
-        </div>
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-          <p className="text-xs font-semibold text-green-500 uppercase tracking-wide mb-1">Met afbeelding</p>
-          <p className="text-3xl font-bold text-green-900">{stats.withImage.toLocaleString()}</p>
-        </div>
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <p className="text-xs font-semibold text-amber-500 uppercase tracking-wide mb-1">Zonder afbeelding</p>
-          <p className="text-3xl font-bold text-amber-900">{stats.withoutImage.toLocaleString()}</p>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-        </div>
-      ) : words.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-16 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="w-8 h-8 text-green-600" />
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Klaar!</h2>
-          <p className="text-gray-500">Alle woorden hebben een afbeelding of zijn gemarkeerd.</p>
-        </div>
-      ) : (
-        <>
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-            <div className="bg-gray-50 border-b border-gray-200 px-5 py-3 grid grid-cols-[180px_80px_80px_120px_1fr_160px] gap-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              <div>Woord</div>
-              <div>Freq.</div>
-              <div>Status</div>
-              <div>Preview</div>
-              <div>Afbeelding URL</div>
-              <div>Acties</div>
-            </div>
-
-            <div className="divide-y divide-gray-100">
-              {words.map(word => {
-                const status = imageStatuses.get(word.id) || 'loading';
-                const imgUrl = status === 'found'
-                  ? `${BASE_IMG_URL}/${word.word}.jpg`
-                  : null;
-
-                return (
-                  <div
-                    key={word.id}
-                    className="px-5 py-3 grid grid-cols-[180px_80px_80px_120px_1fr_160px] gap-4 items-center hover:bg-gray-50 transition-colors"
-                  >
-                    <div>
-                      <p className="font-semibold text-gray-900 text-sm">{word.word}</p>
-                      {word.klankteken && (
-                        <p className="text-xs text-gray-400 font-mono">{word.klankteken}</p>
-                      )}
-                    </div>
-
-                    <div className="text-sm text-gray-600">{word.frequency}</div>
-
-                    <div>
-                      {status === 'loading' ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500">
-                          <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin mr-1" />
-                          ...
-                        </span>
-                      ) : status === 'found' ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700 font-medium">
-                          Gevonden
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-medium">
-                          Niet gevonden
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="w-24 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                      {status === 'found' && imgUrl ? (
-                        <img
-                          src={imgUrl}
-                          alt={word.word}
-                          className="w-full h-full object-cover"
-                          onError={e => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ) : status === 'loading' ? (
-                        <div className="w-5 h-5 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Image className="w-6 h-6 text-gray-300" />
-                      )}
-                    </div>
-
-                    <div className="text-xs font-mono text-gray-500 truncate">
-                      {status === 'found'
-                        ? `${BASE_IMG_URL}/${word.word}.jpg`
-                        : status === 'missing'
-                        ? <span className="text-gray-300 italic">geen afbeelding</span>
-                        : '—'}
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      {status === 'found' && (
-                        <button
-                          onClick={() => confirmImage(word)}
-                          disabled={saving.has(word.id)}
-                          className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                          title="Bevestig afbeelding"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                      )}
-                      <a
-                        href={`${BASE_IMG_URL}/${word.word}.jpg`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Open afbeelding URL"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                      <button
-                        onClick={() => markNoImage(word)}
-                        disabled={saving.has(word.id)}
-                        className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
-                        title="Geen afbeelding mogelijk"
-                      >
-                        <Image className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => skipWord(word.id)}
-                        disabled={saving.has(word.id)}
-                        className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-                        title="Overslaan"
-                      >
-                        <SkipForward className="w-4 h-4" />
-                      </button>
-                    </div>
+        ) : words.length === 0 ? (
+          <div className="py-16 text-center">
+            <ImageIcon className="w-14 h-14 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 font-medium">Geen woorden gevonden</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {words.map((word) => {
+              const state = wordStates[word.id] || { status: 'idle' };
+              return (
+                <div
+                  key={word.id}
+                  className={`flex items-center gap-4 px-6 py-4 transition-colors ${
+                    state.status === 'approved' ? 'bg-green-50' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-base">{word.word}</p>
+                    {word.frequency != null && (
+                      <p className="text-xs text-gray-400 mt-0.5">frequentie: {word.frequency.toLocaleString('nl-NL')}</p>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          </div>
 
-          <div className="flex items-center justify-between">
+                  <div className="flex-shrink-0 w-[100px] h-[100px] flex items-center justify-center">
+                    {state.status === 'preview' && state.imageUrl ? (
+                      <img
+                        src={state.imageUrl}
+                        alt={word.word}
+                        className="w-[100px] h-[100px] object-cover rounded-lg border border-gray-200 shadow-sm"
+                      />
+                    ) : state.status === 'loading' ? (
+                      <div className="w-[100px] h-[100px] rounded-lg border-2 border-dashed border-blue-200 bg-blue-50 flex flex-col items-center justify-center gap-1">
+                        <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                        <span className="text-xs text-blue-500">Genereert...</span>
+                      </div>
+                    ) : state.status === 'approved' ? (
+                      <div className="w-[100px] h-[100px] rounded-lg bg-green-100 flex flex-col items-center justify-center gap-1">
+                        <Check className="w-6 h-6 text-green-600" />
+                        <span className="text-xs text-green-700 font-medium">Goedgekeurd</span>
+                      </div>
+                    ) : state.status === 'error' ? (
+                      <div className="w-[100px] h-[100px] rounded-lg border-2 border-dashed border-red-200 bg-red-50 flex flex-col items-center justify-center gap-1 px-2 text-center">
+                        <AlertCircle className="w-5 h-5 text-red-400" />
+                        <span className="text-xs text-red-500 leading-tight">{state.errorMessage || 'Fout'}</span>
+                      </div>
+                    ) : (
+                      <div className="w-[100px] h-[100px] rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center">
+                        <ImageIcon className="w-8 h-8 text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-shrink-0 flex items-center gap-2">
+                    {state.status === 'preview' ? (
+                      <>
+                        <button
+                          onClick={() => handleApprove(word)}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                          title="Goedkeuren en downloaden"
+                        >
+                          <Download className="w-4 h-4" />
+                          Goedkeuren
+                        </button>
+                        <button
+                          onClick={() => handleReject(word)}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                          title="Afwijzen"
+                        >
+                          <X className="w-4 h-4" />
+                          Afwijzen
+                        </button>
+                      </>
+                    ) : state.status === 'error' ? (
+                      <div className="flex flex-col gap-1.5">
+                        {STYLE_BUTTONS.map(({ style, label, color }) => (
+                          <button
+                            key={style}
+                            onClick={() => handleGenerate(word, style)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 ${color} text-white text-xs font-medium rounded-lg transition-colors`}
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : state.status === 'loading' || state.status === 'approved' ? null : (
+                      <div className="flex flex-col gap-1.5">
+                        {STYLE_BUTTONS.map(({ style, label, color }) => (
+                          <button
+                            key={style}
+                            onClick={() => handleGenerate(word, style)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 ${color} text-white text-xs font-medium rounded-lg transition-colors`}
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
             <p className="text-sm text-gray-500">
-              {words.length} woorden geladen &middot; Pagina {currentPage + 1}
+              {((currentPage - 1) * PAGE_SIZE + 1).toLocaleString('nl-NL')}–
+              {Math.min(currentPage * PAGE_SIZE, totalCount).toLocaleString('nl-NL')} van{' '}
+              {totalCount.toLocaleString('nl-NL')} woorden
             </p>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setCurrentPage(p => p - 1)}
-                disabled={!canGoPrev}
-                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft className="w-4 h-4" />
                 Vorige
               </button>
+              <span className="text-sm text-gray-700">
+                {currentPage} / {totalPages}
+              </span>
               <button
-                onClick={() => setCurrentPage(p => p + 1)}
-                disabled={!canGoNext}
-                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Volgende
-                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }
