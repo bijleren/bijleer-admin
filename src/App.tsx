@@ -41,6 +41,7 @@ import LicenseReports from './pages/LicenseReports';
 import ProductManagement from './pages/ProductManagement';
 import ContactMessages from './pages/ContactMessages';
 import Klankgroepen from './pages/Klankgroepen';
+import CheckKlankgroepen from './pages/CheckKlankgroepen';
 
 function App() {
   return (
@@ -81,6 +82,7 @@ function App() {
             <Route path="woordenschat/foneem-frequentie" element={<PhonemeFrequency />} />
             <Route path="woordenschat/missing-images" element={<MissingImages />} />
             <Route path="woordenschat/klankgroepen" element={<Klankgroepen />} />
+            <Route path="woordenschat/check-klankgroepen" element={<CheckKlankgroepen />} />
             <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
             <Route path="kleuterdidactiek/doe" element={<PhysicalTasks />} />
