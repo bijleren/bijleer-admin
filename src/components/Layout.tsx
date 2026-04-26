@@ -33,7 +33,9 @@ const navigation = [
       { name: 'Statistiek', href: '/woordenschat/statistiek' },
       { name: 'Analyse', href: '/woordenschat/analyse' },
       { name: 'Foneem Frequentie', href: '/woordenschat/foneem-frequentie' },
-      { name: 'Missing Images', href: '/woordenschat/missing-images' }
+      { name: 'Missing Images', href: '/woordenschat/missing-images' },
+      { name: 'Genereer Afbeeldingen', href: '/woordenschat/genereer-afbeeldingen' },
+      { name: 'Betekenis Genereren', href: '/woordenschat/betekenis-genereren' }
     ]
   },
   {
@@ -41,7 +43,9 @@ const navigation = [
     icon: Grid,
     submenu: [
       { name: 'DigiTools', href: '/apps/digitools' },
-      { name: 'Activi-tijd', href: '/apps/activi-tijd' }
+      { name: 'Activi-tijd', href: '/apps/activi-tijd' },
+      { name: 'Executieve Functies', href: '/apps/executieve-functies' },
+      { name: 'Gedragskaarten', href: '/apps/gedragskaarten' }
     ]
   },
   {
