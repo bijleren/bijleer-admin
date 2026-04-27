@@ -1,20 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import {
-  Plus,
-  Search,
-  Loader2,
-  Pencil,
-  X,
-  Save,
-  CheckCircle2,
-  AlertCircle,
-  ChevronUp,
-  ChevronDown,
-  ChevronsUpDown,
-  ToggleLeft,
-  ToggleRight,
-} from 'lucide-react';
+import { Plus, Search, Loader2, Pencil, X, Save, CheckCircle2, AlertCircle, ChevronUp, ChevronDown, ChevronsUpDown, ToggleLeft, ToggleRight, Columns2 as Columns, Check } from 'lucide-react';
 
 interface ExerciseType {
   id: string;
@@ -90,6 +76,37 @@ const EXERCISE_TYPES = ['phonem', 'word', 'text'];
 
 type SortField = 'name' | 'category' | 'exercise_type' | 'display_order' | 'is_active';
 type SortDir = 'asc' | 'desc';
+
+type ColKey =
+  | 'category'
+  | 'exercise_type'
+  | 'display_order'
+  | 'skills'
+  | 'is_active'
+  | 'tags'
+  | 'short_description'
+  | 'target_page'
+  | 'icon'
+  | 'phonological'
+  | 'memory'
+  | 'legacy_id';
+
+const ALL_COLUMNS: { key: ColKey; label: string }[] = [
+  { key: 'category', label: 'Categorie' },
+  { key: 'exercise_type', label: 'Type' },
+  { key: 'display_order', label: 'Volgorde' },
+  { key: 'skills', label: 'Vaardigheden' },
+  { key: 'is_active', label: 'Actief' },
+  { key: 'tags', label: 'Tags' },
+  { key: 'short_description', label: 'Korte beschrijving' },
+  { key: 'target_page', label: 'Target page' },
+  { key: 'icon', label: 'Icon' },
+  { key: 'phonological', label: 'Fonologisch' },
+  { key: 'memory', label: 'Geheugen' },
+  { key: 'legacy_id', label: 'Legacy ID' },
+];
+
+const DEFAULT_VISIBLE: ColKey[] = ['category', 'exercise_type', 'display_order', 'skills', 'is_active', 'tags'];
 
 function slugify(s: string) {
   return s
@@ -236,7 +253,7 @@ function Modal({
 }: {
   item: ExerciseType | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (updated: ExerciseType) => void;
 }) {
   const isNew = !item;
   const [form, setForm] = useState<FormData>(
@@ -296,16 +313,23 @@ function Modal({
     try {
       const payload = { ...form };
       if (isNew) {
-        const { error: err } = await supabase.from('exercise_types').insert(payload);
+        const { data, error: err } = await supabase
+          .from('exercise_types')
+          .insert(payload)
+          .select()
+          .single();
         if (err) throw err;
+        onSaved(data as ExerciseType);
       } else {
-        const { error: err } = await supabase
+        const { data, error: err } = await supabase
           .from('exercise_types')
           .update({ ...payload, updated_at: new Date().toISOString() })
-          .eq('id', item!.id);
+          .eq('id', item!.id)
+          .select()
+          .single();
         if (err) throw err;
+        onSaved(data as ExerciseType);
       }
-      onSaved();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Fout bij opslaan');
     } finally {
@@ -483,9 +507,22 @@ export default function ExerciseTypes() {
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [modalItem, setModalItem] = useState<ExerciseType | 'new' | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [visibleCols, setVisibleCols] = useState<Set<ColKey>>(new Set(DEFAULT_VISIBLE));
+  const [colMenuOpen, setColMenuOpen] = useState(false);
+  const colMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (colMenuRef.current && !colMenuRef.current.contains(e.target as Node)) {
+        setColMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   const load = async () => {
@@ -510,10 +547,18 @@ export default function ExerciseTypes() {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  const handleSaved = () => {
+  const handleSaved = (updated: ExerciseType) => {
+    setItems((prev) => {
+      const idx = prev.findIndex((i) => i.id === updated.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = updated;
+        return next;
+      }
+      return [...prev, updated];
+    });
     setModalItem(null);
     showNotification('success', 'Oefentype opgeslagen');
-    load();
   };
 
   const handleToggleActive = async (item: ExerciseType) => {
@@ -534,6 +579,17 @@ export default function ExerciseTypes() {
       setSortDir('asc');
     }
   };
+
+  const toggleCol = (key: ColKey) => {
+    setVisibleCols((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const col = (key: ColKey) => visibleCols.has(key);
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ChevronsUpDown className="w-3.5 h-3.5 text-gray-400" />;
@@ -566,12 +622,18 @@ export default function ExerciseTypes() {
   const SortTh = ({ field, label, center }: { field: SortField; label: string; center?: boolean }) => (
     <th
       onClick={() => handleSort(field)}
-      className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors ${center ? 'text-center' : 'text-left'}`}
+      className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap ${center ? 'text-center' : 'text-left'}`}
     >
       <div className={`flex items-center gap-1.5 ${center ? 'justify-center' : ''}`}>
         {label}
         <SortIcon field={field} />
       </div>
+    </th>
+  );
+
+  const Th = ({ label }: { label: string }) => (
+    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+      {label}
     </th>
   );
 
@@ -591,6 +653,24 @@ export default function ExerciseTypes() {
           {s.label}
         </span>
       ));
+  };
+
+  const phonoDots = (item: ExerciseType) => {
+    const ops = [
+      { key: 'isolation', label: 'Iso' },
+      { key: 'blending', label: 'Sam' },
+      { key: 'segmentation', label: 'Seg' },
+      { key: 'addition', label: 'Add' },
+      { key: 'deletion', label: 'Del' },
+      { key: 'substitution', label: 'Sub' },
+    ] as const;
+    const active = ops.filter((o) => (item[o.key] as number) > 0);
+    if (!active.length) return <span className="text-gray-300 text-xs">—</span>;
+    return active.map((o) => (
+      <span key={o.key} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-600 font-medium">
+        {o.label}
+      </span>
+    ));
   };
 
   if (loading) {
@@ -688,7 +768,40 @@ export default function ExerciseTypes() {
               Wis filters
             </button>
           )}
-          <span className="text-sm text-gray-500 ml-auto">{filtered.length} resultaten</span>
+          <span className="text-sm text-gray-500">{filtered.length} resultaten</span>
+
+          {/* Column visibility toggle */}
+          <div className="relative ml-auto" ref={colMenuRef}>
+            <button
+              onClick={() => setColMenuOpen((o) => !o)}
+              className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <Columns className="w-4 h-4" />
+              Kolommen
+              <span className="bg-blue-100 text-blue-700 text-xs font-medium px-1.5 py-0.5 rounded-full">
+                {visibleCols.size}
+              </span>
+            </button>
+            {colMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg p-2 w-52">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 py-1.5 mb-1">
+                  Zichtbare kolommen
+                </p>
+                {ALL_COLUMNS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => toggleCol(key)}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${visibleCols.has(key) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
+                      {visibleCols.has(key) && <Check className="w-3 h-3 text-white" />}
+                    </span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -696,12 +809,18 @@ export default function ExerciseTypes() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <SortTh field="name" label="Naam" />
-                <SortTh field="category" label="Categorie" />
-                <SortTh field="exercise_type" label="Type" />
-                <SortTh field="display_order" label="Volgorde" center />
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vaardigheden</th>
-                <SortTh field="is_active" label="Actief" center />
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
+                {col('category') && <SortTh field="category" label="Categorie" />}
+                {col('exercise_type') && <SortTh field="exercise_type" label="Type" />}
+                {col('display_order') && <SortTh field="display_order" label="Volgorde" center />}
+                {col('skills') && <Th label="Vaardigheden" />}
+                {col('is_active') && <SortTh field="is_active" label="Actief" center />}
+                {col('tags') && <Th label="Tags" />}
+                {col('short_description') && <Th label="Korte omschrijving" />}
+                {col('target_page') && <Th label="Target page" />}
+                {col('icon') && <Th label="Icon" />}
+                {col('phonological') && <Th label="Fonologisch" />}
+                {col('memory') && <Th label="Geheugen" />}
+                {col('legacy_id') && <Th label="Legacy ID" />}
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acties</th>
               </tr>
             </thead>
@@ -712,38 +831,92 @@ export default function ExerciseTypes() {
                     <p className="font-medium text-gray-900">{item.name}</p>
                     <p className="text-xs text-gray-400 font-mono">{item.slug}</p>
                   </td>
-                  <td className="px-4 py-3">
-                    {item.category ? <Badge label={item.category} color={categoryColor(item.category)} /> : <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    {item.exercise_type ? (
-                      <span className="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-0.5 rounded">
-                        {item.exercise_type}
-                      </span>
-                    ) : (
-                      <span className="text-gray-300">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-center text-gray-500">{item.display_order}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">{skillDots(item)}</div>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <button onClick={() => handleToggleActive(item)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                      {item.is_active ? (
-                        <ToggleRight className="w-5 h-5 text-green-500" />
+                  {col('category') && (
+                    <td className="px-4 py-3">
+                      {item.category ? <Badge label={item.category} color={categoryColor(item.category)} /> : <span className="text-gray-300">—</span>}
+                    </td>
+                  )}
+                  {col('exercise_type') && (
+                    <td className="px-4 py-3">
+                      {item.exercise_type ? (
+                        <span className="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-0.5 rounded">
+                          {item.exercise_type}
+                        </span>
                       ) : (
-                        <ToggleLeft className="w-5 h-5 text-gray-300" />
+                        <span className="text-gray-300">—</span>
                       )}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {item.available_online && <Badge label="Online" color="blue" />}
-                      {item.beta && <Badge label="Beta" color="orange" />}
-                      {item.coach_needed && <Badge label="Coach" color="rose" />}
-                    </div>
-                  </td>
+                    </td>
+                  )}
+                  {col('display_order') && (
+                    <td className="px-4 py-3 text-center text-gray-500">{item.display_order}</td>
+                  )}
+                  {col('skills') && (
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">{skillDots(item)}</div>
+                    </td>
+                  )}
+                  {col('is_active') && (
+                    <td className="px-4 py-3 text-center">
+                      <button onClick={() => handleToggleActive(item)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                        {item.is_active ? (
+                          <ToggleRight className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <ToggleLeft className="w-5 h-5 text-gray-300" />
+                        )}
+                      </button>
+                    </td>
+                  )}
+                  {col('tags') && (
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {item.available_online && <Badge label="Online" color="blue" />}
+                        {item.beta && <Badge label="Beta" color="orange" />}
+                        {item.coach_needed && <Badge label="Coach" color="rose" />}
+                      </div>
+                    </td>
+                  )}
+                  {col('short_description') && (
+                    <td className="px-4 py-3 max-w-xs">
+                      <p className="text-xs text-gray-500 truncate">{item.short_description || <span className="text-gray-300">—</span>}</p>
+                    </td>
+                  )}
+                  {col('target_page') && (
+                    <td className="px-4 py-3">
+                      {item.target_page ? (
+                        <span className="text-xs font-mono text-gray-600">{item.target_page}</span>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                  )}
+                  {col('icon') && (
+                    <td className="px-4 py-3">
+                      {item.icon ? (
+                        <span className="text-xs font-mono text-gray-600">{item.icon}</span>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                  )}
+                  {col('phonological') && (
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">{phonoDots(item)}</div>
+                    </td>
+                  )}
+                  {col('memory') && (
+                    <td className="px-4 py-3 text-center">
+                      {item.memory ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600 font-medium">Ja</span>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
+                  )}
+                  {col('legacy_id') && (
+                    <td className="px-4 py-3 text-gray-500 text-xs font-mono">
+                      {item.legacy_mysql_id ?? <span className="text-gray-300">—</span>}
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => setModalItem(item)}
@@ -757,7 +930,7 @@ export default function ExerciseTypes() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center text-gray-400">
+                  <td colSpan={99} className="px-4 py-16 text-center text-gray-400">
                     Geen oefentypes gevonden
                   </td>
                 </tr>
