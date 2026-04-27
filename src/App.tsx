@@ -49,6 +49,7 @@ import ExerciseTypes from './pages/ExerciseTypes';
 import AnalyseKlankgroepen from './pages/AnalyseKlankgroepen';
 import ExecutiveFunctions from './pages/ExecutiveFunctions';
 import BehaviorCards from './pages/BehaviorCards';
+import EducationalGoals from './pages/EducationalGoals';
 
 function App() {
   return (
@@ -97,6 +98,7 @@ function App() {
             <Route path="woordenschat/analyse-klankgroepen" element={<AnalyseKlankgroepen />} />
             <Route path="woordenschat/woordstructuur" element={<Woordstructuur />} />
             <Route path="woordenschat/oefentypes" element={<ExerciseTypes />} />
+            <Route path="kleuterdidactiek/leerdoelen" element={<EducationalGoals />} />
             <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
             <Route path="kleuterdidactiek/doe" element={<PhysicalTasks />} />
