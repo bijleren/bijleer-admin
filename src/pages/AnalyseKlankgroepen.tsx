@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Calculator, TrendingUp, Hash, Layers, AlertCircle, Search, X, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Calculator, TrendingUp, Hash, Layers, AlertCircle, Search, X, ChevronUp, ChevronDown, ChevronsUpDown, Download } from 'lucide-react';
 
 interface KlankgroepCount {
   klankgroep: string;
@@ -132,6 +132,26 @@ export default function AnalyseKlankgroepen() {
 
   const maxCount = results[0]?.count || 1;
 
+  const exportToCSV = () => {
+    const rows = [
+      ['Rang', 'Klankgroep', 'Aantal', 'Percentage'],
+      ...results.map((r, i) => [
+        i + 1,
+        r.klankgroep,
+        r.count,
+        r.percentage.toFixed(4),
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `klankgroep-analyse-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -230,6 +250,13 @@ export default function AnalyseKlankgroepen() {
                 )}
               </div>
               <span className="text-sm text-gray-500">{filtered.length} resultaten</span>
+              <button
+                onClick={exportToCSV}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Exporteer CSV
+              </button>
               <button
                 onClick={calculate}
                 disabled={loading}
