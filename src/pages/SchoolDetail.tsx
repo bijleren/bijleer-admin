@@ -1,17 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import {
-  ArrowLeft,
-  Edit2,
-  Save,
-  X,
-  Trash2,
-  Users,
-  GraduationCap,
-  BookOpen,
-  AlertCircle
-} from 'lucide-react';
+import { ArrowLeft, CreditCard as Edit2, Save, X, Trash2, Users, GraduationCap, BookOpen, AlertCircle, ShieldAlert } from 'lucide-react';
 
 interface School {
   id: string;
@@ -32,6 +22,8 @@ interface School {
   premium_school?: number;
   storage_used_bytes?: number;
   storage_limit_bytes?: number;
+  description?: string | null;
+  internal_note?: string | null;
 }
 
 interface SchoolUser {
@@ -88,6 +80,8 @@ export default function SchoolDetail() {
     premium_school: 0,
     storage_limit_bytes: 0,
     onboarded: 0,
+    description: '',
+    internal_note: '',
   });
 
   useEffect(() => {
@@ -128,6 +122,8 @@ export default function SchoolDetail() {
         premium_school: schoolData.premium_school || 0,
         storage_limit_bytes: schoolData.storage_limit_bytes || 5368709120,
         onboarded: schoolData.onboarded || 0,
+        description: schoolData.description || '',
+        internal_note: schoolData.internal_note || '',
       });
 
       // Fetch users with a manual approach
@@ -220,6 +216,8 @@ export default function SchoolDetail() {
         premium_school: editForm.premium_school,
         storage_limit_bytes: editForm.storage_limit_bytes,
         onboarded: editForm.onboarded,
+        description: editForm.description || null,
+        internal_note: editForm.internal_note || null,
         updated_at: new Date().toISOString(),
       };
 
@@ -601,6 +599,55 @@ export default function SchoolDetail() {
             )}
           </div>
         </div>
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="flex items-center gap-2 mb-4">
+            <ShieldAlert className="w-5 h-5 text-amber-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Admin notities</h3>
+            <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+              Alleen zichtbaar voor admins
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Beschrijving
+              </label>
+              {isEditing ? (
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  rows={3}
+                  placeholder="Algemene beschrijving van de school..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+                />
+              ) : (
+                <p className="text-gray-900 text-sm whitespace-pre-wrap">
+                  {school.description || <span className="text-gray-400 italic">Geen beschrijving</span>}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4 text-amber-500" />
+                Interne notitie
+              </label>
+              {isEditing ? (
+                <textarea
+                  value={editForm.internal_note}
+                  onChange={(e) => setEditForm({ ...editForm, internal_note: e.target.value })}
+                  rows={4}
+                  placeholder="Interne notities voor admins (niet zichtbaar voor eindgebruikers)..."
+                  className="w-full px-4 py-2 border border-amber-200 bg-amber-50 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-transparent resize-none text-sm"
+                />
+              ) : (
+                <div className={`rounded-lg px-4 py-3 text-sm ${school.internal_note ? 'bg-amber-50 border border-amber-200 text-gray-800 whitespace-pre-wrap' : ''}`}>
+                  {school.internal_note || <span className="text-gray-400 italic">Geen interne notitie</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="mt-6 pt-6 border-t border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Storage & Metadata</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
