@@ -124,6 +124,7 @@ export default function Vocabulary() {
   const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS);
   const [showColumnToggle, setShowColumnToggle] = useState(false);
   const [editingKlankteken, setEditingKlankteken] = useState<{ id: number; value: string } | null>(null);
+  const [languageFilter, setLanguageFilter] = useState<string>('');
 
   useEffect(() => {
     fetchWords();
@@ -166,12 +167,16 @@ export default function Vocabulary() {
       });
     }
 
+    if (languageFilter) {
+      filtered = filtered.filter((word) => word.language === languageFilter);
+    }
+
     setFilteredWords(filtered);
-  }, [searchQuery, patternFilter, patternMode, words]);
+  }, [searchQuery, patternFilter, patternMode, languageFilter, words]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, patternFilter, patternMode]);
+  }, [searchQuery, patternFilter, patternMode, languageFilter]);
 
   const fetchWords = async () => {
     try {
@@ -531,6 +536,34 @@ export default function Vocabulary() {
                 )}
               </div>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Taal:</span>
+            {[
+              { code: '', label: 'Alle' },
+              { code: 'nl', label: 'NL' },
+              { code: 'fr', label: 'FR' },
+              { code: 'en', label: 'EN' },
+            ].map(({ code, label }) => (
+              <button
+                key={code}
+                onClick={() => setLanguageFilter(code)}
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+                  languageFilter === code
+                    ? code === 'nl'
+                      ? 'bg-orange-500 text-white'
+                      : code === 'fr'
+                      ? 'bg-blue-500 text-white'
+                      : code === 'en'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-700 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {(searchQuery || patternFilter) && (
