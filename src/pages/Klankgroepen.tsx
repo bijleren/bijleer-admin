@@ -74,6 +74,7 @@ export default function Klankgroepen() {
         const { count } = await supabase
           .from('wordfrequency')
           .select('*', { count: 'exact', head: true })
+          .eq('language', 'nl')
           .eq('klankteken_checked', 1)
           .eq('klankgroup_checked', 0);
 
@@ -82,6 +83,7 @@ export default function Klankgroepen() {
           const { data: randomData, error: randomError } = await supabase
             .from('wordfrequency')
             .select('id, word, klankteken, klankgroepenklanken')
+            .eq('language', 'nl')
             .eq('klankteken_checked', 1)
             .eq('klankgroup_checked', 0)
             .range(randomOffset, randomOffset + BATCH_SIZE - 1);
@@ -93,6 +95,7 @@ export default function Klankgroepen() {
         const { data: recentData, error: recentError } = await supabase
           .from('wordfrequency')
           .select('id, word, klankteken, klankgroepenklanken')
+          .eq('language', 'nl')
           .eq('klankteken_checked', 1)
           .eq('klankgroup_checked', 0)
           .order('id', { ascending: false })

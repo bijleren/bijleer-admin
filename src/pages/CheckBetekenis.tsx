@@ -29,17 +29,20 @@ export default function CheckBetekenis() {
     try {
       const { count: totalCount } = await supabase
         .from('wordfrequency')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('language', 'nl');
 
       const { count: checkedCount } = await supabase
         .from('wordfrequency')
         .select('*', { count: 'exact', head: true })
+        .eq('language', 'nl')
         .not('betekenis_check', 'is', null)
         .neq('betekenis_check', 0);
 
       const { count: uncheckedCount } = await supabase
         .from('wordfrequency')
         .select('*', { count: 'exact', head: true })
+        .eq('language', 'nl')
         .or('betekenis_check.is.null,betekenis_check.eq.0');
 
       setStats({
@@ -58,6 +61,7 @@ export default function CheckBetekenis() {
       let query = supabase
         .from('wordfrequency')
         .select('id, word, betekenis, aantal_karakters')
+        .eq('language', 'nl')
         .or('betekenis_check.is.null,betekenis_check.eq.0');
 
       if (wordOrder === 'shortest') {

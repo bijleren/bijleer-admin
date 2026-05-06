@@ -158,6 +158,7 @@ export default function CheckKlankgroepen() {
           supabase
             .from('wordfrequency')
             .select('id, word, klankteken, klankgroepenklanken, klankgroepen, aantal_klankgroepen')
+            .eq('language', 'nl')
             .eq('klankteken_checked', 1)
             .eq('klankgroepen_checked', 0)
             .filter('woordstructuur', 'ilike', '%k%k%');
@@ -168,6 +169,7 @@ export default function CheckKlankgroepen() {
           const { count } = await supabase
             .from('wordfrequency')
             .select('*', { count: 'exact', head: true })
+            .eq('language', 'nl')
             .eq('klankteken_checked', 1)
             .eq('klankgroepen_checked', 0)
             .filter('woordstructuur', 'ilike', '%k%k%');

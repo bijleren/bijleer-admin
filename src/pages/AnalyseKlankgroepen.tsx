@@ -38,6 +38,7 @@ export default function AnalyseKlankgroepen() {
         const { data, error: fetchError } = await supabase
           .from('wordfrequency')
           .select('klankgroepenklanken')
+          .eq('language', 'nl')
           .not('klankgroepenklanken', 'is', null)
           .neq('klankgroepenklanken', '')
           .range(from, from + batchSize - 1);

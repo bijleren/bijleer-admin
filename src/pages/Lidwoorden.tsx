@@ -36,11 +36,13 @@ export default function Lidwoorden() {
     try {
       const { count: totalCount } = await supabase
         .from('wordfrequency')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('language', 'nl');
 
       const { count: checkedCount } = await supabase
         .from('wordfrequency')
         .select('*', { count: 'exact', head: true })
+        .eq('language', 'nl')
         .eq('lidwoord_check', 1);
 
       setStats({
@@ -59,6 +61,7 @@ export default function Lidwoorden() {
       let query = supabase
         .from('wordfrequency')
         .select('id, word, lidwoord, betekenis, aantal_karakters')
+        .eq('language', 'nl')
         .eq('lidwoord_check', 0);
 
       if (wordOrder === 'shortest') {

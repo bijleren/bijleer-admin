@@ -166,6 +166,7 @@ export default function CheckKlankteken() {
       const { data, error } = await supabase
         .from('wordfrequency')
         .select('id, word, klankteken, opmerking')
+        .eq('language', 'nl')
         .eq('klankteken_tobechecked', 1)
         .eq('klankteken_checked', 0)
         .order('id', { ascending: true })
