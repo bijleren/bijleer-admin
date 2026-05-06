@@ -51,6 +51,7 @@ interface WordFrequency {
   klankgroup_checked: number;
   onboarded: number;
   language: string;
+  translation_id: number | null;
 }
 
 interface ColumnConfig {
@@ -107,6 +108,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'substitute_back', label: 'Vervanging Achter', visible: false, width: '170px' },
   { key: 'substitute_middle', label: 'Vervanging Midden', visible: false, width: '170px' },
   { key: 'language', label: 'Taal', visible: true, width: '120px' },
+  { key: 'translation_id', label: 'Vertaling (NL)', visible: false, width: '200px' },
   { key: 'created_at', label: 'Aangemaakt', visible: false, width: '180px' },
   { key: 'updated_at', label: 'Bijgewerkt', visible: false, width: '180px' },
 ];
@@ -125,6 +127,8 @@ export default function Vocabulary() {
   const [showColumnToggle, setShowColumnToggle] = useState(false);
   const [editingKlankteken, setEditingKlankteken] = useState<{ id: number; value: string } | null>(null);
   const [languageFilter, setLanguageFilter] = useState<string>('');
+
+  const wordMap = new Map<number, string>(words.map(w => [w.id, w.word]));
 
   useEffect(() => {
     fetchWords();
@@ -177,6 +181,13 @@ export default function Vocabulary() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, patternFilter, patternMode, languageFilter]);
+
+  useEffect(() => {
+    const isForeign = languageFilter !== '' && languageFilter !== 'nl';
+    setColumns(prev => prev.map(col =>
+      col.key === 'translation_id' ? { ...col, visible: isForeign } : col
+    ));
+  }, [languageFilter]);
 
   const fetchWords = async () => {
     try {
@@ -354,6 +365,19 @@ export default function Vocabulary() {
           title="Klik om te bewerken"
         >
           {value || '-'}
+        </span>
+      );
+    }
+
+    if (key === 'translation_id') {
+      if (!value) return <span className="text-sm text-gray-400">—</span>;
+      const nlWord = wordMap.get(value as number);
+      return (
+        <span className="inline-flex items-center gap-1.5 text-sm">
+          <span className="font-mono text-xs text-gray-400">#{value as number}</span>
+          {nlWord && (
+            <span className="font-medium text-gray-900">{nlWord}</span>
+          )}
         </span>
       );
     }
@@ -698,6 +722,7 @@ export default function Vocabulary() {
         }}
         onSave={handleSave}
         word={selectedWord}
+        allWords={words}
       />
     </div>
   );

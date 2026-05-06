@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Search } from 'lucide-react';
 
 interface WordFrequency {
   id?: number;
@@ -49,6 +49,7 @@ interface WordFrequency {
   klankgroup_checked?: number;
   onboarded?: number;
   language?: string;
+  translation_id?: number | null;
 }
 
 interface WordFrequencyModalProps {
@@ -56,9 +57,10 @@ interface WordFrequencyModalProps {
   onClose: () => void;
   onSave: (word: WordFrequency) => Promise<void>;
   word?: WordFrequency | null;
+  allWords?: WordFrequency[];
 }
 
-export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: WordFrequencyModalProps) {
+export default function WordFrequencyModal({ isOpen, onClose, onSave, word, allWords = [] }: WordFrequencyModalProps) {
   const [activeTab, setActiveTab] = useState<'basic' | 'phonetic' | 'grammar' | 'media' | 'checks' | 'advanced'>('basic');
   const [formData, setFormData] = useState<WordFrequency>({
     word: '',
@@ -72,6 +74,28 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
     language: 'nl',
   });
   const [loading, setLoading] = useState(false);
+  const [translationSearch, setTranslationSearch] = useState('');
+  const [showTranslationDropdown, setShowTranslationDropdown] = useState(false);
+  const translationRef = useRef<HTMLDivElement>(null);
+
+  const nlWords = allWords.filter(w => w.language === 'nl' || !w.language);
+  const translationResults = translationSearch.trim().length >= 1
+    ? nlWords.filter(w => w.word.toLowerCase().includes(translationSearch.toLowerCase())).slice(0, 20)
+    : [];
+
+  const selectedTranslationWord = formData.translation_id
+    ? allWords.find(w => w.id === formData.translation_id)
+    : null;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (translationRef.current && !translationRef.current.contains(e.target as Node)) {
+        setShowTranslationDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (word) {
@@ -89,6 +113,8 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
         language: 'nl',
       });
     }
+    setTranslationSearch('');
+    setShowTranslationDropdown(false);
   }, [word, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -246,6 +272,65 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
                   <option value="en">EN — Engels</option>
                 </select>
               </div>
+
+              {(formData.language === 'fr' || formData.language === 'en') && (
+                <div ref={translationRef} className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nederlands equivalent
+                  </label>
+                  {selectedTranslationWord && (
+                    <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                      <span className="text-sm font-medium text-blue-900">{selectedTranslationWord.word}</span>
+                      <span className="text-xs text-blue-500 font-mono">#{selectedTranslationWord.id}</span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, translation_id: null }))}
+                        className="ml-auto text-blue-400 hover:text-blue-700 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Zoek Nederlands woord..."
+                      value={translationSearch}
+                      onChange={(e) => {
+                        setTranslationSearch(e.target.value);
+                        setShowTranslationDropdown(true);
+                      }}
+                      onFocus={() => setShowTranslationDropdown(true)}
+                      className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+                  {showTranslationDropdown && translationResults.length > 0 && (
+                    <div className="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                      {translationResults.map(w => (
+                        <button
+                          key={w.id}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, translation_id: w.id }));
+                            setTranslationSearch('');
+                            setShowTranslationDropdown(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0"
+                        >
+                          <span className="text-sm font-medium text-gray-900">{w.word}</span>
+                          <span className="ml-auto text-xs text-gray-400 font-mono">#{w.id}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {showTranslationDropdown && translationSearch.trim().length >= 1 && translationResults.length === 0 && (
+                    <div className="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3 text-sm text-gray-500">
+                      Geen Nederlandse woorden gevonden voor "{translationSearch}"
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label htmlFor="betekenis" className="block text-sm font-medium text-gray-700 mb-2">
