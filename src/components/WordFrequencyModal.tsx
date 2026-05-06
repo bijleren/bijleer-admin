@@ -48,6 +48,7 @@ interface WordFrequency {
   audio_checked?: number;
   klankgroup_checked?: number;
   onboarded?: number;
+  language?: string;
 }
 
 interface WordFrequencyModalProps {
@@ -68,12 +69,13 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
     has_multiple_meanings: 0,
     klankgroup_checked: 0,
     onboarded: 0,
+    language: 'Dutch',
   });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (word) {
-      setFormData(word);
+      setFormData({ language: 'Dutch', ...word });
     } else {
       setFormData({
         word: '',
@@ -84,6 +86,7 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
         has_multiple_meanings: 0,
         klankgroup_checked: 0,
         onboarded: 0,
+        language: 'Dutch',
       });
     }
   }, [word, isOpen]);
@@ -101,7 +104,7 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
 
     setFormData({
@@ -225,6 +228,23 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
+                  Taal
+                </label>
+                <select
+                  id="language"
+                  name="language"
+                  value={formData.language ?? 'Dutch'}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  <option value="Dutch">Dutch</option>
+                  <option value="French">French</option>
+                  <option value="English">English</option>
+                </select>
               </div>
 
               <div>

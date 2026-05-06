@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { BookA, Edit2, Trash2, Search, ChevronLeft, ChevronRight, Columns, Check, Plus, Filter } from 'lucide-react';
+import { BookA, CreditCard as Edit2, Trash2, Search, ChevronLeft, ChevronRight, Columns2 as Columns, Check, Plus, Filter } from 'lucide-react';
 import WordFrequencyModal from '../components/WordFrequencyModal';
 
 interface WordFrequency {
@@ -50,6 +50,7 @@ interface WordFrequency {
   audio_checked: number | null;
   klankgroup_checked: number;
   onboarded: number;
+  language: string;
 }
 
 interface ColumnConfig {
@@ -105,6 +106,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'substitute_front', label: 'Vervanging Voor', visible: false, width: '160px' },
   { key: 'substitute_back', label: 'Vervanging Achter', visible: false, width: '170px' },
   { key: 'substitute_middle', label: 'Vervanging Midden', visible: false, width: '170px' },
+  { key: 'language', label: 'Taal', visible: true, width: '120px' },
   { key: 'created_at', label: 'Aangemaakt', visible: false, width: '180px' },
   { key: 'updated_at', label: 'Bijgewerkt', visible: false, width: '180px' },
 ];
@@ -347,6 +349,20 @@ export default function Vocabulary() {
           title="Klik om te bewerken"
         >
           {value || '-'}
+        </span>
+      );
+    }
+
+    if (key === 'language') {
+      const lang = (value as string) || 'Dutch';
+      const styles: Record<string, string> = {
+        Dutch: 'bg-orange-100 text-orange-700',
+        French: 'bg-blue-100 text-blue-700',
+        English: 'bg-green-100 text-green-700',
+      };
+      return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[lang] ?? 'bg-gray-100 text-gray-600'}`}>
+          {lang}
         </span>
       );
     }
