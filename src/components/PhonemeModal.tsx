@@ -35,6 +35,7 @@ interface Klankteken {
   word?: string;
   fonetiek?: string;
   set?: number;
+  language?: string;
 }
 
 interface PhonemeModalProps {
@@ -49,16 +50,18 @@ export default function PhonemeModal({ isOpen, onClose, onSave, phoneme }: Phone
   const [formData, setFormData] = useState<Klankteken>({
     title: '',
     type: '',
+    language: 'nl',
   });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (phoneme) {
-      setFormData(phoneme);
+      setFormData({ language: 'nl', ...phoneme });
     } else {
       setFormData({
         title: '',
         type: '',
+        language: 'nl',
       });
     }
   }, [phoneme, isOpen]);
@@ -76,7 +79,7 @@ export default function PhonemeModal({ isOpen, onClose, onSave, phoneme }: Phone
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
 
     setFormData({
@@ -191,6 +194,23 @@ export default function PhonemeModal({ isOpen, onClose, onSave, phoneme }: Phone
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
+                  Taal
+                </label>
+                <select
+                  id="language"
+                  name="language"
+                  value={formData.language ?? 'nl'}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  <option value="nl">NL — Nederlands</option>
+                  <option value="fr">FR — Frans</option>
+                  <option value="en">EN — Engels</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

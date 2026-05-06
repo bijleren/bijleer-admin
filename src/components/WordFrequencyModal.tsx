@@ -69,13 +69,13 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
     has_multiple_meanings: 0,
     klankgroup_checked: 0,
     onboarded: 0,
-    language: 'Dutch',
+    language: 'nl',
   });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (word) {
-      setFormData({ language: 'Dutch', ...word });
+      setFormData({ language: 'nl', ...word });
     } else {
       setFormData({
         word: '',
@@ -86,7 +86,7 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
         has_multiple_meanings: 0,
         klankgroup_checked: 0,
         onboarded: 0,
-        language: 'Dutch',
+        language: 'nl',
       });
     }
   }, [word, isOpen]);
@@ -237,13 +237,13 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word }: Wo
                 <select
                   id="language"
                   name="language"
-                  value={formData.language ?? 'Dutch'}
+                  value={formData.language ?? 'nl'}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                 >
-                  <option value="Dutch">Dutch</option>
-                  <option value="French">French</option>
-                  <option value="English">English</option>
+                  <option value="nl">NL — Nederlands</option>
+                  <option value="fr">FR — Frans</option>
+                  <option value="en">EN — Engels</option>
                 </select>
               </div>
 

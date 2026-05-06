@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Volume2, Plus, Edit2, Trash2, Search, ChevronLeft, ChevronRight, Columns, Check, Filter } from 'lucide-react';
+import { Volume2, Plus, CreditCard as Edit2, Trash2, Search, ChevronLeft, ChevronRight, Columns2 as Columns, Check, Filter } from 'lucide-react';
 import PhonemeModal from '../components/PhonemeModal';
 
 interface Klankteken {
@@ -37,6 +37,7 @@ interface Klankteken {
   word: string | null;
   fonetiek: string | null;
   set: number | null;
+  language: string;
 }
 
 interface ColumnConfig {
@@ -79,6 +80,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'produce_audio', label: 'Produce Audio', visible: false, width: '200px' },
   { key: 'fonetiek', label: 'Fonetiek', visible: false, width: '150px' },
   { key: 'set', label: 'Set', visible: true, width: '80px' },
+  { key: 'language', label: 'Taal', visible: true, width: '90px' },
   { key: 'created_at', label: 'Aangemaakt', visible: false, width: '180px' },
   { key: 'updated_at', label: 'Bijgewerkt', visible: false, width: '180px' },
 ];
@@ -233,6 +235,21 @@ export default function Klankteken() {
 
   const renderCellValue = (item: Klankteken, key: keyof Klankteken) => {
     const value = item[key];
+
+    if (key === 'language') {
+      const lang = (value as string) || 'nl';
+      const styles: Record<string, string> = {
+        nl: 'bg-orange-100 text-orange-700',
+        fr: 'bg-blue-100 text-blue-700',
+        en: 'bg-green-100 text-green-700',
+      };
+      const labels: Record<string, string> = { nl: 'NL', fr: 'FR', en: 'EN' };
+      return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[lang] ?? 'bg-gray-100 text-gray-600'}`}>
+          {labels[lang] ?? lang}
+        </span>
+      );
+    }
 
     if (value === null || value === undefined) return '-';
 

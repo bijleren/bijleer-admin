@@ -356,13 +356,14 @@ export default function Vocabulary() {
     if (key === 'language') {
       const lang = (value as string) || 'Dutch';
       const styles: Record<string, string> = {
-        Dutch: 'bg-orange-100 text-orange-700',
-        French: 'bg-blue-100 text-blue-700',
-        English: 'bg-green-100 text-green-700',
+        nl: 'bg-orange-100 text-orange-700',
+        fr: 'bg-blue-100 text-blue-700',
+        en: 'bg-green-100 text-green-700',
       };
+      const labels: Record<string, string> = { nl: 'NL', fr: 'FR', en: 'EN' };
       return (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[lang] ?? 'bg-gray-100 text-gray-600'}`}>
-          {lang}
+          {labels[lang] ?? lang}
         </span>
       );
     }
