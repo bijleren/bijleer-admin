@@ -194,9 +194,6 @@ export default function SchoolDetail() {
 
   const handleSave = async () => {
     try {
-      console.log('Saving school data:', editForm);
-      console.log('School ID:', id);
-
       if (!id) {
         throw new Error('School ID is missing');
       }
@@ -221,26 +218,19 @@ export default function SchoolDetail() {
         updated_at: new Date().toISOString(),
       };
 
-      console.log('Update payload:', updateData);
-
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('schools')
         .update(updateData)
-        .eq('id', id)
-        .select();
-
-      console.log('Update result:', { data, error });
+        .eq('id', id);
 
       if (error) {
-        console.error('Supabase error:', error);
         throw error;
       }
 
-      if (data && data.length > 0) {
-        console.log('Successfully updated school:', data[0]);
-      }
-
-      await fetchSchoolData();
+      setSchool(prev => prev ? {
+        ...prev,
+        ...updateData,
+      } : prev);
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating school:', error);
