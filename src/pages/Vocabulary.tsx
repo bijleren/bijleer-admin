@@ -245,7 +245,7 @@ export default function Vocabulary() {
         .eq('id', id);
 
       if (error) throw error;
-      await fetchWords();
+      setWords(prev => prev.filter(w => w.id !== id));
     } catch (error) {
       console.error('Error deleting word:', error);
       alert('Er is een fout opgetreden bij het verwijderen van het woord.');
@@ -257,24 +257,30 @@ export default function Vocabulary() {
       const { id, created_at, updated_at, ...updateData } = word;
 
       if (id) {
+        const updated_at_new = new Date().toISOString();
         const { error } = await supabase
           .from('wordfrequency')
           .update({
             ...updateData,
-            updated_at: new Date().toISOString(),
+            updated_at: updated_at_new,
           })
           .eq('id', id);
 
         if (error) throw error;
+        setWords(prev => prev.map(w => w.id === id ? { ...w, ...updateData, updated_at: updated_at_new } : w));
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('wordfrequency')
-          .insert([updateData]);
+          .insert([updateData])
+          .select()
+          .single();
 
         if (error) throw error;
+        if (data) {
+          setWords(prev => [data, ...prev]);
+        }
       }
 
-      await fetchWords();
       setIsModalOpen(false);
       setSelectedWord(null);
     } catch (error) {
