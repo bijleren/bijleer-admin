@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import { LayoutDashboard, Users, School, Database, LogOut, Menu, X, GraduationCap, ChevronDown, BookOpen, BookText, Grid2x2 as Grid, ChevronLeft, ChevronRight, Baby, Monitor, Key, Mail } from 'lucide-react';
 
 const navigation = [
@@ -38,7 +39,8 @@ const navigation = [
       { name: 'Genereer Afbeeldingen', href: '/woordenschat/genereer-afbeeldingen' },
       { name: 'Betekenis Genereren', href: '/woordenschat/betekenis-genereren' },
       { name: 'Woordstructuur', href: '/woordenschat/woordstructuur' },
-      { name: 'Oefentypes', href: '/woordenschat/oefentypes' }
+      { name: 'Oefentypes', href: '/woordenschat/oefentypes' },
+      { name: 'Kinderwoorden', href: '/woordenschat/kinderwoorden' }
     ]
   },
   {
@@ -48,7 +50,8 @@ const navigation = [
       { name: 'DigiTools', href: '/apps/digitools' },
       { name: 'Activi-tijd', href: '/apps/activi-tijd' },
       { name: 'Executieve Functies', href: '/apps/executieve-functies' },
-      { name: 'Gedragskaarten', href: '/apps/gedragskaarten' }
+      { name: 'Gedragskaarten', href: '/apps/gedragskaarten' },
+      { name: 'LetterLezer', href: '/apps/letterlezer' }
     ]
   },
   {
@@ -60,7 +63,8 @@ const navigation = [
       { name: 'Schrijf', href: '/kleuterdidactiek/schrijf' },
       { name: 'Doe', href: '/kleuterdidactiek/doe' },
       { name: 'Speel', href: '/kleuterdidactiek/speel' },
-      { name: 'Woordenschat', href: '/kleuterdidactiek/woordenschat' }
+      { name: 'Woordenschat', href: '/kleuterdidactiek/woordenschat' },
+      { name: 'Afbeeldingen', href: '/kleuterdidactiek/afbeeldingen' }
     ]
   },
   {
@@ -68,7 +72,11 @@ const navigation = [
     icon: Monitor,
     submenu: [
       { name: 'Demo', href: '/platform/demo' },
-      { name: 'Contact Messages', href: '/platform/contact-messages' }
+      { name: 'Contact Messages', href: '/platform/contact-messages', badgeKey: 'contactNew' },
+      { name: 'Bug Reports', href: '/platform/bug-reports', badgeKey: 'bugNew' },
+      { name: 'Emergency Broadcast', href: '/platform/emergency-broadcast' },
+      { name: 'Feature Analytics', href: '/platform/analytics' },
+      { name: 'Begeleiding', href: '/platform/begeleiding', badgeKey: 'begeleidingNew' }
     ]
   },
   {
@@ -89,13 +97,36 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [badges, setBadges] = useState<Record<string, number>>({ contactNew: 0, bugNew: 0, begeleidingNew: 0 });
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    fetchBadgeCounts();
+  }, [location.pathname]);
+
+  const fetchBadgeCounts = async () => {
+    const [{ count: contactCount }, { count: bugCount }, { count: begeleidingCount }] = await Promise.all([
+      supabase.from('contact_messages').select('*', { count: 'exact', head: true }).eq('status', 'new'),
+      supabase.from('bug_reports').select('*', { count: 'exact', head: true }).eq('status', 'new'),
+      supabase.from('begeleiding_requests').select('*', { count: 'exact', head: true }).eq('status', 'nieuw'),
+    ]);
+    setBadges({ contactNew: contactCount || 0, bugNew: bugCount || 0, begeleidingNew: begeleidingCount || 0 });
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
+  };
+
+  const NavBadge = ({ count }: { count: number }) => {
+    if (!count) return null;
+    return (
+      <span className="ml-auto flex-shrink-0 min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-semibold rounded-full flex items-center justify-center leading-none">
+        {count > 99 ? '99+' : count}
+      </span>
+    );
   };
 
   return (
@@ -121,6 +152,11 @@ export default function Layout() {
               if ('submenu' in item && item.submenu) {
                 const isDropdownOpen = openDropdown === item.name && !sidebarCollapsed;
                 const isActiveSection = item.submenu.some(sub => location.pathname === sub.href);
+                // Total badge count for this section
+                const sectionBadgeCount = item.submenu.reduce((sum, sub) => {
+                  if ('badgeKey' in sub && sub.badgeKey) return sum + (badges[sub.badgeKey] || 0);
+                  return sum;
+                }, 0);
 
                 if (sidebarCollapsed) {
                   return (
@@ -132,7 +168,7 @@ export default function Layout() {
                           e.currentTarget.dataset.top = String(rect.top);
                           e.currentTarget.dataset.left = String(rect.right + 8);
                         }}
-                        className={`w-full flex items-center justify-center p-3 rounded-lg transition-colors ${
+                        className={`w-full flex items-center justify-center p-3 rounded-lg transition-colors relative ${
                           isActiveSection
                             ? 'bg-blue-50 text-blue-700'
                             : 'text-gray-700 hover:bg-gray-50'
@@ -140,6 +176,11 @@ export default function Layout() {
                         title={item.name}
                       >
                         <item.icon className="w-5 h-5" />
+                        {sectionBadgeCount > 0 && (
+                          <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                            {sectionBadgeCount > 9 ? '9+' : sectionBadgeCount}
+                          </span>
+                        )}
                       </button>
                       {openDropdown === item.name && (() => {
                         const button = document.querySelector(`[title="${item.name}"]`) as HTMLElement;
@@ -161,6 +202,7 @@ export default function Layout() {
                               <div className="py-1">
                                 {item.submenu.map((subItem) => {
                                   const isActive = location.pathname === subItem.href;
+                                  const badgeCount = 'badgeKey' in subItem && subItem.badgeKey ? badges[subItem.badgeKey] || 0 : 0;
                                   return (
                                     <Link
                                       key={subItem.name}
@@ -169,13 +211,14 @@ export default function Layout() {
                                         setOpenDropdown(null);
                                         setSidebarOpen(false);
                                       }}
-                                      className={`block px-4 py-2 text-sm transition-colors ${
+                                      className={`flex items-center justify-between px-4 py-2 text-sm transition-colors ${
                                         isActive
                                           ? 'bg-blue-50 text-blue-700 font-medium'
                                           : 'text-gray-700 hover:bg-gray-50'
                                       }`}
                                     >
-                                      {subItem.name}
+                                      <span>{subItem.name}</span>
+                                      {badgeCount > 0 && <NavBadge count={badgeCount} />}
                                     </Link>
                                   );
                                 })}
@@ -202,24 +245,33 @@ export default function Layout() {
                         <item.icon className="w-5 h-5" />
                         <span className="font-medium">{item.name}</span>
                       </div>
-                      <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                      <div className="flex items-center gap-2">
+                        {!isDropdownOpen && sectionBadgeCount > 0 && (
+                          <span className="min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">
+                            {sectionBadgeCount > 99 ? '99+' : sectionBadgeCount}
+                          </span>
+                        )}
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                      </div>
                     </button>
                     {isDropdownOpen && (
                       <div className="ml-8 mt-1 space-y-1">
                         {item.submenu.map((subItem) => {
                           const isActive = location.pathname === subItem.href;
+                          const badgeCount = 'badgeKey' in subItem && subItem.badgeKey ? badges[subItem.badgeKey] || 0 : 0;
                           return (
                             <Link
                               key={subItem.name}
                               to={subItem.href}
                               onClick={() => setSidebarOpen(false)}
-                              className={`block px-4 py-2 rounded-lg text-sm transition-colors ${
+                              className={`flex items-center justify-between px-4 py-2 rounded-lg text-sm transition-colors ${
                                 isActive
                                   ? 'bg-blue-50 text-blue-700 font-medium'
                                   : 'text-gray-600 hover:bg-gray-50'
                               }`}
                             >
-                              {subItem.name}
+                              <span>{subItem.name}</span>
+                              {badgeCount > 0 && <NavBadge count={badgeCount} />}
                             </Link>
                           );
                         })}

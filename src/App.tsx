@@ -40,6 +40,7 @@ import ManualGrants from './pages/ManualGrants';
 import LicenseReports from './pages/LicenseReports';
 import ProductManagement from './pages/ProductManagement';
 import ContactMessages from './pages/ContactMessages';
+import BugReports from './pages/BugReports';
 import Klankgroepen from './pages/Klankgroepen';
 import CheckKlankgroepen from './pages/CheckKlankgroepen';
 import GenerateImages from './pages/GenerateImages';
@@ -50,6 +51,12 @@ import AnalyseKlankgroepen from './pages/AnalyseKlankgroepen';
 import ExecutiveFunctions from './pages/ExecutiveFunctions';
 import BehaviorCards from './pages/BehaviorCards';
 import EducationalGoals from './pages/EducationalGoals';
+import EmergencyBroadcast from './pages/EmergencyBroadcast';
+import FeatureAnalytics from './pages/FeatureAnalytics';
+import LetterLezerAnalytics from './pages/LetterLezerAnalytics';
+import KleuterAfbeeldingen from './pages/KleuterAfbeeldingen';
+import Kinderwoorden from './pages/Kinderwoorden';
+import Begeleiding from './pages/Begeleiding';
 
 function App() {
   return (
@@ -80,6 +87,7 @@ function App() {
             <Route path="apps/activi-tijd" element={<ActivityTime />} />
             <Route path="apps/executieve-functies" element={<ExecutiveFunctions />} />
             <Route path="apps/gedragskaarten" element={<BehaviorCards />} />
+            <Route path="apps/letterlezer" element={<LetterLezerAnalytics />} />
             <Route path="woordenschat/klankteken" element={<Klankteken />} />
             <Route path="woordenschat/woorden" element={<Vocabulary />} />
             <Route path="woordenschat/nieuwe-woorden" element={<NewWords />} />
@@ -98,16 +106,22 @@ function App() {
             <Route path="woordenschat/analyse-klankgroepen" element={<AnalyseKlankgroepen />} />
             <Route path="woordenschat/woordstructuur" element={<Woordstructuur />} />
             <Route path="woordenschat/oefentypes" element={<ExerciseTypes />} />
+            <Route path="woordenschat/kinderwoorden" element={<Kinderwoorden />} />
             <Route path="kleuterdidactiek/leerdoelen" element={<EducationalGoals />} />
             <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
             <Route path="kleuterdidactiek/doe" element={<PhysicalTasks />} />
             <Route path="kleuterdidactiek/speel" element={<LearningGames />} />
             <Route path="kleuterdidactiek/woordenschat" element={<VocabularyManagement />} />
+            <Route path="kleuterdidactiek/afbeeldingen" element={<KleuterAfbeeldingen />} />
             <Route path="tables" element={<Tables />} />
             <Route path="platform/demo" element={<DemoManagement />} />
             <Route path="platform/demo/:sessionId/registrations" element={<DemoRegistrations />} />
             <Route path="platform/contact-messages" element={<ContactMessages />} />
+            <Route path="platform/bug-reports" element={<BugReports />} />
+            <Route path="platform/emergency-broadcast" element={<EmergencyBroadcast />} />
+            <Route path="platform/analytics" element={<FeatureAnalytics />} />
+            <Route path="platform/begeleiding" element={<Begeleiding />} />
             <Route path="licensing/overview" element={<LicenseOverview />} />
             <Route path="licensing/vouchers" element={<VoucherManagement />} />
             <Route path="licensing/manual-grants" element={<ManualGrants />} />

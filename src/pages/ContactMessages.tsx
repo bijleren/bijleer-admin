@@ -63,7 +63,7 @@ export default function ContactMessages() {
         .eq('id', id);
 
       if (error) throw error;
-      await loadMessages();
+      setMessages(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
       if (selectedMessage?.id === id) {
         setSelectedMessage({ ...selectedMessage, ...updates });
       }
@@ -81,11 +81,10 @@ export default function ContactMessages() {
         .eq('id', id);
 
       if (error) throw error;
-      await loadMessages();
+      setMessages(prev => prev.map(m => m.id === id ? { ...m, notes } : m));
       if (selectedMessage) {
         setSelectedMessage({ ...selectedMessage, notes });
       }
-      alert('Notes saved successfully');
     } catch (error) {
       console.error('Error updating notes:', error);
       alert('Error updating notes');
