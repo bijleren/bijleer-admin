@@ -285,7 +285,6 @@ export default function Vocabulary() {
       setSelectedWord(null);
     } catch (error) {
       console.error('Error saving word:', error);
-      alert('Er is een fout opgetreden bij het opslaan van het woord.');
       throw error;
     }
   };

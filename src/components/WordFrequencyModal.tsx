@@ -74,6 +74,8 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word, allW
     language: 'nl',
   });
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [wordError, setWordError] = useState(false);
   const [translationSearch, setTranslationSearch] = useState('');
   const [showTranslationDropdown, setShowTranslationDropdown] = useState(false);
   const translationRef = useRef<HTMLDivElement>(null);
@@ -115,16 +117,27 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word, allW
     }
     setTranslationSearch('');
     setShowTranslationDropdown(false);
+    setErrorMessage(null);
+    setWordError(false);
   }, [word, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
+    setWordError(false);
     setLoading(true);
     try {
       await onSave(formData);
       onClose();
-    } catch (error) {
-      console.error('Error saving word:', error);
+    } catch (error: unknown) {
+      const supaErr = error as { code?: string; message?: string };
+      if (supaErr?.code === '23505' || (supaErr?.message ?? '').includes('duplicate') || (supaErr?.message ?? '').includes('unique')) {
+        setWordError(true);
+        setActiveTab('basic');
+        setErrorMessage(`Het woord "${formData.word}" bestaat al in de database. Kies een andere spelling of zoek het bestaande woord op.`);
+      } else {
+        setErrorMessage('Er is een onverwachte fout opgetreden bij het opslaan. Probeer het opnieuw.');
+      }
     } finally {
       setLoading(false);
     }
@@ -132,7 +145,10 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word, allW
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-
+    if (name === 'word') {
+      setWordError(false);
+      setErrorMessage(null);
+    }
     setFormData({
       ...formData,
       [name]: type === 'number' ? (value === '' ? undefined : parseFloat(value)) : value,
@@ -223,11 +239,18 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word, allW
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {errorMessage && (
+            <div className="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+              <span className="flex-shrink-0 mt-0.5 font-bold">!</span>
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           {activeTab === 'basic' && (
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="word" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="word" className={`block text-sm font-medium mb-2 ${wordError ? 'text-red-600' : 'text-gray-700'}`}>
                     Woord *
                   </label>
                   <input
@@ -237,7 +260,11 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word, allW
                     value={formData.word}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
+                      wordError
+                        ? 'border-red-400 bg-red-50 focus:ring-red-400'
+                        : 'border-gray-300 focus:ring-blue-500'
+                    }`}
                   />
                 </div>
 
