@@ -23,6 +23,8 @@ interface OverviewData {
   yesterdayActiveDevices: number;
   weekActiveDevices: number;
   totalEvents: number;
+  latestActivityDate: string;
+  isLive: boolean;
 }
 interface DailyPoint { day: string; devices: number }
 interface ExerciseEntry { mode: string; opens: number }
@@ -343,6 +345,16 @@ export default function LetterLezerAnalytics() {
     ? overview.todayActiveDevices - overview.yesterdayActiveDevices
     : undefined;
 
+  const isLive = overview?.isLive ?? true;
+  const latestDate = overview?.latestActivityDate;
+  const latestDateFormatted = latestDate
+    ? new Date(latestDate + 'T12:00:00Z').toLocaleDateString('nl-BE', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+
+  // Label the "today" card relative to actual latest activity
+  const todayLabel = isLive ? 'Actieve apparaten vandaag' : `Actief op ${latestDateFormatted}`;
+  const yesterdayLabel = isLive ? 'Gisteren actief' : 'Dag ervoor actief';
+
   return (
     <div className="p-8 space-y-8 max-w-7xl">
       {/* Header */}
@@ -353,7 +365,9 @@ export default function LetterLezerAnalytics() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">LetterLezer</h1>
-            <p className="text-sm text-gray-500 mt-0.5">iOS app analytics — live data</p>
+            <p className="text-sm text-gray-500 mt-0.5">
+              iOS app analytics{isLive ? ' — live data' : ` — laatste activiteit: ${latestDateFormatted}`}
+            </p>
           </div>
         </div>
         <button
@@ -366,10 +380,20 @@ export default function LetterLezerAnalytics() {
         </button>
       </div>
 
+      {/* Stale data notice */}
+      {!isLive && latestDateFormatted && (
+        <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+          <span>
+            Geen activiteit vandaag. Statistieken zijn gebaseerd op de meest recente sessie van <strong>{latestDateFormatted}</strong>. Tijdvensters zijn automatisch aangepast.
+          </span>
+        </div>
+      )}
+
       {/* Overview stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          label="Actieve apparaten vandaag"
+          label={todayLabel}
           value={overview?.todayActiveDevices ?? '—'}
           icon={Smartphone}
           iconBg="bg-blue-50"
@@ -385,7 +409,7 @@ export default function LetterLezerAnalytics() {
           iconColor="text-teal-600"
         />
         <StatCard
-          label="Gisteren actief"
+          label={yesterdayLabel}
           value={overview?.yesterdayActiveDevices ?? '—'}
           icon={Activity}
           iconBg="bg-amber-50"
