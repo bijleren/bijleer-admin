@@ -16,6 +16,7 @@ import {
   LayoutGrid,
   List,
   Download,
+  Plus,
 } from 'lucide-react';
 
 interface School {
@@ -278,6 +279,63 @@ export default function Schools() {
   const totalStudents = schoolStats.reduce((sum, s) => sum + s.students, 0);
 
   const [exporting, setExporting] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const emptyForm = {
+    name: '',
+    address: '',
+    city: '',
+    postal_code: '',
+    country: 'België',
+    phone: '',
+    email: '',
+    principal_name: '',
+    website: '',
+    description: '',
+    internal_note: '',
+  };
+  const [createForm, setCreateForm] = useState(emptyForm);
+
+  const handleCreateSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createForm.name.trim()) {
+      setCreateError('Naam is verplicht.');
+      return;
+    }
+    setCreating(true);
+    setCreateError('');
+    try {
+      const { data, error } = await supabase
+        .from('schools')
+        .insert({
+          name: createForm.name.trim(),
+          address: createForm.address.trim() || null,
+          city: createForm.city.trim() || null,
+          postal_code: createForm.postal_code.trim() || null,
+          country: createForm.country.trim() || null,
+          phone: createForm.phone.trim() || null,
+          email: createForm.email.trim() || null,
+          principal_name: createForm.principal_name.trim() || null,
+          website: createForm.website.trim() || null,
+          description: createForm.description.trim() || null,
+          internal_note: createForm.internal_note.trim() || null,
+          onboarded: 0,
+          premium_school: 0,
+        })
+        .select('id')
+        .single();
+      if (error) throw error;
+      setShowCreateModal(false);
+      setCreateForm(emptyForm);
+      navigate(`/schools/${data.id}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Er is een fout opgetreden.';
+      setCreateError(msg);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const handleExportExcel = async () => {
     setExporting(true);
@@ -418,18 +476,27 @@ export default function Schools() {
             </div>
           )}
         </div>
-        <button
-          onClick={handleExportExcel}
-          disabled={exporting}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {exporting ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-          Exporteer naar Excel
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportExcel}
+            disabled={exporting}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {exporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            Exporteer naar Excel
+          </button>
+          <button
+            onClick={() => { setCreateForm(emptyForm); setCreateError(''); setShowCreateModal(true); }}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Nieuwe school
+          </button>
+        </div>
       </div>
 
       <div className="border-b border-gray-200">
@@ -829,6 +896,175 @@ export default function Schools() {
                 )}
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                  <SchoolIcon className="w-5 h-5 text-blue-600" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Nieuwe school aanmaken</h2>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateSchool} className="px-6 py-6 space-y-5">
+              {createError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  {createError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Naam <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  placeholder="Naam van de school"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Adres</label>
+                  <input
+                    type="text"
+                    value={createForm.address}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, address: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="Straat en nummer"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Stad</label>
+                  <input
+                    type="text"
+                    value={createForm.city}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, city: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="Stad"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
+                  <input
+                    type="text"
+                    value={createForm.postal_code}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, postal_code: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="Postcode"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Land</label>
+                  <input
+                    type="text"
+                    value={createForm.country}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, country: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="Land"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Telefoon</label>
+                  <input
+                    type="tel"
+                    value={createForm.phone}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, phone: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="+32 ..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                  <input
+                    type="email"
+                    value={createForm.email}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="school@voorbeeld.be"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Directeur</label>
+                  <input
+                    type="text"
+                    value={createForm.principal_name}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, principal_name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="Naam directeur"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                  <input
+                    type="url"
+                    value={createForm.website}
+                    onChange={(e) => setCreateForm((f) => ({ ...f, website: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Beschrijving</label>
+                <textarea
+                  value={createForm.description}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                  placeholder="Optionele beschrijving"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Interne nota</label>
+                <textarea
+                  value={createForm.internal_note}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, internal_note: e.target.value }))}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm resize-none"
+                  placeholder="Interne notities (niet zichtbaar voor de school)"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Annuleren
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  School aanmaken
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
