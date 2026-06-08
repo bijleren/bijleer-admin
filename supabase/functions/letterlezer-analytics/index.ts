@@ -22,45 +22,40 @@ Deno.serve(async (req: Request) => {
 
     let data: Record<string, unknown> = {};
 
-    // Determine the most recent event date to use as the anchor for all windows.
-    // This ensures stats remain meaningful even when there hasn't been recent activity.
     const { data: latestRow } = await supa
-      .from("analytics_events")
-      .select("occurred_at")
-      .order("occurred_at", { ascending: false })
+      .from("leesletters_events")
+      .select("ts")
+      .order("ts", { ascending: false })
       .limit(1)
       .maybeSingle();
 
     const latestTs: number = latestRow
-      ? new Date(latestRow.occurred_at as string).getTime()
+      ? new Date(latestRow.ts as string).getTime()
       : Date.now();
 
-    // Midnight (UTC) of the latest-event day
     const latestDate = new Date(latestTs);
     latestDate.setUTCHours(0, 0, 0, 0);
     const latestDayStart = latestDate.getTime();
 
-    // Is the latest activity today (within real calendar day)?
     const todayStart = new Date();
     todayStart.setUTCHours(0, 0, 0, 0);
     const isLive = latestDayStart >= todayStart.getTime();
 
-    // Windows anchored to latest activity
-    const dayAgo  = latestDayStart - 86400000;       // day before latest
+    const dayAgo  = latestDayStart - 86400000;
     const weekAgo = latestTs       - 86400000 * 7;
     const day30   = latestTs       - 86400000 * 30;
     const day14   = latestTs       - 86400000 * 14;
 
     if (endpoint === "overview") {
       const [todayRows, yesterdayRows, weekRows, totalEvents] = await Promise.all([
-        supa.from("analytics_events").select("device_id")
-          .gte("occurred_at", new Date(latestDayStart).toISOString()),
-        supa.from("analytics_events").select("device_id")
-          .gte("occurred_at", new Date(dayAgo).toISOString())
-          .lt("occurred_at", new Date(latestDayStart).toISOString()),
-        supa.from("analytics_events").select("device_id")
-          .gte("occurred_at", new Date(weekAgo).toISOString()),
-        supa.from("analytics_events").select("id", { count: "estimated", head: true }),
+        supa.from("leesletters_events").select("device_id")
+          .gte("ts", new Date(latestDayStart).toISOString()),
+        supa.from("leesletters_events").select("device_id")
+          .gte("ts", new Date(dayAgo).toISOString())
+          .lt("ts", new Date(latestDayStart).toISOString()),
+        supa.from("leesletters_events").select("device_id")
+          .gte("ts", new Date(weekAgo).toISOString()),
+        supa.from("leesletters_events").select("id", { count: "estimated", head: true }),
       ]);
 
       const todayDevices     = new Set((todayRows.data     ?? []).map((r: { device_id: string }) => r.device_id)).size;
@@ -72,7 +67,6 @@ Deno.serve(async (req: Request) => {
         yesterdayActiveDevices: yesterdayDevices,
         weekActiveDevices:      weekDevices,
         totalEvents:            totalEvents.count ?? 0,
-        // Let the UI know whether "today" refers to the real today or a past date
         latestActivityDate: new Date(latestDayStart).toISOString().slice(0, 10),
         isLive,
       };
@@ -80,14 +74,14 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "daily_active_devices") {
       const { data: rows } = await supa
-        .from("analytics_events")
-        .select("occurred_at, device_id")
-        .gte("occurred_at", new Date(day30).toISOString())
-        .order("occurred_at", { ascending: true });
+        .from("leesletters_events")
+        .select("ts, device_id")
+        .gte("ts", new Date(day30).toISOString())
+        .order("ts", { ascending: true });
 
       const byDay: Record<string, Set<string>> = {};
       for (const row of rows ?? []) {
-        const day = (row.occurred_at as string).slice(0, 10);
+        const day = (row.ts as string).slice(0, 10);
         if (!byDay[day]) byDay[day] = new Set();
         byDay[day].add(row.device_id as string);
       }
@@ -100,10 +94,10 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "exercise_popularity") {
       const { data: rows } = await supa
-        .from("analytics_events")
+        .from("leesletters_events")
         .select("properties")
-        .eq("name", "exercise_opened")
-        .gte("occurred_at", new Date(day30).toISOString());
+        .eq("event_type", "exercise_opened")
+        .gte("ts", new Date(day30).toISOString());
 
       const counts: Record<string, number> = {};
       for (const row of rows ?? []) {
@@ -119,19 +113,19 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "onboarding_funnel") {
       const [launches, onboarded, firstExercise] = await Promise.all([
-        supa.from("analytics_events").select("device_id").eq("name", "app_launched"),
-        supa.from("analytics_events").select("device_id").eq("name", "onboarding_completed"),
-        supa.from("analytics_events").select("device_id").eq("name", "exercise_opened"),
+        supa.from("leesletters_events").select("device_id").eq("event_type", "app_launched"),
+        supa.from("leesletters_events").select("device_id").eq("event_type", "onboarding_completed"),
+        supa.from("leesletters_events").select("device_id").eq("event_type", "exercise_opened"),
       ]);
 
-      const launchDevices   = new Set((launches.data     ?? []).map((r: { device_id: string }) => r.device_id)).size;
-      const onboardedDevices = new Set((onboarded.data   ?? []).map((r: { device_id: string }) => r.device_id)).size;
+      const launchDevices    = new Set((launches.data      ?? []).map((r: { device_id: string }) => r.device_id)).size;
+      const onboardedDevices = new Set((onboarded.data     ?? []).map((r: { device_id: string }) => r.device_id)).size;
       const exerciseDevices  = new Set((firstExercise.data ?? []).map((r: { device_id: string }) => r.device_id)).size;
 
       data = {
-        installs:           launchDevices,
+        installs:            launchDevices,
         onboardingCompleted: onboardedDevices,
-        firstExercise:      exerciseDevices,
+        firstExercise:       exerciseDevices,
         onboardingRate: launchDevices ? Math.round(100 * onboardedDevices / launchDevices) : 0,
         exerciseRate:   launchDevices ? Math.round(100 * exerciseDevices  / launchDevices) : 0,
       };
@@ -139,42 +133,42 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "recognition_quality") {
       const { data: rows } = await supa
-        .from("analytics_events")
-        .select("name")
-        .in("name", ["scan_word_found", "scan_word_missed", "laywoord_correct", "laywoord_wrong", "listenpick_correct", "listenpick_wrong"])
-        .gte("occurred_at", new Date(weekAgo).toISOString());
+        .from("leesletters_events")
+        .select("event_type")
+        .in("event_type", ["scan_word_found", "scan_word_missed", "laywoord_correct", "laywoord_wrong", "listenpick_correct", "listenpick_wrong"])
+        .gte("ts", new Date(weekAgo).toISOString());
 
       const counts: Record<string, number> = {};
       for (const row of rows ?? []) {
-        counts[row.name as string] = (counts[row.name as string] ?? 0) + 1;
+        counts[row.event_type as string] = (counts[row.event_type as string] ?? 0) + 1;
       }
 
-      const scanHits    = counts["scan_word_found"]    ?? 0;
-      const scanMisses  = counts["scan_word_missed"]   ?? 0;
-      const layCorrect  = counts["laywoord_correct"]   ?? 0;
-      const layWrong    = counts["laywoord_wrong"]     ?? 0;
-      const listenCorrect = counts["listenpick_correct"] ?? 0;
-      const listenWrong   = counts["listenpick_wrong"]   ?? 0;
+      const scanHits      = counts["scan_word_found"]     ?? 0;
+      const scanMisses    = counts["scan_word_missed"]     ?? 0;
+      const layCorrect    = counts["laywoord_correct"]     ?? 0;
+      const layWrong      = counts["laywoord_wrong"]       ?? 0;
+      const listenCorrect = counts["listenpick_correct"]   ?? 0;
+      const listenWrong   = counts["listenpick_wrong"]     ?? 0;
 
       data = {
-        scan:   { hits: scanHits,    misses: scanMisses,  rate: scanHits + scanMisses       ? Math.round(100 * scanHits    / (scanHits    + scanMisses))  : null },
-        lay:    { correct: layCorrect, wrong: layWrong,   rate: layCorrect + layWrong       ? Math.round(100 * layCorrect  / (layCorrect  + layWrong))    : null },
-        listen: { correct: listenCorrect, wrong: listenWrong, rate: listenCorrect + listenWrong ? Math.round(100 * listenCorrect / (listenCorrect + listenWrong)) : null },
+        scan:   { hits: scanHits,    misses: scanMisses,    rate: scanHits + scanMisses             ? Math.round(100 * scanHits      / (scanHits      + scanMisses))     : null },
+        lay:    { correct: layCorrect, wrong: layWrong,     rate: layCorrect + layWrong             ? Math.round(100 * layCorrect    / (layCorrect    + layWrong))       : null },
+        listen: { correct: listenCorrect, wrong: listenWrong, rate: listenCorrect + listenWrong     ? Math.round(100 * listenCorrect / (listenCorrect + listenWrong))    : null },
       };
     }
 
     else if (endpoint === "hardest_phonemes") {
       const { data: rows } = await supa
-        .from("analytics_events")
-        .select("name, properties")
-        .in("name", ["listenpick_correct", "listenpick_wrong"])
-        .gte("occurred_at", new Date(day30).toISOString());
+        .from("leesletters_events")
+        .select("event_type, properties")
+        .in("event_type", ["listenpick_correct", "listenpick_wrong"])
+        .gte("ts", new Date(day30).toISOString());
 
       const phonemeStats: Record<string, { correct: number; wrong: number }> = {};
       for (const row of rows ?? []) {
         const phoneme = (row.properties as { target?: string }).target ?? "?";
         if (!phonemeStats[phoneme]) phonemeStats[phoneme] = { correct: 0, wrong: 0 };
-        if (row.name === "listenpick_correct") phonemeStats[phoneme].correct++;
+        if (row.event_type === "listenpick_correct") phonemeStats[phoneme].correct++;
         else phonemeStats[phoneme].wrong++;
       }
 
@@ -195,14 +189,14 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "wordsearch_abandonment") {
       const { data: rows } = await supa
-        .from("analytics_events")
-        .select("name")
-        .in("name", ["wordsearch_round_started", "wordsearch_round_completed"])
-        .gte("occurred_at", new Date(day30).toISOString());
+        .from("leesletters_events")
+        .select("event_type")
+        .in("event_type", ["wordsearch_round_started", "wordsearch_round_completed"])
+        .gte("ts", new Date(day30).toISOString());
 
       let started = 0, completed = 0;
       for (const row of rows ?? []) {
-        if (row.name === "wordsearch_round_started") started++;
+        if (row.event_type === "wordsearch_round_started") started++;
         else completed++;
       }
 
@@ -215,9 +209,9 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "app_versions") {
       const { data: rows } = await supa
-        .from("analytics_events")
+        .from("leesletters_events")
         .select("app_version, device_id")
-        .gte("occurred_at", new Date(day14).toISOString());
+        .gte("ts", new Date(day14).toISOString());
 
       const versionDevices: Record<string, Set<string>> = {};
       for (const row of rows ?? []) {
@@ -235,10 +229,10 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "most_found_words") {
       const { data: rows } = await supa
-        .from("analytics_events")
+        .from("leesletters_events")
         .select("properties")
-        .eq("name", "scan_word_found")
-        .gte("occurred_at", new Date(day30).toISOString());
+        .eq("event_type", "scan_word_found")
+        .gte("ts", new Date(day30).toISOString());
 
       const counts: Record<string, number> = {};
       for (const row of rows ?? []) {
@@ -255,10 +249,10 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "top_missed_scans") {
       const { data: rows } = await supa
-        .from("analytics_events")
+        .from("leesletters_events")
         .select("properties")
-        .eq("name", "scan_word_missed")
-        .gte("occurred_at", new Date(day30).toISOString());
+        .eq("event_type", "scan_word_missed")
+        .gte("ts", new Date(day30).toISOString());
 
       const counts: Record<string, number> = {};
       for (const row of rows ?? []) {
@@ -276,9 +270,9 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "sessions_per_device") {
       const { data: rows } = await supa
-        .from("analytics_events")
+        .from("leesletters_events")
         .select("device_id, session_id")
-        .gte("occurred_at", new Date(weekAgo).toISOString());
+        .gte("ts", new Date(weekAgo).toISOString());
 
       const deviceSessions: Record<string, Set<string>> = {};
       for (const row of rows ?? []) {
@@ -303,15 +297,15 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "session_length") {
       const { data: rows } = await supa
-        .from("analytics_events")
-        .select("session_id, occurred_at")
-        .gte("occurred_at", new Date(weekAgo).toISOString())
-        .order("occurred_at", { ascending: true });
+        .from("leesletters_events")
+        .select("session_id, ts")
+        .gte("ts", new Date(weekAgo).toISOString())
+        .order("ts", { ascending: true });
 
       const sessionTimes: Record<string, { min: number; max: number; count: number }> = {};
       for (const row of rows ?? []) {
         const sid = row.session_id as string;
-        const t   = new Date(row.occurred_at as string).getTime();
+        const t   = new Date(row.ts as string).getTime();
         if (!sessionTimes[sid]) sessionTimes[sid] = { min: t, max: t, count: 0 };
         if (t < sessionTimes[sid].min) sessionTimes[sid].min = t;
         if (t > sessionTimes[sid].max) sessionTimes[sid].max = t;
@@ -331,10 +325,10 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "wordsearch_efficiency") {
       const { data: rows } = await supa
-        .from("analytics_events")
+        .from("leesletters_events")
         .select("properties")
-        .in("name", ["wordsearch_round_completed", "wordsearch_word_found"])
-        .gte("occurred_at", new Date(day30).toISOString());
+        .in("event_type", ["wordsearch_round_completed", "wordsearch_word_found"])
+        .gte("ts", new Date(day30).toISOString());
 
       let totalFound = 0, totalPossible = 0, roundCount = 0;
       for (const row of rows ?? []) {
@@ -347,19 +341,19 @@ Deno.serve(async (req: Request) => {
       }
 
       data = {
-        avgFound:           roundCount      ? Math.round((totalFound    / roundCount) * 10) / 10 : null,
-        avgTotal:           roundCount      ? Math.round((totalPossible / roundCount) * 10) / 10 : null,
-        avgCompletionPct:   totalPossible   ? Math.round(100 * totalFound / totalPossible)        : null,
+        avgFound:         roundCount    ? Math.round((totalFound    / roundCount) * 10) / 10 : null,
+        avgTotal:         roundCount    ? Math.round((totalPossible / roundCount) * 10) / 10 : null,
+        avgCompletionPct: totalPossible ? Math.round(100 * totalFound / totalPossible)        : null,
         roundCount,
       };
     }
 
     else if (endpoint === "top_phrases") {
       const { data: rows } = await supa
-        .from("analytics_events")
+        .from("leesletters_events")
         .select("properties")
-        .eq("name", "wordreader_phrase")
-        .gte("occurred_at", new Date(day30).toISOString());
+        .eq("event_type", "wordreader_phrase")
+        .gte("ts", new Date(day30).toISOString());
 
       const counts: Record<string, number> = {};
       for (const row of rows ?? []) {
@@ -376,16 +370,16 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "hardest_laywords") {
       const { data: rows } = await supa
-        .from("analytics_events")
-        .select("name, properties")
-        .in("name", ["laywoord_correct", "laywoord_wrong"])
-        .gte("occurred_at", new Date(day30).toISOString());
+        .from("leesletters_events")
+        .select("event_type, properties")
+        .in("event_type", ["laywoord_correct", "laywoord_wrong"])
+        .gte("ts", new Date(day30).toISOString());
 
       const wordStats: Record<string, { correct: number; wrong: number }> = {};
       for (const row of rows ?? []) {
         const target = (row.properties as { target?: string }).target ?? "?";
         if (!wordStats[target]) wordStats[target] = { correct: 0, wrong: 0 };
-        if (row.name === "laywoord_correct") wordStats[target].correct++;
+        if (row.event_type === "laywoord_correct") wordStats[target].correct++;
         else wordStats[target].wrong++;
       }
 
@@ -406,10 +400,10 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "exercise_time") {
       const { data: rows } = await supa
-        .from("analytics_events")
+        .from("leesletters_events")
         .select("properties")
-        .eq("name", "exercise_closed")
-        .gte("occurred_at", new Date(day30).toISOString());
+        .eq("event_type", "exercise_closed")
+        .gte("ts", new Date(day30).toISOString());
 
       const modeStats: Record<string, { totalSeconds: number; count: number }> = {};
       for (const row of rows ?? []) {
@@ -435,19 +429,19 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "app_activity") {
       const { data: rows } = await supa
-        .from("analytics_events")
-        .select("name, occurred_at")
-        .in("name", ["app_launched", "app_foregrounded", "app_backgrounded"])
-        .gte("occurred_at", new Date(day14).toISOString())
-        .order("occurred_at", { ascending: true });
+        .from("leesletters_events")
+        .select("event_type, ts")
+        .in("event_type", ["app_launched", "app_foregrounded", "app_backgrounded"])
+        .gte("ts", new Date(day14).toISOString())
+        .order("ts", { ascending: true });
 
       const byDay: Record<string, { launched: number; foregrounded: number; backgrounded: number }> = {};
       for (const row of rows ?? []) {
-        const day = (row.occurred_at as string).slice(0, 10);
+        const day = (row.ts as string).slice(0, 10);
         if (!byDay[day]) byDay[day] = { launched: 0, foregrounded: 0, backgrounded: 0 };
-        if (row.name === "app_launched")      byDay[day].launched++;
-        else if (row.name === "app_foregrounded") byDay[day].foregrounded++;
-        else byDay[day].backgrounded++;
+        if (row.event_type === "app_launched")          byDay[day].launched++;
+        else if (row.event_type === "app_foregrounded") byDay[day].foregrounded++;
+        else                                            byDay[day].backgrounded++;
       }
 
       let totalLaunched = 0, totalForegrounded = 0, totalBackgrounded = 0;
@@ -467,17 +461,17 @@ Deno.serve(async (req: Request) => {
 
     else if (endpoint === "writing_stats") {
       const { data: rows } = await supa
-        .from("analytics_events")
-        .select("name, properties")
-        .in("name", ["writing_letter_shown", "writing_completed"])
-        .gte("occurred_at", new Date(day30).toISOString());
+        .from("leesletters_events")
+        .select("event_type, properties")
+        .in("event_type", ["writing_letter_shown", "writing_completed"])
+        .gte("ts", new Date(day30).toISOString());
 
       const phonemeStats: Record<string, { shown: number; completed: number }> = {};
       let totalShown = 0, totalCompleted = 0;
       for (const row of rows ?? []) {
         const phoneme = (row.properties as { phoneme?: string }).phoneme ?? "?";
         if (!phonemeStats[phoneme]) phonemeStats[phoneme] = { shown: 0, completed: 0 };
-        if (row.name === "writing_letter_shown") { phonemeStats[phoneme].shown++; totalShown++; }
+        if (row.event_type === "writing_letter_shown") { phonemeStats[phoneme].shown++; totalShown++; }
         else { phonemeStats[phoneme].completed++; totalCompleted++; }
       }
 
