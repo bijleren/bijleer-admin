@@ -53,6 +53,7 @@ interface Stats {
   total: number;
   pending: number;
   mismatch: number;
+  zuiver: number;
 }
 
 type Mode = 'pending' | 'recalculate';
@@ -78,7 +79,7 @@ export default function KlankzuiverCheck() {
   const loadStats = useCallback(async () => {
     setLoadingStats(true);
     try {
-      const [{ count: total }, { count: pending }] = await Promise.all([
+      const [{ count: total }, { count: pending }, { count: zuiver }] = await Promise.all([
         supabase.from('wordfrequency')
           .select('*', { count: 'exact', head: true })
           .not('klankteken', 'is', null)
@@ -88,10 +89,14 @@ export default function KlankzuiverCheck() {
           .is('klankzuiver', null)
           .not('klankteken', 'is', null)
           .neq('klankteken', ''),
+        supabase.from('wordfrequency')
+          .select('*', { count: 'exact', head: true })
+          .eq('klankzuiver', 1)
+          .not('klankteken', 'is', null)
+          .neq('klankteken', ''),
       ]);
 
-      // estimate mismatch by loading a sample — full scan too expensive client-side
-      setStats({ total: total ?? 0, pending: pending ?? 0, mismatch: 0 });
+      setStats({ total: total ?? 0, pending: pending ?? 0, mismatch: 0, zuiver: zuiver ?? 0 });
     } finally {
       setLoadingStats(false);
     }
@@ -226,6 +231,7 @@ export default function KlankzuiverCheck() {
   const pendingCount  = stats?.pending ?? 0;
   const processedCount = stats ? (stats.total - stats.pending) : 0;
   const progress = stats ? Math.round((processedCount / stats.total) * 100) : 0;
+  const zuiverPct = stats && processedCount > 0 ? Math.round((stats.zuiver / processedCount) * 100) : null;
 
   return (
     <div className="p-8 space-y-6 max-w-5xl">
@@ -262,7 +268,7 @@ export default function KlankzuiverCheck() {
           <RefreshCw className="w-4 h-4 animate-spin" /> Statistieken laden...
         </div>
       ) : stats && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <p className="text-xs text-gray-500 mb-1">Totaal met klankteken</p>
             <p className="text-2xl font-bold text-gray-900">{stats.total.toLocaleString('nl-BE')}</p>
@@ -279,8 +285,22 @@ export default function KlankzuiverCheck() {
             </div>
             <p className="text-xs text-gray-400 mt-1">{progress}%</p>
           </div>
+          <div className="bg-white rounded-xl border border-blue-200 p-5">
+            <p className="text-xs text-blue-600 mb-1">% Klankzuiver</p>
+            <p className="text-2xl font-bold text-blue-700">
+              {zuiverPct !== null ? `${zuiverPct}%` : '—'}
+            </p>
+            {zuiverPct !== null && (
+              <>
+                <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${zuiverPct}%` }} />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">{stats.zuiver.toLocaleString('nl-BE')} van {processedCount.toLocaleString('nl-BE')}</p>
+              </>
+            )}
+          </div>
           {applied > 0 && (
-            <div className="col-span-3 bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-sm text-green-700 font-medium">
+            <div className="col-span-4 bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-sm text-green-700 font-medium">
               ✓ {applied.toLocaleString('nl-BE')} woorden bijgewerkt in deze sessie
             </div>
           )}
@@ -490,3 +510,5 @@ export default function KlankzuiverCheck() {
     </div>
   );
 }
+
+export default KlankzuiverCheck
