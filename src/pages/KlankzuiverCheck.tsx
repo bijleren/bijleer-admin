@@ -8,11 +8,19 @@ const DOUBLE_CONSONANTS = new Set([
 
 const BATCH_SIZE = 200;
 
+function isAlsViolation(phoneme: string, isLast: boolean): boolean {
+  if (!phoneme.includes('als')) return false;
+  if (isLast && phoneme === 'galsch') return false;
+  return true;
+}
+
 function computeKlankzuiver(klankteken: string): 0 | 1 {
   const phonemes = klankteken.split('-');
   if (phonemes[phonemes.length - 1] === 'dt') return 0;
-  for (const p of phonemes) {
-    if (p.includes('als')) return 0;
+  for (let i = 0; i < phonemes.length; i++) {
+    const p = phonemes[i];
+    const last = i === phonemes.length - 1;
+    if (isAlsViolation(p, last)) return 0;
     if (DOUBLE_CONSONANTS.has(p)) return 0;
     if (p === 'x') return 0;
   }
@@ -23,7 +31,7 @@ function reasons(klankteken: string): string[] {
   const r: string[] = [];
   const phonemes = klankteken.split('-');
   if (phonemes[phonemes.length - 1] === 'dt') r.push('eindigt op dt');
-  const alsOnes = phonemes.filter(p => p.includes('als'));
+  const alsOnes = phonemes.filter((p, i) => isAlsViolation(p, i === phonemes.length - 1));
   const dcOnes  = phonemes.filter(p => DOUBLE_CONSONANTS.has(p));
   if (alsOnes.length) r.push(`als: ${alsOnes.join(', ')}`);
   if (dcOnes.length)  r.push(`dubbelconsonant: ${dcOnes.join(', ')}`);
