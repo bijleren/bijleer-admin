@@ -117,11 +117,11 @@ export default function Schools() {
 
       const [coachesRes, classesRes, studentsRes] = await Promise.all([
         supabase
-          .from('school_users')
+          .from('school_teammembers')
           .select('school_id')
           .in('school_id', schoolIds),
         supabase
-          .from('classes')
+          .from('groups')
           .select('school_id')
           .in('school_id', schoolIds),
         supabase
@@ -351,8 +351,8 @@ export default function Schools() {
       const schoolIds = allSchools.map((s) => s.id);
 
       const [coachesRes, classesRes, studentsRes] = await Promise.all([
-        supabase.from('school_users').select('school_id').in('school_id', schoolIds),
-        supabase.from('classes').select('school_id').in('school_id', schoolIds),
+        supabase.from('school_teammembers').select('school_id').in('school_id', schoolIds),
+        supabase.from('groups').select('school_id').in('school_id', schoolIds),
         supabase.from('students').select('school_id').in('school_id', schoolIds),
       ]);
 
