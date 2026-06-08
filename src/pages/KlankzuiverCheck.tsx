@@ -178,44 +178,87 @@ export default function KlankzuiverCheck() {
     let totalDone = 0;
 
     try {
-      // first pass: get total count
-      const { count } = await supabase.from('wordfrequency')
-        .select('*', { count: 'exact', head: true })
-        .is('klankzuiver', null)
-        .not('klankteken', 'is', null)
-        .neq('klankteken', '');
-      const total = count ?? 0;
-      setBulkProgress({ done: 0, total });
-
-      let lastId = 0;
-      while (!bulkAbort.current) {
-        const { data, error } = await supabase
-          .from('wordfrequency')
-          .select('id, klankteken')
+      if (mode === 'pending') {
+        const { count } = await supabase.from('wordfrequency')
+          .select('*', { count: 'exact', head: true })
           .is('klankzuiver', null)
           .not('klankteken', 'is', null)
-          .neq('klankteken', '')
-          .gt('id', lastId)
-          .order('id', { ascending: true })
-          .limit(BATCH_SIZE);
+          .neq('klankteken', '');
+        const total = count ?? 0;
+        setBulkProgress({ done: 0, total });
 
-        if (error) throw error;
-        if (!data || data.length === 0) break;
+        let lastId = 0;
+        while (!bulkAbort.current) {
+          const { data, error } = await supabase
+            .from('wordfrequency')
+            .select('id, klankteken')
+            .is('klankzuiver', null)
+            .not('klankteken', 'is', null)
+            .neq('klankteken', '')
+            .gt('id', lastId)
+            .order('id', { ascending: true })
+            .limit(BATCH_SIZE);
 
-        const updates = data.map(r =>
-          supabase.from('wordfrequency')
-            .update({ klankzuiver: computeKlankzuiver(r.klankteken as string) })
-            .eq('id', r.id)
-        );
-        await Promise.all(updates);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
 
-        totalDone += data.length;
-        lastId = data[data.length - 1].id as number;
-        setBulkProgress({ done: totalDone, total });
-        setApplied(prev => prev + data.length);
+          await Promise.all(data.map(r =>
+            supabase.from('wordfrequency')
+              .update({ klankzuiver: computeKlankzuiver(r.klankteken as string) })
+              .eq('id', r.id)
+          ));
+
+          totalDone += data.length;
+          lastId = data[data.length - 1].id as number;
+          setBulkProgress({ done: totalDone, total });
+          setApplied(prev => prev + data.length);
+        }
+      } else {
+        // recalculate mode: scan ALL words with klankteken, update only changed ones
+        const { count } = await supabase.from('wordfrequency')
+          .select('*', { count: 'exact', head: true })
+          .not('klankteken', 'is', null)
+          .neq('klankteken', '');
+        const total = count ?? 0;
+        setBulkProgress({ done: 0, total });
+
+        let lastId = 0;
+        let scanned = 0;
+        while (!bulkAbort.current) {
+          const { data, error } = await supabase
+            .from('wordfrequency')
+            .select('id, klankteken, klankzuiver')
+            .not('klankteken', 'is', null)
+            .neq('klankteken', '')
+            .gt('id', lastId)
+            .order('id', { ascending: true })
+            .limit(BATCH_SIZE);
+
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+
+          const changed = data.filter(r => {
+            const computed = computeKlankzuiver(r.klankteken as string);
+            return r.klankzuiver !== computed;
+          });
+
+          if (changed.length > 0) {
+            await Promise.all(changed.map(r =>
+              supabase.from('wordfrequency')
+                .update({ klankzuiver: computeKlankzuiver(r.klankteken as string) })
+                .eq('id', r.id)
+            ));
+            totalDone += changed.length;
+            setApplied(prev => prev + changed.length);
+          }
+
+          scanned += data.length;
+          lastId = data[data.length - 1].id as number;
+          setBulkProgress({ done: scanned, total });
+        }
       }
 
-      showToast('success', `${totalDone.toLocaleString('nl-BE')} woorden verwerkt.`);
+      showToast('success', `${totalDone.toLocaleString('nl-BE')} woorden bijgewerkt.`);
       await loadStats();
     } catch (err) {
       showToast('error', String(err));
@@ -356,11 +399,11 @@ export default function KlankzuiverCheck() {
           {!bulkRunning ? (
             <button
               onClick={runAll}
-              disabled={loadingPreview || applying || pendingCount === 0}
+              disabled={loadingPreview || applying || (mode === 'pending' ? pendingCount === 0 : (stats?.total ?? 0) === 0)}
               className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <Zap className="w-4 h-4" />
-              Alles automatisch verwerken ({pendingCount.toLocaleString('nl-BE')})
+              Alles automatisch verwerken ({(mode === 'pending' ? pendingCount : (stats?.total ?? 0)).toLocaleString('nl-BE')})
             </button>
           ) : (
             <div className="flex items-center gap-3">
