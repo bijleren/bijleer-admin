@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Bug, Calendar, User, Monitor, Globe, AlertTriangle, ChevronDown, ChevronUp, Tag, FileText, Clock, CheckCircle, XCircle, Search } from 'lucide-react';
+import { Bug, Calendar, User, Monitor, Globe, AlertTriangle, ChevronDown, ChevronUp, Tag, FileText, Clock, CheckCircle, XCircle, Search, Eye } from 'lucide-react';
 
 interface ConsoleError {
   level: 'error' | 'warn' | 'uncaught' | 'unhandledrejection';
@@ -26,6 +26,7 @@ interface BugReport {
   console_errors: ConsoleError[] | null;
   status: string;
   notes: string | null;
+  external_notes: string | null;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -59,6 +60,8 @@ export default function BugReports() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<BugReport | null>(null);
   const [notes, setNotes] = useState('');
+  const [externalNotes, setExternalNotes] = useState('');
+  const [savingExternalNotes, setSavingExternalNotes] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [filterPlatform, setFilterPlatform] = useState('all');
@@ -76,7 +79,7 @@ export default function BugReports() {
     try {
       const { data, error } = await supabase
         .from('bug_reports')
-        .select('id,created_at,type,title,description,user_email,url,viewport,locale,ip,status,notes,user_agent,user_id,console_errors,screenshot')
+        .select('id,created_at,type,title,description,user_email,url,viewport,locale,ip,status,notes,external_notes,user_agent,user_id,console_errors,screenshot')
         .order('created_at', { ascending: false });
       if (error) throw error;
       setReports(data || []);
@@ -104,9 +107,20 @@ export default function BugReports() {
     setSelected(prev => prev ? { ...prev, notes } : prev);
   };
 
+  const saveExternalNotes = async () => {
+    if (!selected) return;
+    setSavingExternalNotes(true);
+    const { error } = await supabase.from('bug_reports').update({ external_notes: externalNotes || null }).eq('id', selected.id);
+    setSavingExternalNotes(false);
+    if (error) { console.error(error); return; }
+    setReports(prev => prev.map(r => r.id === selected.id ? { ...r, external_notes: externalNotes || null } : r));
+    setSelected(prev => prev ? { ...prev, external_notes: externalNotes || null } : prev);
+  };
+
   const selectReport = (report: BugReport) => {
     setSelected(report);
     setNotes(report.notes || '');
+    setExternalNotes(report.external_notes || '');
     setScreenshotOpen(false);
     setErrorsOpen(false);
   };
@@ -397,7 +411,7 @@ export default function BugReports() {
                   </div>
                 )}
 
-                {/* Notes */}
+                {/* Internal notes */}
                 <div>
                   <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
                     Interne notities
@@ -415,6 +429,29 @@ export default function BugReports() {
                     className="mt-2 px-4 py-2 bg-gray-700 text-white text-sm rounded-lg hover:bg-gray-800 disabled:opacity-50 transition-colors"
                   >
                     {savingNotes ? 'Opslaan...' : 'Notities opslaan'}
+                  </button>
+                </div>
+
+                {/* External notes */}
+                <div className="rounded-lg border border-teal-200 bg-teal-50 p-4">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-teal-700 uppercase tracking-wide mb-2">
+                    <Eye className="w-3.5 h-3.5" />
+                    Externe notities
+                    <span className="ml-1 px-1.5 py-0.5 rounded bg-teal-100 text-teal-600 text-[10px] font-semibold normal-case tracking-normal">Zichtbaar voor eindgebruikers</span>
+                  </label>
+                  <textarea
+                    value={externalNotes}
+                    onChange={e => setExternalNotes(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-teal-300 bg-white rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
+                    placeholder="Voeg een reactie toe die zichtbaar is voor de eindgebruiker..."
+                  />
+                  <button
+                    onClick={saveExternalNotes}
+                    disabled={savingExternalNotes}
+                    className="mt-2 px-4 py-2 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                  >
+                    {savingExternalNotes ? 'Opslaan...' : 'Externe notities opslaan'}
                   </button>
                 </div>
 
