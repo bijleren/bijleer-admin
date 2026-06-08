@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { CheckCircle, XCircle, RefreshCw, Play, AlertTriangle, Info } from 'lucide-react';
+import { CheckCircle, XCircle, RefreshCw, Play, AlertTriangle, Info, Zap } from 'lucide-react';
 
 const DOUBLE_CONSONANTS = new Set([
   'zz','rr','tt','pp','ss','dd','ff','gg','kk','ll','mm','ww','vv','bb','nn',
@@ -66,6 +66,9 @@ export default function KlankzuiverCheck() {
   const [applying, setApplying]     = useState(false);
   const [applied, setApplied]       = useState(0);
   const [toast, setToast]           = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+  const bulkAbort = useRef(false);
 
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToast({ type, msg });
@@ -163,6 +166,60 @@ export default function KlankzuiverCheck() {
       showToast('error', String(err));
     } finally {
       setApplying(false);
+    }
+  };
+
+  const runAll = async () => {
+    bulkAbort.current = false;
+    setBulkRunning(true);
+    setBulkProgress(null);
+    let totalDone = 0;
+
+    try {
+      // first pass: get total count
+      const { count } = await supabase.from('wordfrequency')
+        .select('*', { count: 'exact', head: true })
+        .is('klankzuiver', null)
+        .not('klankteken', 'is', null)
+        .neq('klankteken', '');
+      const total = count ?? 0;
+      setBulkProgress({ done: 0, total });
+
+      let lastId = 0;
+      while (!bulkAbort.current) {
+        const { data, error } = await supabase
+          .from('wordfrequency')
+          .select('id, klankteken')
+          .is('klankzuiver', null)
+          .not('klankteken', 'is', null)
+          .neq('klankteken', '')
+          .gt('id', lastId)
+          .order('id', { ascending: true })
+          .limit(BATCH_SIZE);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+
+        const updates = data.map(r =>
+          supabase.from('wordfrequency')
+            .update({ klankzuiver: computeKlankzuiver(r.klankteken as string) })
+            .eq('id', r.id)
+        );
+        await Promise.all(updates);
+
+        totalDone += data.length;
+        lastId = data[data.length - 1].id as number;
+        setBulkProgress({ done: totalDone, total });
+        setApplied(prev => prev + data.length);
+      }
+
+      showToast('success', `${totalDone.toLocaleString('nl-BE')} woorden verwerkt.`);
+      await loadStats();
+    } catch (err) {
+      showToast('error', String(err));
+    } finally {
+      setBulkRunning(false);
+      setBulkProgress(null);
     }
   };
 
@@ -268,15 +325,58 @@ export default function KlankzuiverCheck() {
           </p>
         </div>
 
-        <button
-          onClick={loadPreview}
-          disabled={loadingPreview || (mode === 'pending' && pendingCount === 0)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {loadingPreview
-            ? <><RefreshCw className="w-4 h-4 animate-spin" /> Laden...</>
-            : <><Play className="w-4 h-4" /> Volgende {BATCH_SIZE} woorden laden</>}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={loadPreview}
+            disabled={loadingPreview || bulkRunning || (mode === 'pending' && pendingCount === 0)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loadingPreview
+              ? <><RefreshCw className="w-4 h-4 animate-spin" /> Laden...</>
+              : <><Play className="w-4 h-4" /> Volgende {BATCH_SIZE} woorden laden</>}
+          </button>
+
+          {!bulkRunning ? (
+            <button
+              onClick={runAll}
+              disabled={loadingPreview || applying || pendingCount === 0}
+              className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Zap className="w-4 h-4" />
+              Alles automatisch verwerken ({pendingCount.toLocaleString('nl-BE')})
+            </button>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-medium">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                {bulkProgress
+                  ? `${bulkProgress.done.toLocaleString('nl-BE')} / ${bulkProgress.total.toLocaleString('nl-BE')} verwerkt`
+                  : 'Starten...'}
+              </div>
+              <button
+                onClick={() => { bulkAbort.current = true; }}
+                className="px-3 py-2.5 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                Stoppen
+              </button>
+            </div>
+          )}
+        </div>
+
+        {bulkProgress && (
+          <div>
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span>{bulkProgress.done.toLocaleString('nl-BE')} verwerkt</span>
+              <span>{Math.round((bulkProgress.done / bulkProgress.total) * 100)}%</span>
+            </div>
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                style={{ width: `${Math.round((bulkProgress.done / bulkProgress.total) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Preview table */}
@@ -390,3 +490,6 @@ export default function KlankzuiverCheck() {
     </div>
   );
 }
+
+
+export default KlankzuiverCheck
