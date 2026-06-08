@@ -510,5 +510,3 @@ export default function KlankzuiverCheck() {
     </div>
   );
 }
-
-export default KlankzuiverCheck
