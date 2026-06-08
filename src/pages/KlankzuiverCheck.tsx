@@ -8,10 +8,8 @@ const DOUBLE_CONSONANTS = new Set([
 
 const BATCH_SIZE = 200;
 
-function isAlsViolation(phoneme: string, isLast: boolean): boolean {
-  if (!phoneme.includes('als')) return false;
-  if (isLast && phoneme === 'galsch') return false;
-  return true;
+function isAlsViolation(phoneme: string): boolean {
+  return phoneme.includes('als');
 }
 
 function computeKlankzuiver(klankteken: string): 0 | 1 {
@@ -19,8 +17,7 @@ function computeKlankzuiver(klankteken: string): 0 | 1 {
   if (phonemes[phonemes.length - 1] === 'dt') return 0;
   for (let i = 0; i < phonemes.length; i++) {
     const p = phonemes[i];
-    const last = i === phonemes.length - 1;
-    if (isAlsViolation(p, last)) return 0;
+    if (isAlsViolation(p)) return 0;
     if (DOUBLE_CONSONANTS.has(p)) return 0;
     if (p === 'x') return 0;
   }
