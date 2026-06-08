@@ -10,6 +10,7 @@ const BATCH_SIZE = 200;
 
 function computeKlankzuiver(klankteken: string): 0 | 1 {
   const phonemes = klankteken.split('-');
+  if (phonemes[phonemes.length - 1] === 'dt') return 0;
   for (const p of phonemes) {
     if (p.includes('als')) return 0;
     if (DOUBLE_CONSONANTS.has(p)) return 0;
@@ -20,6 +21,7 @@ function computeKlankzuiver(klankteken: string): 0 | 1 {
 function reasons(klankteken: string): string[] {
   const r: string[] = [];
   const phonemes = klankteken.split('-');
+  if (phonemes[phonemes.length - 1] === 'dt') r.push('eindigt op dt');
   const alsOnes = phonemes.filter(p => p.includes('als'));
   const dcOnes  = phonemes.filter(p => DOUBLE_CONSONANTS.has(p));
   if (alsOnes.length) r.push(`als: ${alsOnes.join(', ')}`);
@@ -93,6 +95,7 @@ export default function KlankzuiverCheck() {
         .select('id, word, klankteken, klankzuiver')
         .not('klankteken', 'is', null)
         .neq('klankteken', '')
+        .order('aantal_karakters', { ascending: true, nullsFirst: false })
         .order('id', { ascending: true })
         .limit(BATCH_SIZE);
 
