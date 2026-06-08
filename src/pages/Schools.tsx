@@ -282,7 +282,6 @@ export default function Schools() {
   const handleExportExcel = async () => {
     setExporting(true);
     try {
-      // Fetch all schools with full data
       const { data: allSchools, error } = await supabase
         .from('schools')
         .select('*')
@@ -306,41 +305,67 @@ export default function Schools() {
       const studentCounts: Record<string, number> = {};
       studentsRes.data?.forEach((r) => { studentCounts[r.school_id] = (studentCounts[r.school_id] || 0) + 1; });
 
-      const headers = [
-        'Naam',
-        'Schoolcode',
-        'Stad',
-        'Onboarded',
-        'Coaches',
-        'Klassen',
-        'Leerlingen',
-        'Aangemaakt op',
-        'Bijgewerkt op',
-      ];
-
-      const escapeCell = (v: string) => {
+      const escapeCell = (v: unknown): string => {
         const s = String(v ?? '');
         return s.includes(',') || s.includes('"') || s.includes('\n')
           ? `"${s.replace(/"/g, '""')}"`
           : s;
       };
+      const fmtDate = (v: string | null) =>
+        v ? new Date(v).toLocaleDateString('nl-BE') : '';
+
+      const headers = [
+        'Naam',
+        'Schoolcode',
+        'Adres',
+        'Postcode',
+        'Stad',
+        'Land',
+        'Telefoon',
+        'E-mail',
+        'Website',
+        'Directeur',
+        'Organisatietype',
+        'Onboarded',
+        'Premium',
+        'Coaches',
+        'Klassen',
+        'Leerlingen (app)',
+        'Leerlingen (opgegeven)',
+        'Interne nota',
+        'Campagne notities',
+        'Campagne contact op',
+        'Aangemaakt op',
+        'Bijgewerkt op',
+      ];
 
       const rows = allSchools.map((s) => [
-        escapeCell(s.name || ''),
-        escapeCell(s.school_code || ''),
-        escapeCell(s.city || ''),
+        escapeCell(s.name),
+        escapeCell(s.school_code),
+        escapeCell(s.address),
+        escapeCell(s.postal_code),
+        escapeCell(s.city),
+        escapeCell(s.country),
+        escapeCell(s.phone),
+        escapeCell(s.email),
+        escapeCell(s.website),
+        escapeCell(s.principal_name),
+        escapeCell(s.organization_type),
         s.onboarded === 1 ? 'Ja' : 'Nee',
+        s.premium_school === 1 ? 'Ja' : 'Nee',
         coachCounts[s.id] || 0,
         classCounts[s.id] || 0,
         studentCounts[s.id] || 0,
-        escapeCell(s.created_at ? new Date(s.created_at).toLocaleDateString('nl-BE') : ''),
-        escapeCell(s.updated_at ? new Date(s.updated_at).toLocaleDateString('nl-BE') : ''),
+        s.student_count ?? '',
+        escapeCell(s.internal_note),
+        escapeCell(s.campaign_notes),
+        fmtDate(s.campaign_contacted_at),
+        fmtDate(s.created_at),
+        fmtDate(s.updated_at),
       ]);
 
       const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
-      // BOM for Excel to correctly interpret UTF-8
-      const bom = '\uFEFF';
-      const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
