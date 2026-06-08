@@ -40,7 +40,8 @@ const navigation = [
       { name: 'Betekenis Genereren', href: '/woordenschat/betekenis-genereren' },
       { name: 'Woordstructuur', href: '/woordenschat/woordstructuur' },
       { name: 'Oefentypes', href: '/woordenschat/oefentypes' },
-      { name: 'Kinderwoorden', href: '/woordenschat/kinderwoorden' }
+      { name: 'Kinderwoorden', href: '/woordenschat/kinderwoorden' },
+      { name: 'Klankzuiver Check', href: '/woordenschat/klankzuiver-check' }
     ]
   },
   {

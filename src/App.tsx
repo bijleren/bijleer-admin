@@ -56,6 +56,7 @@ import FeatureAnalytics from './pages/FeatureAnalytics';
 import LetterLezerAnalytics from './pages/LetterLezerAnalytics';
 import KleuterAfbeeldingen from './pages/KleuterAfbeeldingen';
 import Kinderwoorden from './pages/Kinderwoorden';
+import KlankzuiverCheck from './pages/KlankzuiverCheck';
 import Begeleiding from './pages/Begeleiding';
 
 function App() {
@@ -107,6 +108,7 @@ function App() {
             <Route path="woordenschat/woordstructuur" element={<Woordstructuur />} />
             <Route path="woordenschat/oefentypes" element={<ExerciseTypes />} />
             <Route path="woordenschat/kinderwoorden" element={<Kinderwoorden />} />
+            <Route path="woordenschat/klankzuiver-check" element={<KlankzuiverCheck />} />
             <Route path="kleuterdidactiek/leerdoelen" element={<EducationalGoals />} />
             <Route path="kleuterdidactiek/videos" element={<EducationalVideos />} />
             <Route path="kleuterdidactiek/schrijf" element={<WritingExercises />} />
