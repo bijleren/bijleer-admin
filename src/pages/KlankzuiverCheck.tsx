@@ -14,6 +14,7 @@ function computeKlankzuiver(klankteken: string): 0 | 1 {
   for (const p of phonemes) {
     if (p.includes('als')) return 0;
     if (DOUBLE_CONSONANTS.has(p)) return 0;
+    if (p === 'x') return 0;
   }
   return 1;
 }
@@ -26,6 +27,7 @@ function reasons(klankteken: string): string[] {
   const dcOnes  = phonemes.filter(p => DOUBLE_CONSONANTS.has(p));
   if (alsOnes.length) r.push(`als: ${alsOnes.join(', ')}`);
   if (dcOnes.length)  r.push(`dubbelconsonant: ${dcOnes.join(', ')}`);
+  if (phonemes.includes('x')) r.push('x');
   return r;
 }
 
