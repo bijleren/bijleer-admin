@@ -15,6 +15,7 @@ import {
   GraduationCap,
   LayoutGrid,
   List,
+  Download,
 } from 'lucide-react';
 
 interface School {
@@ -276,6 +277,83 @@ export default function Schools() {
   const totalClasses = schoolStats.reduce((sum, s) => sum + s.classes, 0);
   const totalStudents = schoolStats.reduce((sum, s) => sum + s.students, 0);
 
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      // Fetch all schools with full data
+      const { data: allSchools, error } = await supabase
+        .from('schools')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      if (!allSchools || allSchools.length === 0) return;
+
+      const schoolIds = allSchools.map((s) => s.id);
+
+      const [coachesRes, classesRes, studentsRes] = await Promise.all([
+        supabase.from('school_users').select('school_id').in('school_id', schoolIds),
+        supabase.from('classes').select('school_id').in('school_id', schoolIds),
+        supabase.from('students').select('school_id').in('school_id', schoolIds),
+      ]);
+
+      const coachCounts: Record<string, number> = {};
+      coachesRes.data?.forEach((r) => { coachCounts[r.school_id] = (coachCounts[r.school_id] || 0) + 1; });
+      const classCounts: Record<string, number> = {};
+      classesRes.data?.forEach((r) => { classCounts[r.school_id] = (classCounts[r.school_id] || 0) + 1; });
+      const studentCounts: Record<string, number> = {};
+      studentsRes.data?.forEach((r) => { studentCounts[r.school_id] = (studentCounts[r.school_id] || 0) + 1; });
+
+      const headers = [
+        'Naam',
+        'Schoolcode',
+        'Stad',
+        'Onboarded',
+        'Coaches',
+        'Klassen',
+        'Leerlingen',
+        'Aangemaakt op',
+        'Bijgewerkt op',
+      ];
+
+      const escapeCell = (v: string) => {
+        const s = String(v ?? '');
+        return s.includes(',') || s.includes('"') || s.includes('\n')
+          ? `"${s.replace(/"/g, '""')}"`
+          : s;
+      };
+
+      const rows = allSchools.map((s) => [
+        escapeCell(s.name || ''),
+        escapeCell(s.school_code || ''),
+        escapeCell(s.city || ''),
+        s.onboarded === 1 ? 'Ja' : 'Nee',
+        coachCounts[s.id] || 0,
+        classCounts[s.id] || 0,
+        studentCounts[s.id] || 0,
+        escapeCell(s.created_at ? new Date(s.created_at).toLocaleDateString('nl-BE') : ''),
+        escapeCell(s.updated_at ? new Date(s.updated_at).toLocaleDateString('nl-BE') : ''),
+      ]);
+
+      const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+      // BOM for Excel to correctly interpret UTF-8
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `scholen-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export failed:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -315,6 +393,18 @@ export default function Schools() {
             </div>
           )}
         </div>
+        <button
+          onClick={handleExportExcel}
+          disabled={exporting}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {exporting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+          Exporteer naar Excel
+        </button>
       </div>
 
       <div className="border-b border-gray-200">
