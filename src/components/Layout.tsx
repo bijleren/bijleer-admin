@@ -77,7 +77,8 @@ const navigation = [
       { name: 'Bug Reports', href: '/platform/bug-reports', badgeKey: 'bugNew' },
       { name: 'Emergency Broadcast', href: '/platform/emergency-broadcast' },
       { name: 'Feature Analytics', href: '/platform/analytics' },
-      { name: 'Begeleiding', href: '/platform/begeleiding', badgeKey: 'begeleidingNew' }
+      { name: 'Begeleiding', href: '/platform/begeleiding', badgeKey: 'begeleidingNew' },
+      { name: 'Ratings', href: '/platform/ratings' }
     ]
   },
   {

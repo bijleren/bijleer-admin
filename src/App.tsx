@@ -58,6 +58,7 @@ import KleuterAfbeeldingen from './pages/KleuterAfbeeldingen';
 import Kinderwoorden from './pages/Kinderwoorden';
 import KlankzuiverCheck from './pages/KlankzuiverCheck';
 import Begeleiding from './pages/Begeleiding';
+import AppRatings from './pages/AppRatings';
 
 function App() {
   return (
@@ -124,6 +125,7 @@ function App() {
             <Route path="platform/emergency-broadcast" element={<EmergencyBroadcast />} />
             <Route path="platform/analytics" element={<FeatureAnalytics />} />
             <Route path="platform/begeleiding" element={<Begeleiding />} />
+            <Route path="platform/ratings" element={<AppRatings />} />
             <Route path="licensing/overview" element={<LicenseOverview />} />
             <Route path="licensing/vouchers" element={<VoucherManagement />} />
             <Route path="licensing/manual-grants" element={<ManualGrants />} />
