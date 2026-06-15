@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Bug, Calendar, User, Monitor, Globe, AlertTriangle, ChevronDown, ChevronUp, Tag, FileText, Clock, CheckCircle, XCircle, Search, Eye } from 'lucide-react';
+import { Bug, Calendar, User, Monitor, Globe, AlertTriangle, ChevronDown, ChevronUp, Tag, FileText, Clock, CheckCircle, XCircle, Search, Eye, Download } from 'lucide-react';
 
 interface ConsoleError {
   level: 'error' | 'warn' | 'uncaught' | 'unhandledrejection';
@@ -149,6 +149,34 @@ export default function BugReports() {
 
   const newCount = reports.filter(r => r.status === 'new').length;
 
+  const exportCsv = (data: BugReport[], filename: string) => {
+    const headers = ['id', 'datum', 'type', 'status', 'titel', 'beschrijving', 'gebruiker', 'url', 'viewport', 'locale', 'notities'];
+    const statusLabel = (s: string) => STATUS_CONFIG[s as keyof typeof STATUS_CONFIG]?.label ?? s;
+    const typeLabel = (t: string) => TYPE_LABELS[t] ?? t;
+    const escape = (v: string | null | undefined) => `"${(v ?? '').replace(/"/g, '""')}"`;
+    const rows = data.map(r => [
+      escape(r.id),
+      escape(new Date(r.created_at).toLocaleString('nl-BE')),
+      escape(typeLabel(r.type)),
+      escape(statusLabel(r.status)),
+      escape(r.title),
+      escape(r.description),
+      escape(r.user_email),
+      escape(r.url),
+      escape(r.viewport),
+      escape(r.locale),
+      escape(r.notes),
+    ].join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const StatusBadge = ({ status }: { status: string }) => {
     const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.new;
     const Icon = cfg.icon;
@@ -181,11 +209,29 @@ export default function BugReports() {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-3xl font-bold text-gray-900">Bug Reports</h1>
-          {newCount > 0 && (
-            <span className="px-2.5 py-1 bg-blue-600 text-white text-sm font-semibold rounded-full">{newCount} nieuw</span>
-          )}
+        <div className="flex items-start justify-between gap-4 mb-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900">Bug Reports</h1>
+            {newCount > 0 && (
+              <span className="px-2.5 py-1 bg-blue-600 text-white text-sm font-semibold rounded-full">{newCount} nieuw</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => exportCsv(reports.filter(r => r.status !== 'fixed'), 'bug-reports-actief.csv')}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Exporteer actief
+            </button>
+            <button
+              onClick={() => exportCsv(reports, 'bug-reports-alles.csv')}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Exporteer alles
+            </button>
+          </div>
         </div>
         <p className="text-gray-500">In-app meldingen van fouten, suggesties en vragen</p>
       </div>
