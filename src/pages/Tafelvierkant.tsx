@@ -966,6 +966,3 @@ export default function Tafelvierkant() {
     </div>
   );
 }
-
-
-export default Tafelvierkant
