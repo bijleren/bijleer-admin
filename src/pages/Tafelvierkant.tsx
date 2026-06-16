@@ -75,8 +75,31 @@ const KIND_CONFIG = {
 };
 
 const EXERCISE_LABELS: Record<string, string> = {
-  square: 'Vierkant',
+  square: 'Tafelvierkant',
   quiz: 'Quiz',
+  'zoek-fout': 'Zoek de fout',
+  volgorde: 'Volgorde',
+  patronen: 'Patronen',
+  aanvullen: 'Aanvullen',
+  herkenning: 'Herkenning',
+  hoeveel_vakjes: 'Hoeveel vakjes?',
+  tafelbreuken: 'Tafelbreuken',
+  breuken: 'Breuken',
+  breuken_vergelijken: 'Breuken vergelijken',
+};
+
+const EXERCISE_COLORS: Record<string, string> = {
+  square: '#2563eb',
+  quiz: '#0d9488',
+  'zoek-fout': '#7c3aed',
+  volgorde: '#db2777',
+  patronen: '#d97706',
+  aanvullen: '#16a34a',
+  herkenning: '#dc2626',
+  hoeveel_vakjes: '#0891b2',
+  tafelbreuken: '#9333ea',
+  breuken: '#ea580c',
+  breuken_vergelijken: '#65a30d',
 };
 
 const TIME_RANGES = [
@@ -429,7 +452,39 @@ function OverviewTab({ allSessions, studentMap, schoolMap }: {
         </div>
       </div>
 
-      {/* Table popularity + exercise types */}
+      {/* Exercise types — full-width dedicated panel */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Oefentypes</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Alle sessietypes binnen Oefenen ({exerciseTypeCounts.reduce((s, [, c]) => s + c, 0)} sessies)</p>
+          </div>
+        </div>
+        {exerciseTypeCounts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
+            {exerciseTypeCounts.map(([type, count]) => {
+              const color = EXERCISE_COLORS[type] ?? '#6b7280';
+              const pct = exerciseTypeCounts[0][1] ? Math.round((count / exerciseTypeCounts[0][1]) * 100) : 0;
+              return (
+                <div key={type} className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                      <span className="font-medium text-gray-700">{EXERCISE_LABELS[type] ?? type}</span>
+                    </div>
+                    <span className="font-bold text-gray-800 ml-2">{count}</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : <p className="text-sm text-gray-400">Geen oefensessies in deze periode</p>}
+      </div>
+
+      {/* Table popularity + school breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
           <h2 className="text-sm font-semibold text-gray-900 mb-1">Populariteit per tafel</h2>
@@ -448,35 +503,17 @@ function OverviewTab({ allSessions, studentMap, schoolMap }: {
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-1">Oefentypes (Oefenen)</h2>
-          <p className="text-xs text-gray-400 mb-4">Verdeling binnen oefensessies</p>
-          {exerciseTypeCounts.length > 0 ? (
-            <div className="space-y-3">
-              {exerciseTypeCounts.map(([type, count], i) => (
-                <HorizBar
-                  key={type}
-                  label={EXERCISE_LABELS[type] ?? type}
-                  value={count}
-                  max={exerciseTypeCounts[0][1]}
-                  color={['#2563eb', '#0d9488'][i % 2]}
-                  sub="sessies"
-                />
-              ))}
-            </div>
-          ) : <p className="text-sm text-gray-400">Geen oefensessies in deze periode</p>}
-
-          {/* Schools */}
-          <h2 className="text-sm font-semibold text-gray-900 mt-6 mb-1">Gebruik per school</h2>
-          <p className="text-xs text-gray-400 mb-4">Sessies per school</p>
+          <h2 className="text-sm font-semibold text-gray-900 mb-1">Gebruik per school</h2>
+          <p className="text-xs text-gray-400 mb-4">Sessies en leerlingen per school</p>
           {schoolBreakdown.length > 0 ? (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {schoolBreakdown.map(({ id, sessions: sc, students }) => (
-                <div key={id} className="space-y-0.5">
+                <div key={id} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium text-gray-700 truncate mr-2">{schoolMap[id]?.name ?? id.slice(0, 8)}</span>
-                    <span className="text-gray-500 shrink-0">{sc} sessies · {students} ll.</span>
+                    <span className="text-gray-500 shrink-0 text-xs">{sc} sessies · {students} ll.</span>
                   </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full bg-amber-400 rounded-full" style={{ width: `${(sc / maxSchoolSessions) * 100}%` }} />
                   </div>
                 </div>
