@@ -60,6 +60,7 @@ import KlankzuiverCheck from './pages/KlankzuiverCheck';
 import Begeleiding from './pages/Begeleiding';
 import AppRatings from './pages/AppRatings';
 import Tafelvierkant from './pages/Tafelvierkant';
+import PageViews from './pages/PageViews';
 
 function App() {
   return (
@@ -126,6 +127,7 @@ function App() {
             <Route path="platform/bug-reports" element={<BugReports />} />
             <Route path="platform/emergency-broadcast" element={<EmergencyBroadcast />} />
             <Route path="platform/analytics" element={<FeatureAnalytics />} />
+            <Route path="platform/pageviews" element={<PageViews />} />
             <Route path="platform/begeleiding" element={<Begeleiding />} />
             <Route path="platform/ratings" element={<AppRatings />} />
             <Route path="licensing/overview" element={<LicenseOverview />} />
