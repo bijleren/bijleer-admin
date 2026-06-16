@@ -34,7 +34,6 @@ interface PracticeSession {
   avg_seconds_per_answer: number | null;
   duration_seconds: number;
   completed: boolean;
-  questions_json: QuestionEntry[] | null;
 }
 
 interface TestSession {
@@ -894,7 +893,7 @@ export default function Tafelvierkant() {
       const [practiceRes, tafeltestRes, deeltestRes, studentsRes, schoolsRes] = await Promise.all([
         supabase
           .from('exercise_tablesquare_sessions')
-          .select('id,student_id,school_id,created_at,exercise_type,game_mode,tables_selected,correct_answers,mistake_count,completion_pct,avg_seconds_per_answer,duration_seconds,completed,questions_json')
+          .select('id,student_id,school_id,created_at,exercise_type,game_mode,tables_selected,correct_answers,mistake_count,completion_pct,avg_seconds_per_answer,duration_seconds,completed')
           .order('created_at', { ascending: false })
           .limit(1000),
         supabase
