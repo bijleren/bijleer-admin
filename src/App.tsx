@@ -59,6 +59,7 @@ import Kinderwoorden from './pages/Kinderwoorden';
 import KlankzuiverCheck from './pages/KlankzuiverCheck';
 import Begeleiding from './pages/Begeleiding';
 import AppRatings from './pages/AppRatings';
+import Tafelvierkant from './pages/Tafelvierkant';
 
 function App() {
   return (
@@ -90,6 +91,7 @@ function App() {
             <Route path="apps/executieve-functies" element={<ExecutiveFunctions />} />
             <Route path="apps/gedragskaarten" element={<BehaviorCards />} />
             <Route path="apps/letterlezer" element={<LetterLezerAnalytics />} />
+            <Route path="apps/tafelvierkant" element={<Tafelvierkant />} />
             <Route path="woordenschat/klankteken" element={<Klankteken />} />
             <Route path="woordenschat/woorden" element={<Vocabulary />} />
             <Route path="woordenschat/nieuwe-woorden" element={<NewWords />} />

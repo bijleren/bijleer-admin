@@ -52,7 +52,8 @@ const navigation = [
       { name: 'Activi-tijd', href: '/apps/activi-tijd' },
       { name: 'Executieve Functies', href: '/apps/executieve-functies' },
       { name: 'Gedragskaarten', href: '/apps/gedragskaarten' },
-      { name: 'LetterLezer', href: '/apps/letterlezer' }
+      { name: 'LetterLezer', href: '/apps/letterlezer' },
+      { name: 'Tafelvierkant', href: '/apps/tafelvierkant' }
     ]
   },
   {
