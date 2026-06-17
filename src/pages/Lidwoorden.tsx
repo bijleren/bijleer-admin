@@ -17,11 +17,11 @@ interface Notification {
 type WordOrder = 'random' | 'shortest';
 
 const LIDWOORD_OPTIONS = [
-  { value: 'de', label: 'de', color: 'bg-blue-500 hover:bg-blue-600' },
-  { value: 'het', label: 'het', color: 'bg-green-500 hover:bg-green-600' },
-  { value: 'geen', label: 'geen', color: 'bg-gray-500 hover:bg-gray-600' },
-  { value: 'beide', label: 'beide', color: 'bg-purple-500 hover:bg-purple-600' },
-  { value: 'onzeker', label: 'onzeker', color: 'bg-orange-500 hover:bg-orange-600' },
+  { value: 'de', label: 'de', color: 'bg-blue-500 hover:bg-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  { value: 'het', label: 'het', color: 'bg-green-500 hover:bg-green-600', badge: 'bg-green-100 text-green-700' },
+  { value: 'geen', label: 'geen', color: 'bg-gray-500 hover:bg-gray-600', badge: 'bg-gray-100 text-gray-700' },
+  { value: 'beide', label: 'beide', color: 'bg-purple-500 hover:bg-purple-600', badge: 'bg-purple-100 text-purple-700' },
+  { value: 'onzeker', label: 'onzeker', color: 'bg-orange-500 hover:bg-orange-600', badge: 'bg-orange-100 text-orange-700' },
 ];
 
 export default function Lidwoorden() {
@@ -186,17 +186,20 @@ export default function Lidwoorden() {
             <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <div className="text-center space-y-4">
+            {currentWord.lidwoord && (() => {
+              const opt = LIDWOORD_OPTIONS.find(o => o.value === currentWord.lidwoord);
+              return (
+                <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${opt ? opt.badge : 'bg-yellow-100 text-yellow-800'}`}>
+                  Huidig lidwoord: {currentWord.lidwoord}
+                </div>
+              );
+            })()}
             <div className="inline-block px-4 py-2 bg-gray-100 rounded-lg">
               <p className="text-sm text-gray-600">Woord #{currentWord.id}</p>
             </div>
             <h2 className="text-5xl font-bold text-gray-900">{currentWord.word}</h2>
             {currentWord.betekenis && (
               <p className="text-lg text-gray-600 italic">{currentWord.betekenis}</p>
-            )}
-            {currentWord.lidwoord && (
-              <div className="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
-                Huidig lidwoord: {currentWord.lidwoord}
-              </div>
             )}
           </div>
 
