@@ -1,0 +1,1 @@
+UPDATE wordfrequency SET lidwoord_check = 0 WHERE lidwoord_check = 1;
