@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Upload, FileText, CheckCircle, XCircle, Trash2, Eye, Edit2, Play } from 'lucide-react';
+import { Upload, FileText, CheckCircle, XCircle, Trash2, Eye, CreditCard as Edit2, Play } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { analyzeWord } from '../utils/klankteken';
 
@@ -361,22 +361,33 @@ export default function NewWords() {
     }
   };
 
+  const batchUpdateNewWords = async (ids: string[], payload: object): Promise<boolean> => {
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+      const { error } = await supabase
+        .from('new_words')
+        .update(payload)
+        .in('id', ids.slice(i, i + BATCH_SIZE));
+      if (error) {
+        console.error('Error updating new_words:', error);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const approveSelectedWords = async () => {
     if (selectedWords.size === 0) return;
 
     const { data: user } = await supabase.auth.getUser();
+    const payload = {
+      status: 'reviewed',
+      reviewed_by: user?.user?.id,
+      reviewed_at: new Date().toISOString()
+    };
 
-    const { error: updateError } = await supabase
-      .from('new_words')
-      .update({
-        status: 'reviewed',
-        reviewed_by: user?.user?.id,
-        reviewed_at: new Date().toISOString()
-      })
-      .in('id', Array.from(selectedWords));
-
-    if (updateError) {
-      console.error('Error updating new_words:', updateError);
+    const ok = await batchUpdateNewWords(Array.from(selectedWords), payload);
+    if (!ok) {
       alert('Error moving words to reviewed');
       return;
     }
@@ -468,32 +479,30 @@ export default function NewWords() {
 
     const wordsToReject = pendingWords.filter(w => selectedWords.has(w.id));
     const { data: user } = await supabase.auth.getUser();
+    const BATCH_SIZE = 50;
 
-    const rejectedWordsData = wordsToReject.map(w => ({
-      word: w.word,
-      rejected_by: user?.user?.id,
-      rejection_reason: 'Bulk rejection from new words review'
-    }));
-
-    const { error: rejectError } = await supabase
-      .from('rejected_words')
-      .insert(rejectedWordsData);
-
-    if (rejectError) {
-      console.error('Error inserting to rejected_words:', rejectError);
+    for (let i = 0; i < wordsToReject.length; i += BATCH_SIZE) {
+      const batch = wordsToReject.slice(i, i + BATCH_SIZE);
+      const { error } = await supabase
+        .from('rejected_words')
+        .insert(batch.map(w => ({
+          word: w.word,
+          rejected_by: user?.user?.id,
+          rejection_reason: 'Bulk rejection from new words review'
+        })));
+      if (error) {
+        console.error('Error inserting to rejected_words:', error);
+      }
     }
 
-    const { error: updateError } = await supabase
-      .from('new_words')
-      .update({
-        status: 'rejected',
-        reviewed_by: user?.user?.id,
-        reviewed_at: new Date().toISOString()
-      })
-      .in('id', Array.from(selectedWords));
+    const payload = {
+      status: 'rejected',
+      reviewed_by: user?.user?.id,
+      reviewed_at: new Date().toISOString()
+    };
 
-    if (updateError) {
-      console.error('Error updating new_words:', updateError);
+    const ok = await batchUpdateNewWords(Array.from(selectedWords), payload);
+    if (!ok) {
       alert('Error updating word status');
       return;
     }
