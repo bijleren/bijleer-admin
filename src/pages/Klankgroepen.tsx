@@ -118,41 +118,81 @@ export default function Klankgroepen() {
   const applyKlankgroepenRules = (klankteken: string): string => {
     if (!klankteken) return klankteken;
 
-    let result = klankteken;
+    // Split the klankteken string into individual phoneme tokens
+    let tokens = klankteken.split('-');
 
-    const startingPatterns = [
+    // Phoneme pairs that must remain on separate sides of a syllable boundary (split with '+')
+    // These are consonant clusters that belong to different syllables
+    const splitPairs: [string, string][] = [
+      // 'ng' is NOT a consonant cluster in Dutch syllabification — n closes the syllable, g opens next
+      ['n', 'g'],
+      ['n', 'k'],
+      // Other inter-syllable consonant boundaries
+      ['t', 'v'], ['n', 'w'], ['t', 'g'], ['g', 'k'], ['t', 'b'],
+      ['n', 'z'], ['m', 'b'], ['s', 'b'], ['n', 'l'], ['p', 'f'],
+      ['n', 'p'], ['s', 'h'], ['r', 'g'], ['l', 'g'], ['r', 'k'],
+      ['l', 'k'], ['r', 'n'], ['l', 'n'], ['r', 'd'], ['l', 'd'],
+      ['r', 'p'], ['l', 'p'], ['r', 'b'], ['l', 'b'], ['r', 'f'],
+      ['l', 'f'], ['r', 't'], ['l', 't'], ['r', 's'], ['l', 's'],
+      ['r', 'm'], ['l', 'm'], ['n', 'd'], ['n', 't'], ['n', 'b'],
+      ['n', 'v'], ['n', 'f'], ['m', 'p'], ['m', 'd'], ['m', 't'],
+    ];
+
+    // Prefixes that bind to the next token with '+' instead of '-'
+    const startingPrefixes = [
       'b-doffe', 'g-doffe', 'd-doffe', 'v-doffe-r', 'p-doffe',
       'a-f', 'i-n', 'o-p', 'aa-n', 'e-n', 'u-i'
     ];
 
-    for (const pattern of startingPatterns) {
+    // Rebuild as a string, then process token-level splits
+    // First pass: rejoin with separators, marking split boundaries
+    const separators: string[] = new Array(tokens.length - 1).fill('-');
+
+    // Mark double consonants (same letter twice consecutively) as syllable boundaries
+    const doubleConsonantSet = new Set(['mm','nn','ll','pp','tt','dd','kk','bb','ff','ss','gg','vv','zz','rr','cc','jj','ww','hh']);
+    for (let i = 0; i < tokens.length - 1; i++) {
+      const curr = tokens[i];
+      const next = tokens[i + 1];
+
+      // Double consonant boundary
+      if (doubleConsonantSet.has(curr + next) || (curr === next && curr.length === 1)) {
+        separators[i] = '+';
+        continue;
+      }
+
+      // Check split pairs
+      for (const [a, b] of splitPairs) {
+        if (curr === a && next === b) {
+          separators[i] = '+';
+          break;
+        }
+      }
+    }
+
+    // Rebuild the result string
+    let result = tokens[0];
+    for (let i = 0; i < separators.length; i++) {
+      result += separators[i] + tokens[i + 1];
+    }
+
+    // Apply prefix patterns (these override the first '-' after the prefix)
+    for (const pattern of startingPrefixes) {
       if (result.startsWith(pattern + '-')) {
         result = pattern + '+' + result.substring(pattern.length + 1);
         break;
       }
     }
 
-    const doubleConsonants = ['mm', 'nn', 'll', 'pp', 'tt', 'dd', 'kk', 'bb', 'ff', 'ss', 'gg', 'vv', 'zz', 'rr', 'cc', 'jj', 'ww', 'hh'];
-    for (const dc of doubleConsonants) {
-      const pattern = new RegExp(`-${dc}`, 'g');
-      result = result.replace(pattern, `+${dc}`);
-    }
-
-    const letterCombinations = ['t-v', 'n-w', 't-g', 'g-k', 't-b', 'n-z', 'm-b', 's-b', 'n-l', 'p-f', 'n-p', 's-h'];
-    for (const combo of letterCombinations) {
-      result = result.replace(new RegExp(combo, 'g'), combo.replace('-', '+'));
-    }
-
+    // Handle ending suffix: the last phoneme before -doffe/-doffe-n should be split
     const endingPatterns = ['-doffe-n', '-doffe', '-t-doffe'];
     for (const ending of endingPatterns) {
-      if (result.includes(ending)) {
-        const endPattern = new RegExp(`(.+?)-([^-]+)${ending.replace(/-/g, '\\-')}$`);
-        const match = result.match(endPattern);
-        if (match) {
-          const beforeLast = match[1];
-          const lastPhoneme = match[2];
-          result = result.replace(endPattern, `${beforeLast}+${lastPhoneme}${ending}`);
+      if (result.endsWith(ending)) {
+        const withoutEnding = result.slice(0, result.length - ending.length);
+        const lastDash = withoutEnding.lastIndexOf('-');
+        if (lastDash !== -1) {
+          result = withoutEnding.slice(0, lastDash) + '+' + withoutEnding.slice(lastDash + 1) + ending;
         }
+        break;
       }
     }
 
@@ -394,6 +434,27 @@ export default function Klankgroepen() {
           <p className="text-3xl font-bold text-orange-900">{stats.unchecked}</p>
         </div>
       </div>
+
+      {stats.total > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium text-gray-700">Voortgang klankgroepen</span>
+            <span className="font-bold text-gray-900">
+              {Math.round((stats.checked / stats.total) * 100)}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+            <div
+              className="h-3 rounded-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-500"
+              style={{ width: `${Math.round((stats.checked / stats.total) * 100)}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span>{stats.checked} gecontroleerd</span>
+            <span>{stats.unchecked} resterend</span>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-3">
         <button
