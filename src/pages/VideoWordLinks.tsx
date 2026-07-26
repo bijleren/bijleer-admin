@@ -7,7 +7,6 @@ import {
   Search,
   Filter,
   Video,
-  X,
   AlertCircle,
   PlayCircle,
   ExternalLink,

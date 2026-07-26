@@ -74,6 +74,7 @@ type SortOrder = 'asc' | 'desc';
 export default function EducationalVideos() {
   const [videos, setVideos] = useState<(EducationalVideo & { goal_count: number; vocab_count: number })[]>([]);
   const [videoWords, setVideoWords] = useState<Map<string, Set<string>>>(new Map());
+  const [videoCategoryIds, setVideoCategoryIds] = useState<Map<string, Set<string>>>(new Map());
   const [schools, setSchools] = useState<School[]>([]);
   const [categories, setCategories] = useState<VocabCategory[]>([]);
   const [goals, setGoals] = useState<EducationalGoal[]>([]);
@@ -127,16 +128,21 @@ export default function EducationalVideos() {
       const videoIds = videoRows.map((v: EducationalVideo) => v.id!);
 
       const [vocabRes, goalRes] = await Promise.all([
-        supabase.from('educational_video_vocabulary').select('video_id, word').in('video_id', videoIds),
+        supabase.from('educational_video_vocabulary').select('video_id, word, category_id').in('video_id', videoIds),
         supabase.from('educational_video_goals').select('video_id').in('video_id', videoIds),
       ]);
 
       const vocabCounts: Record<string, number> = {};
       const wordsByVideo = new Map<string, Set<string>>();
-      (vocabRes.data || []).forEach((r: { video_id: string; word: string }) => {
+      const categoryIdsByVideo = new Map<string, Set<string>>();
+      (vocabRes.data || []).forEach((r: { video_id: string; word: string; category_id: string | null }) => {
         vocabCounts[r.video_id] = (vocabCounts[r.video_id] || 0) + 1;
         if (!wordsByVideo.has(r.video_id)) wordsByVideo.set(r.video_id, new Set());
         wordsByVideo.get(r.video_id)!.add(r.word);
+        if (r.category_id) {
+          if (!categoryIdsByVideo.has(r.video_id)) categoryIdsByVideo.set(r.video_id, new Set());
+          categoryIdsByVideo.get(r.video_id)!.add(r.category_id);
+        }
       });
       const goalCounts: Record<string, number> = {};
       (goalRes.data || []).forEach((r: { video_id: string }) => {
@@ -149,6 +155,7 @@ export default function EducationalVideos() {
         vocab_count: vocabCounts[v.id!] || 0,
       }));
       setVideoWords(wordsByVideo);
+      setVideoCategoryIds(categoryIdsByVideo);
       setVideos(enriched);
     } catch (error) {
       console.error('Error fetching videos:', error);
@@ -286,11 +293,14 @@ export default function EducationalVideos() {
         const matchesWord =
           !wordFilter ||
           (video.id ? (videoWords.get(video.id)?.has(wordFilter) ?? false) : false);
-        return matchesSearch && matchesFilter && matchesWord;
+        const matchesCategory =
+          categoryFilter === 'all' ||
+          (video.id ? (videoCategoryIds.get(video.id)?.has(categoryFilter) ?? false) : false);
+        return matchesSearch && matchesFilter && matchesWord && matchesCategory;
       })
       .sort((a, b) => {
-        let aValue: string | number | boolean = a[sortField];
-        let bValue: string | number | boolean = b[sortField];
+        let aValue: string | number | boolean = a[sortField] ?? '';
+        let bValue: string | number | boolean = b[sortField] ?? '';
 
         if (sortField === 'created_at') {
           aValue = new Date(aValue as string || '').getTime();
@@ -306,7 +316,7 @@ export default function EducationalVideos() {
           return aValue < bValue ? 1 : -1;
         }
       });
-  }, [videos, searchTerm, filterType, wordFilter, sortField, sortOrder]);
+  }, [videos, searchTerm, filterType, wordFilter, categoryFilter, sortField, sortOrder]);
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="w-4 h-4" />;
@@ -462,6 +472,18 @@ export default function EducationalVideos() {
                 School
               </button>
             </div>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">Alle categorieën</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.emoji} {c.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

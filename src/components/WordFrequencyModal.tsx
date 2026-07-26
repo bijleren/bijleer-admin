@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Search } from 'lucide-react';
+import { X, Search, Video, Plus, Trash2, Loader2, PlayCircle, ExternalLink, AlertCircle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { getVideoEmbed } from '../utils/videoEmbed';
 
 interface WordFrequency {
   id?: number;
@@ -61,6 +64,7 @@ interface WordFrequencyModalProps {
 }
 
 export default function WordFrequencyModal({ isOpen, onClose, onSave, word, allWords = [] }: WordFrequencyModalProps) {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'basic' | 'phonetic' | 'grammar' | 'media' | 'checks' | 'advanced'>('basic');
   const [formData, setFormData] = useState<WordFrequency>({
     word: '',
@@ -78,6 +82,13 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word, allW
   const [wordError, setWordError] = useState(false);
   const [translationSearch, setTranslationSearch] = useState('');
   const [showTranslationDropdown, setShowTranslationDropdown] = useState(false);
+
+  // Direct video links state
+  const [directVideos, setDirectVideos] = useState<{ id: string; direct_url: string; direct_title: string | null }[]>([]);
+  const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [newVideoTitle, setNewVideoTitle] = useState('');
+  const [videoSaving, setVideoSaving] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const translationRef = useRef<HTMLDivElement>(null);
 
   const nlWords = allWords.filter(w => w.language === 'nl' || !w.language);
@@ -119,7 +130,80 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word, allW
     setShowTranslationDropdown(false);
     setErrorMessage(null);
     setWordError(false);
+    setDirectVideos([]);
+    setNewVideoUrl('');
+    setNewVideoTitle('');
+    setVideoError(null);
+
+    if (word && isOpen) {
+      loadDirectVideos(word.word);
+    }
   }, [word, isOpen]);
+
+  const loadDirectVideos = async (wordText: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('educational_video_vocabulary')
+        .select('id, direct_url, direct_title')
+        .eq('word', wordText)
+        .not('direct_url', 'is', null);
+      if (error) throw error;
+      setDirectVideos(data || []);
+    } catch (err) {
+      console.error('Error loading direct videos:', err);
+    }
+  };
+
+  const handleAddDirectVideo = async () => {
+    if (!word) return;
+    if (!newVideoUrl.trim()) {
+      setVideoError('URL is verplicht');
+      return;
+    }
+    const embed = getVideoEmbed(newVideoUrl.trim());
+    if (embed.type === 'unknown') {
+      setVideoError('Alleen YouTube of Vimeo URLs worden ondersteund');
+      return;
+    }
+    setVideoSaving(true);
+    setVideoError(null);
+    try {
+      const { data, error } = await supabase
+        .from('educational_video_vocabulary')
+        .insert([{
+          word: word.word,
+          direct_url: newVideoUrl.trim(),
+          direct_title: newVideoTitle.trim() || null,
+          category_id: null,
+          video_id: null,
+        }])
+        .select('id, direct_url, direct_title')
+        .single();
+      if (error) throw error;
+      setDirectVideos(prev => [...prev, data]);
+      setNewVideoUrl('');
+      setNewVideoTitle('');
+    } catch (err) {
+      console.error('Error adding direct video:', err);
+      setVideoError(err instanceof Error ? err.message : 'Fout bij toevoegen video');
+    } finally {
+      setVideoSaving(false);
+    }
+  };
+
+  const handleRemoveDirectVideo = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('educational_video_vocabulary')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setDirectVideos(prev => prev.filter(v => v.id !== id));
+    } catch (err) {
+      console.error('Error removing direct video:', err);
+      setVideoError('Fout bij verwijderen video');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -754,6 +838,95 @@ export default function WordFrequencyModal({ isOpen, onClose, onSave, word, allW
                   />
                 </div>
               </div>
+
+              {/* Direct Video Links - Admin only */}
+              {isAdmin && word && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Video className="w-5 h-5 text-indigo-600" />
+                    <h3 className="text-sm font-semibold text-gray-900">Video toevoegen (directe link)</h3>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Koppel een YouTube of Vimeo video direct aan dit woord, zonder een catalogusvideo aan te maken.
+                  </p>
+
+                  {videoError && (
+                    <div className="mb-3 p-2 bg-red-50 text-red-700 rounded-lg flex items-center gap-2 text-xs">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      {videoError}
+                    </div>
+                  )}
+
+                  {directVideos.length > 0 && (
+                    <div className="space-y-2 mb-4">
+                      {directVideos.map((dv) => {
+                        const embed = getVideoEmbed(dv.direct_url);
+                        const thumb = embed.thumbnailUrl;
+                        return (
+                          <div key={dv.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                            {thumb ? (
+                              <img src={thumb} alt="" className="w-16 h-10 object-cover rounded flex-shrink-0" />
+                            ) : (
+                              <div className="w-16 h-10 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
+                                <PlayCircle className="w-5 h-5 text-gray-400" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {dv.direct_title || dv.direct_url}
+                              </p>
+                              <p className="text-xs text-gray-500 capitalize">{embed.type}</p>
+                            </div>
+                            <a
+                              href={dv.direct_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDirectVideo(dv.id)}
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <input
+                      type="url"
+                      placeholder="YouTube of Vimeo URL..."
+                      value={newVideoUrl}
+                      onChange={(e) => setNewVideoUrl(e.target.value)}
+                      disabled={videoSaving}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Optionele titel..."
+                      value={newVideoTitle}
+                      onChange={(e) => setNewVideoTitle(e.target.value)}
+                      disabled={videoSaving}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddDirectVideo}
+                      disabled={videoSaving || !newVideoUrl.trim()}
+                      className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {videoSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      Video toevoegen
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
