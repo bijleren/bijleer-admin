@@ -73,6 +73,7 @@ type SortOrder = 'asc' | 'desc';
 
 export default function EducationalVideos() {
   const [videos, setVideos] = useState<(EducationalVideo & { goal_count: number; vocab_count: number })[]>([]);
+  const [videoWords, setVideoWords] = useState<Map<string, Set<string>>>(new Map());
   const [schools, setSchools] = useState<School[]>([]);
   const [categories, setCategories] = useState<VocabCategory[]>([]);
   const [goals, setGoals] = useState<EducationalGoal[]>([]);
@@ -126,13 +127,16 @@ export default function EducationalVideos() {
       const videoIds = videoRows.map((v: EducationalVideo) => v.id!);
 
       const [vocabRes, goalRes] = await Promise.all([
-        supabase.from('educational_video_vocabulary').select('video_id').in('video_id', videoIds),
+        supabase.from('educational_video_vocabulary').select('video_id, word').in('video_id', videoIds),
         supabase.from('educational_video_goals').select('video_id').in('video_id', videoIds),
       ]);
 
       const vocabCounts: Record<string, number> = {};
-      (vocabRes.data || []).forEach((r: { video_id: string }) => {
+      const wordsByVideo = new Map<string, Set<string>>();
+      (vocabRes.data || []).forEach((r: { video_id: string; word: string }) => {
         vocabCounts[r.video_id] = (vocabCounts[r.video_id] || 0) + 1;
+        if (!wordsByVideo.has(r.video_id)) wordsByVideo.set(r.video_id, new Set());
+        wordsByVideo.get(r.video_id)!.add(r.word);
       });
       const goalCounts: Record<string, number> = {};
       (goalRes.data || []).forEach((r: { video_id: string }) => {
@@ -144,6 +148,7 @@ export default function EducationalVideos() {
         goal_count: goalCounts[v.id!] || 0,
         vocab_count: vocabCounts[v.id!] || 0,
       }));
+      setVideoWords(wordsByVideo);
       setVideos(enriched);
     } catch (error) {
       console.error('Error fetching videos:', error);
@@ -278,8 +283,9 @@ export default function EducationalVideos() {
           (filterType === 'global' && video.is_global) ||
           (filterType === 'school' && !video.is_global);
 
-        const matchesWord = !wordFilter || video.vocab_count > 0;
-        // For word filter, we need a more precise check; handled via link data if needed
+        const matchesWord =
+          !wordFilter ||
+          (video.id ? (videoWords.get(video.id)?.has(wordFilter) ?? false) : false);
         return matchesSearch && matchesFilter && matchesWord;
       })
       .sort((a, b) => {
