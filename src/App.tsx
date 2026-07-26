@@ -22,6 +22,7 @@ import CheckBetekenis from './pages/CheckBetekenis';
 import Statistics from './pages/Statistics';
 import Analysis from './pages/Analysis';
 import EducationalVideos from './pages/EducationalVideos';
+import VideoWordLinks from './pages/VideoWordLinks';
 import WritingExercises from './pages/WritingExercises';
 import PhysicalTasks from './pages/PhysicalTasks';
 import LearningGames from './pages/LearningGames';
@@ -120,6 +121,7 @@ function App() {
             <Route path="kleuterdidactiek/speel" element={<LearningGames />} />
             <Route path="kleuterdidactiek/woordenschat" element={<VocabularyManagement />} />
             <Route path="kleuterdidactiek/afbeeldingen" element={<KleuterAfbeeldingen />} />
+            <Route path="kleuterdidactiek/video-woorden" element={<VideoWordLinks />} />
             <Route path="tables" element={<Tables />} />
             <Route path="platform/demo" element={<DemoManagement />} />
             <Route path="platform/demo/:sessionId/registrations" element={<DemoRegistrations />} />
