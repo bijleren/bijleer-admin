@@ -77,24 +77,35 @@ export default function Schools() {
 
   const fetchSchools = async () => {
     try {
-      let query = supabase.from('schools').select('*');
+      let baseQuery = supabase.from('schools').select('*');
 
       if (onboardedFilter !== null) {
-        query = query.eq('onboarded', parseInt(onboardedFilter));
+        baseQuery = baseQuery.eq('onboarded', parseInt(onboardedFilter));
       }
 
       if (monthFilter) {
         const date = new Date(monthFilter);
         const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
         const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
-        query = query
+        baseQuery = baseQuery
           .gte('created_at', startOfMonth.toISOString())
           .lte('created_at', endOfMonth.toISOString());
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
-      if (error) throw error;
-      setSchools(data || []);
+      const allData: School[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await baseQuery
+          .order('created_at', { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (data) allData.push(...data);
+        if (!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      setSchools(allData);
     } catch (error) {
       console.error('Error fetching schools:', error);
     } finally {
@@ -105,13 +116,22 @@ export default function Schools() {
   const fetchSchoolStats = async () => {
     setStatsLoading(true);
     try {
-      const { data: allSchools, error: schoolsError } = await supabase
-        .from('schools')
-        .select('id, name, school_code, city')
-        .order('name');
+      const allSchools: { id: string; name: string; school_code: string; city: string }[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from('schools')
+          .select('id, name, school_code, city')
+          .order('name')
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (data) allSchools.push(...data);
+        if (!data || data.length < pageSize) break;
+        from += pageSize;
+      }
 
-      if (schoolsError) throw schoolsError;
-      if (!allSchools) return;
+      if (allSchools.length === 0) return;
 
       const schoolIds = allSchools.map((s) => s.id);
 
@@ -340,13 +360,22 @@ export default function Schools() {
   const handleExportExcel = async () => {
     setExporting(true);
     try {
-      const { data: allSchools, error } = await supabase
-        .from('schools')
-        .select('*')
-        .order('name', { ascending: true });
+      const allSchools: School[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from('schools')
+          .select('*')
+          .order('name', { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (data) allSchools.push(...data);
+        if (!data || data.length < pageSize) break;
+        from += pageSize;
+      }
 
-      if (error) throw error;
-      if (!allSchools || allSchools.length === 0) return;
+      if (allSchools.length === 0) return;
 
       const schoolIds = allSchools.map((s) => s.id);
 

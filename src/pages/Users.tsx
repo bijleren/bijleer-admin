@@ -159,10 +159,20 @@ export default function Users() {
           .lte('created_at', endOfMonth.toISOString());
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const allData: typeof profiles = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await query
+          .order('created_at', { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (data) allData.push(...data);
+        if (!data || data.length < pageSize) break;
+        from += pageSize;
+      }
 
-      if (error) throw error;
-      setProfiles(data || []);
+      setProfiles(allData);
     } catch (error) {
       console.error('Error fetching profiles:', error);
     } finally {
