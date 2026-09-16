@@ -1,4 +1,4 @@
-export type ProductType = 'woordenschat' | 'storage_upgrade' | 'digitools' | 'webwijzer';
+export type ProductType = 'oefentijd' | 'premium' | 'woordenschat' | 'storage_upgrade' | 'digitools' | 'webwijzer';
 export type LicenseType = 'trial' | 'paid_stripe' | 'paid_voucher' | 'manual';
 export type LicenseStatus = 'active' | 'expired' | 'cancelled' | 'pending';
 export type TransactionType = 'created' | 'renewed' | 'extended' | 'cancelled' | 'expired' | 'migration';

@@ -21,7 +21,7 @@ export default function ManualGrants() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [formData, setFormData] = useState<ManualLicenseFormData>({
     organization_id: '',
-    product_type: 'woordenschat',
+    product_type: 'oefentijd',
     license_type: 'manual',
     valid_from: new Date().toISOString().split('T')[0],
     valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
@@ -128,7 +128,7 @@ export default function ManualGrants() {
 
       setFormData({
         organization_id: '',
-        product_type: 'woordenschat',
+        product_type: 'oefentijd',
         license_type: 'manual',
         valid_from: new Date().toISOString().split('T')[0],
         valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
@@ -234,6 +234,8 @@ export default function ManualGrants() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
+                <option value="oefentijd">Oefentijd</option>
+                <option value="premium">Premium</option>
                 <option value="woordenschat">Woordenschat</option>
                 <option value="storage_upgrade">Storage Upgrade</option>
                 <option value="digitools">DigiTools</option>
@@ -375,7 +377,7 @@ export default function ManualGrants() {
               onClick={() => {
                 setFormData({
                   organization_id: '',
-                  product_type: 'woordenschat',
+                  product_type: 'oefentijd',
                   license_type: 'manual',
                   valid_from: new Date().toISOString().split('T')[0],
                   valid_until: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)

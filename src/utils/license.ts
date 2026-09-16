@@ -48,6 +48,8 @@ export function calculateDaysRemaining(validUntil: string): number {
 
 export function formatProductType(productType: ProductType): string {
   const labels: Record<ProductType, string> = {
+    oefentijd: 'Oefentijd',
+    premium: 'Premium',
     woordenschat: 'Woordenschat',
     storage_upgrade: 'Storage Upgrade',
     digitools: 'DigiTools',

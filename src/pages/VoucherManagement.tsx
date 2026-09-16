@@ -236,6 +236,8 @@ export default function VoucherManagement() {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">All Products</option>
+            <option value="oefentijd">Oefentijd</option>
+            <option value="premium">Premium</option>
             <option value="woordenschat">Woordenschat</option>
             <option value="storage_upgrade">Storage Upgrade</option>
             <option value="digitools">DigiTools</option>
@@ -393,6 +395,8 @@ export default function VoucherManagement() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
+                  <option value="oefentijd">Oefentijd</option>
+                  <option value="premium">Premium</option>
                   <option value="woordenschat">Woordenschat</option>
                   <option value="storage_upgrade">Storage Upgrade</option>
                   <option value="digitools">DigiTools</option>

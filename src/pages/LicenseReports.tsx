@@ -94,6 +94,8 @@ export default function LicenseReports() {
         )
         .reduce((sum, t) => sum + (t.amount_eur || 0), 0),
       licenses_by_product: {
+        oefentijd: licensesData.filter((l) => l.product_type === 'oefentijd').length,
+        premium: licensesData.filter((l) => l.product_type === 'premium').length,
         woordenschat: licensesData.filter((l) => l.product_type === 'woordenschat').length,
         storage_upgrade: licensesData.filter((l) => l.product_type === 'storage_upgrade').length,
         digitools: licensesData.filter((l) => l.product_type === 'digitools').length,
