@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Bug, Calendar, User, Monitor, Globe, AlertTriangle, ChevronDown, ChevronUp, Tag, FileText, Clock, CheckCircle, XCircle, Search, Eye, Download } from 'lucide-react';
+import { Bug, Calendar, User, Monitor, Globe, AlertTriangle, ChevronDown, ChevronUp, Tag, FileText, Clock, CheckCircle, XCircle, Search, Eye, Download, Mail } from 'lucide-react';
 
 interface ConsoleError {
   level: 'error' | 'warn' | 'uncaught' | 'unhandledrejection';
@@ -27,6 +27,7 @@ interface BugReport {
   status: string;
   notes: string | null;
   external_notes: string | null;
+  emailed_at: string | null;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -79,7 +80,7 @@ export default function BugReports() {
     try {
       const { data, error } = await supabase
         .from('bug_reports')
-        .select('id,created_at,type,title,description,user_email,url,viewport,locale,ip,status,notes,external_notes,user_agent,user_id,console_errors,screenshot')
+        .select('id,created_at,type,title,description,user_email,url,viewport,locale,ip,status,notes,external_notes,emailed_at,user_agent,user_id,console_errors,screenshot')
         .order('created_at', { ascending: false });
       if (error) throw error;
       setReports(data || []);
@@ -115,6 +116,15 @@ export default function BugReports() {
     if (error) { console.error(error); return; }
     setReports(prev => prev.map(r => r.id === selected.id ? { ...r, external_notes: externalNotes || null } : r));
     setSelected(prev => prev ? { ...prev, external_notes: externalNotes || null } : prev);
+  };
+
+  const toggleEmailed = async () => {
+    if (!selected) return;
+    const emailed_at = selected.emailed_at ? null : new Date().toISOString();
+    const { error } = await supabase.from('bug_reports').update({ emailed_at }).eq('id', selected.id);
+    if (error) { console.error(error); return; }
+    setReports(prev => prev.map(r => r.id === selected.id ? { ...r, emailed_at } : r));
+    setSelected(prev => prev ? { ...prev, emailed_at } : prev);
   };
 
   const selectReport = (report: BugReport) => {
@@ -499,6 +509,22 @@ export default function BugReports() {
                   >
                     {savingExternalNotes ? 'Opslaan...' : 'Externe notities opslaan'}
                   </button>
+                  {selected.user_email && (
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-teal-200 pt-3">
+                      <span className="flex items-center gap-1.5 text-sm text-teal-800">
+                        <Mail className="w-3.5 h-3.5" />
+                        {selected.emailed_at
+                          ? `Gemaild op ${new Date(selected.emailed_at).toLocaleDateString('nl-BE')}`
+                          : 'Nog niet gemaild'}
+                      </span>
+                      <button
+                        onClick={toggleEmailed}
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg border border-teal-300 bg-white text-teal-700 hover:bg-teal-100 transition-colors"
+                      >
+                        {selected.emailed_at ? 'Markering wissen' : 'Markeer als gemaild'}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Status */}
